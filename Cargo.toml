@@ -1,0 +1,6 @@
+[package]
+name = "rust-network-manager-library"
+version = "0.1.0"
+authors = ["Joseph Roberts <joe@resin.io>"]
+
+[dependencies]
