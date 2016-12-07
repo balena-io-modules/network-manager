@@ -7,3 +7,6 @@
 Cargo.lock
 target
 Cargo.lock
+
+# Ignore .bk files created by rustfmt
+*.bk
