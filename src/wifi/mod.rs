@@ -7,6 +7,8 @@
 /// println!("{:?}", access_points);
 /// ```
 pub fn scan() -> Result<Vec<AccessPoint>, String> {
+    // Scan for access points
+
     let ap1 = AccessPoint {
         ssid: "ap1".to_owned(),
         signal: 60,

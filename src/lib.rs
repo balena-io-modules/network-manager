@@ -4,3 +4,4 @@
 //! functionality for configuring Network Manager from Rust.
 
 pub mod wifi;
+pub mod service;
