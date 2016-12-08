@@ -4,4 +4,7 @@ version = "0.1.0"
 authors = ["Joseph Roberts <joe@resin.io>"]
 
 [dependencies]
-clippy = "*"
+clippy = {version = "*", optional = true}
+
+[features]
+default = []
