@@ -1,3 +1,5 @@
+use general::Security;
+
 /// Scans for Wi-Fi access points.
 ///
 /// # Examples
@@ -29,11 +31,4 @@ pub struct AccessPoint {
     ssid: String,
     signal: u8,
     security: Vec<Security>,
-}
-
-#[derive(Debug)]
-pub enum Security {
-    WEP,
-    WPA1,
-    WPA2,
 }
