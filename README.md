@@ -1,2 +1,2 @@
-# rust-network-manager
+# NetworkManager
 Network Manager library written in rust

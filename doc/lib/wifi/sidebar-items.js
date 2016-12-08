@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Security",""]],"fn":[["scan","Scans for Wi-Fi access points."]],"struct":[["AccessPoint",""]]});
