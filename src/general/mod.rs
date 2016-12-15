@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 /// Gets the Network Manager status.
 ///
 /// # Examples
@@ -47,6 +49,22 @@ pub enum ServiceState {
     Failed,
     Activating,
     Deactivating,
+}
+
+impl FromStr for ServiceState {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "active" => Ok(ServiceState::Active),
+            "reloading" => Ok(ServiceState::Reloading),
+            "inactive" => Ok(ServiceState::Inactive),
+            "failed" => Ok(ServiceState::Failed),
+            "activating" => Ok(ServiceState::Activating),
+            "deactivating" => Ok(ServiceState::Deactivating),
+            _ => Err("not a valid value"),
+        }
+    }
 }
 
 #[derive(Debug)]
