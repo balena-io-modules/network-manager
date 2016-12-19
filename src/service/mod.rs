@@ -1,3 +1,7 @@
+extern crate dbus;
+
+use self::dbus::{Connection, BusType, Message, Path, Props};
+
 use general::ServiceState;
 
 /// Enables the Network Manager service.
@@ -47,7 +51,25 @@ pub fn disable(t: i32) -> Result<ServiceState, String> {
 /// println!("{:?}", state);
 /// ```
 pub fn state() -> Result<ServiceState, String> {
-    // Get service state
+    let c = Connection::get_private(BusType::System).unwrap();
 
-    Ok(ServiceState::Failed)
+    let mut m = Message::new_method_call("org.freedesktop.systemd1",
+                                         "/org/freedesktop/systemd1",
+                                         "org.freedesktop.systemd1.Manager",
+                                         "GetUnit")
+        .unwrap();
+    m.append_items(&["NetworkManager.service".into()]);
+    let r = c.send_with_reply_and_block(m, 2000).unwrap();
+    let p: Path = r.get1().unwrap();
+
+    let m = Props::new(&c,
+                       "org.freedesktop.systemd1",
+                       p,
+                       "org.freedesktop.systemd1.Unit",
+                       2000);
+    let r = m.get("ActiveState").unwrap();
+    let v: &String = r.inner().unwrap();
+    let s: ServiceState = v.parse().unwrap();
+
+    Ok(s)
 }
