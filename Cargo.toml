@@ -5,6 +5,7 @@ authors = ["Joseph Roberts <joe@resin.io>"]
 
 [dependencies]
 clippy = {version = "*", optional = true}
+dbus = "0.4.1"
 
 [features]
 default = []
