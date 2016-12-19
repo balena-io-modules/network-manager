@@ -1,7 +1,7 @@
 extern crate dbus;
 
 use self::dbus::{Connection, BusType, Message, Path, Props};
-
+use std::{thread, time};
 use general::ServiceState;
 
 /// Enables the Network Manager service.
@@ -12,16 +12,39 @@ use general::ServiceState;
 /// let state = network_manager::service::enable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn enable(t: i32) -> Result<ServiceState, String> {
-    // Enable service
+pub fn enable(to: i32) -> Result<ServiceState, String> {
+    let c = Connection::get_private(BusType::System).unwrap();
 
-    if t != 0 {
-        // Wait until service has started or
-        // until the time has elapsed
+    let mut m = Message::new_method_call("org.freedesktop.systemd1",
+                                         "/org/freedesktop/systemd1",
+                                         "org.freedesktop.systemd1.Manager",
+                                         "StartUnit")
+        .unwrap();
+    m.append_items(&["NetworkManager.service".into(), "fail".into()]);
+    c.send_with_reply_and_block(m, 2000).unwrap();
+
+    let mut s = state().unwrap();
+    let mut t = 0;
+    while t < to {
+        thread::sleep(time::Duration::from_secs(1));
+        t = t + 1;
+
+        s = state().unwrap();
+        if s == ServiceState::Active {
+            break;
+        }
     }
 
-    Ok(ServiceState::Active)
+    Ok(s)
 }
+
+
+
+// bus.getInterfaceAsync(SERVICE, MANAGER_OBJECT, MANAGER_INTERFACE)
+//     .then (manager) ->
+//         manager.StartUnitAsync(unit, mode)
+//     .then ->
+//         waitUntilState(unit, 'active')
 
 /// Disables the Network Manager service.
 ///
