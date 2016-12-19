@@ -42,6 +42,7 @@ pub enum NetworkManagerState {
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub enum ServiceState {
     Active,
     Reloading,
