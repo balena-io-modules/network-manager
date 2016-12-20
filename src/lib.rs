@@ -6,6 +6,8 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
+#[macro_use]
+mod dbus_helper;
 pub mod general;
 pub mod wifi;
 pub mod service;
