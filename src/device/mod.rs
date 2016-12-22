@@ -12,17 +12,17 @@ pub fn list() -> Result<Vec<Device>, String> {
     // Get list of devices
 
     let device1 = Device {
-        name: "resin_io".to_owned(),
-        device: "wlp4s0".to_owned(),
-        path: "/org/freedesktop/NetworkManager/ActiveDevice/187".to_owned(),
+        name: "resin_io".to_string(),
+        device: "wlp4s0".to_string(),
+        path: "/org/freedesktop/NetworkManager/ActiveDevice/187".to_string(),
         interface: Interface::WiFi,
         state: DeviceState::Activated,
     };
 
     let device2 = Device {
-        name: "docker0".to_owned(),
-        device: "docker0".to_owned(),
-        path: "/org/freedesktop/NetworkManager/ActiveDevice/180".to_owned(),
+        name: "docker0".to_string(),
+        device: "docker0".to_string(),
+        path: "/org/freedesktop/NetworkManager/ActiveDevice/180".to_string(),
         interface: Interface::Bridge,
         state: DeviceState::Activated,
     };

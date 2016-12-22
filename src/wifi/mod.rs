@@ -12,13 +12,13 @@ pub fn scan() -> Result<Vec<AccessPoint>, String> {
     // Scan for access points
 
     let ap1 = AccessPoint {
-        ssid: "ap1".to_owned(),
+        ssid: "ap1".to_string(),
         signal: 60,
         security: vec![Security::WEP],
     };
 
     let ap2 = AccessPoint {
-        ssid: "ap2".to_owned(),
+        ssid: "ap2".to_string(),
         signal: 92,
         security: vec![Security::WPA1, Security::WPA2],
     };
