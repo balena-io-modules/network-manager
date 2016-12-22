@@ -1,41 +1,32 @@
 extern crate dbus;
 
-use self::dbus::{Connection, BusType, Message, Path, Props};
-use std::{thread, time};
+use std;
 use general::ServiceState;
+
+const SERVICE: &'static str = "org.freedesktop.systemd1";
+const MANAGER_PATH: &'static str = "/org/freedesktop/systemd1";
+const MANAGER_INTERFACE: &'static str = "org.freedesktop.systemd1.Manager";
+const UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
 
 /// Enables the Network Manager service.
 ///
 /// # Examples
 ///
 /// ```
+/// # network_manager::service::disable(10);
 /// let state = network_manager::service::enable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn enable(to: i32) -> Result<ServiceState, String> {
-    let c = Connection::get_private(BusType::System).unwrap();
-
-    let mut m = Message::new_method_call("org.freedesktop.systemd1",
-                                         "/org/freedesktop/systemd1",
-                                         "org.freedesktop.systemd1.Manager",
-                                         "StartUnit")
-        .unwrap();
-    m.append_items(&["NetworkManager.service".into(), "fail".into()]);
-    c.send_with_reply_and_block(m, 2000).unwrap();
-
-    let mut s = state().unwrap();
-    let mut t = 0;
-    while t < to {
-        thread::sleep(time::Duration::from_secs(1));
-        t = t + 1;
-
-        s = state().unwrap();
-        if s == ServiceState::Active {
-            break;
-        }
+pub fn enable(time_out: i32) -> Result<ServiceState, String> {
+    if state().unwrap() == ServiceState::Active {
+        return Ok(ServiceState::Active);
     }
 
-    Ok(s)
+    let mut message = dbus_message!(SERVICE, MANAGER_PATH, MANAGER_INTERFACE, "StartUnit");
+    message.append_items(&["NetworkManager.service".into(), "fail".into()]);
+    dbus_connect!(message).unwrap();
+
+    wait(time_out, ServiceState::Active)
 }
 
 /// Disables the Network Manager service.
@@ -43,33 +34,20 @@ pub fn enable(to: i32) -> Result<ServiceState, String> {
 /// # Examples
 ///
 /// ```
+/// # network_manager::service::enable(10);
 /// let state = network_manager::service::disable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn disable(to: i32) -> Result<ServiceState, String> {
-    let c = Connection::get_private(BusType::System).unwrap();
-
-    let mut m = Message::new_method_call("org.freedesktop.systemd1",
-                                         "/org/freedesktop/systemd1",
-                                         "org.freedesktop.systemd1.Manager",
-                                         "StopUnit")
-        .unwrap();
-    m.append_items(&["NetworkManager.service".into(), "fail".into()]);
-    c.send_with_reply_and_block(m, 2000).unwrap();
-
-    let mut s = state().unwrap();
-    let mut t = 0;
-    while t < to {
-        thread::sleep(time::Duration::from_secs(1));
-        t = t + 1;
-
-        s = state().unwrap();
-        if s == ServiceState::Inactive {
-            break;
-        }
+pub fn disable(time_out: i32) -> Result<ServiceState, String> {
+    if state().unwrap() == ServiceState::Inactive {
+        return Ok(ServiceState::Inactive);
     }
 
-    Ok(s)
+    let mut message = dbus_message!(SERVICE, MANAGER_PATH, MANAGER_INTERFACE, "StopUnit");
+    message.append_items(&["NetworkManager.service".into(), "fail".into()]);
+    dbus_connect!(message).unwrap();
+
+    wait(time_out, ServiceState::Inactive)
 }
 
 /// Gets the state of the Network Manager service.
@@ -81,25 +59,30 @@ pub fn disable(to: i32) -> Result<ServiceState, String> {
 /// println!("{:?}", state);
 /// ```
 pub fn state() -> Result<ServiceState, String> {
-    let c = Connection::get_private(BusType::System).unwrap();
+    let mut message = dbus_message!(SERVICE, MANAGER_PATH, MANAGER_INTERFACE, "GetUnit");
+    message.append_items(&["NetworkManager.service".into()]);
+    let response = dbus_connect!(message).unwrap();
+    let unit_path: dbus::Path = response.get1().unwrap();
 
-    let mut m = Message::new_method_call("org.freedesktop.systemd1",
-                                         "/org/freedesktop/systemd1",
-                                         "org.freedesktop.systemd1.Manager",
-                                         "GetUnit")
+    let state: ServiceState = dbus_property!(SERVICE, unit_path, UNIT_INTERFACE, "ActiveState")
+        .parse()
         .unwrap();
-    m.append_items(&["NetworkManager.service".into()]);
-    let r = c.send_with_reply_and_block(m, 2000).unwrap();
-    let p: Path = r.get1().unwrap();
+    Ok(state)
+}
 
-    let m = Props::new(&c,
-                       "org.freedesktop.systemd1",
-                       p,
-                       "org.freedesktop.systemd1.Unit",
-                       2000);
-    let r = m.get("ActiveState").unwrap();
-    let v: &String = r.inner().unwrap();
-    let s: ServiceState = v.parse().unwrap();
+fn wait(time_out: i32, target_state: ServiceState) -> Result<ServiceState, String> {
+    if time_out == 0 {
+        return state();
+    }
 
-    Ok(s)
+    let mut total_time = 0;
+    while total_time < time_out {
+        if state().unwrap() == target_state {
+            return state();
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        total_time = total_time + 1;
+    }
+
+    Err("service timed out".to_string())
 }
