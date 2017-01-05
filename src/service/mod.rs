@@ -65,8 +65,11 @@ pub fn state() -> Result<ServiceState, String> {
     let unit_path: dbus::Path = response.get1().unwrap();
 
     let state: ServiceState = dbus_property!(SERVICE, unit_path, UNIT_INTERFACE, "ActiveState")
+        .inner::<&String>()
+        .unwrap()
         .parse()
         .unwrap();
+
     Ok(state)
 }
 
