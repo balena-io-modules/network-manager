@@ -10,9 +10,8 @@ macro_rules! dbus_message {
 macro_rules! dbus_property {
    ($service:expr, $path:expr, $interface:expr, $property:expr) => {{
         let connection = dbus::Connection::get_private(dbus::BusType::System).unwrap();
-        let property = dbus::Props::new(&connection, $service, $path, $interface, 2000).
-            get($property).unwrap();
-        property.inner::<&String>().unwrap().clone()
+        dbus::Props::new(&connection, $service, $path, $interface, 2000).
+            get($property).unwrap()
     }}
 }
 
