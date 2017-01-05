@@ -1,4 +1,12 @@
+extern crate dbus;
+
+use std::str;
 use general::{Interface, Security, ConnectionState};
+
+const NM_SERVICE: &'static str = "org.freedesktop.NetworkManager";
+const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
+const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
+const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.Connection";
 
 /// Get a list of Network Manager connections.
 ///
@@ -9,31 +17,15 @@ use general::{Interface, Security, ConnectionState};
 /// println!("{:?}", connections);
 /// ```
 pub fn list() -> Result<Vec<Connection>, String> {
-    // Get list of connections
+    let message = dbus_message!(NM_SERVICE,
+                                NM_SETTINGS_PATH,
+                                NM_SETTINGS_INTERFACE,
+                                "ListConnections");
+    let response = dbus_connect!(message).unwrap();
+    let paths: dbus::arg::Array<dbus::Path, _> = response.get1().unwrap();
+    let connections = paths.map(|p| get(p).unwrap()).collect::<Vec<Connection>>();
 
-    let connection1 = Connection {
-        name: "resin_io".to_owned(),
-        ssid: "resin_io".to_owned(),
-        uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_owned(),
-        device: "wlp4s0".to_owned(),
-        path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_owned(),
-        interface: Interface::WiFi,
-        security: Security::WPA2,
-        state: ConnectionState::Activated,
-    };
-
-    let connection2 = Connection {
-        name: "docker0".to_owned(),
-        ssid: String::new(),
-        uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_owned(),
-        device: "docker0".to_owned(),
-        path: "/org/freedesktop/NetworkManager/ActiveConnection/180".to_owned(),
-        interface: Interface::Bridge,
-        security: Security::None,
-        state: ConnectionState::Deactivated,
-    };
-
-    Ok(vec![connection1, connection2])
+    Ok(connections)
 }
 
 /// Creates a Network Manager connection.
@@ -54,18 +46,17 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
     // Get the connection
     // Return the connection
 
-    let new_connection = Connection {
-        name: "resin_io".to_owned(),
-        ssid: "resin_io".to_owned(),
-        uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_owned(),
-        device: "wlp4s0".to_owned(),
-        path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_owned(),
-        interface: Interface::WiFi,
-        security: Security::WPA2,
-        state: ConnectionState::Activated,
+    let connection1 = Connection {
+        path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_string(),
+        id: "resin_io".to_string(),
+        uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_string(),
+        ssid: "resin_io".to_string(), /* device: "wlp4s0".to_string(),
+                                       * interface: Interface::WiFi,
+                                       * security: Security::WPA2,
+                                       * state: ConnectionState::Activated, */
     };
 
-    Ok(new_connection)
+    Ok(connection1)
 }
 
 /// Deletes a Network Manager connection.
@@ -125,14 +116,52 @@ pub fn disable(c: &Connection, t: i32) -> Result<ConnectionState, String> {
     Ok(ConnectionState::Deactivated)
 }
 
-#[derive(Debug)]
+fn get(path: dbus::Path) -> Result<Connection, String> {
+    let mut connection =
+        Connection { path: path.as_cstr().to_str().unwrap().to_string(), ..Default::default() };
+
+    let message = dbus_message!(NM_SERVICE,
+                                connection.path.clone(),
+                                NM_CONNECTION_INTERFACE,
+                                "GetSettings");
+    let response = dbus_connect!(message).unwrap();
+    let dictionary: dbus::arg::Dict<&str,
+                                    dbus::arg::Dict<&str, dbus::arg::Variant<dbus::arg::Iter>, _>,
+                                    _> = response.get1().unwrap();
+
+    for (_, v1) in dictionary {
+        for (k2, v2) in v1 {
+            match k2 {
+                "id" => {
+                    connection.id = v2.0.clone().get::<&str>().unwrap().to_string();
+                }
+                "uuid" => {
+                    connection.uuid = v2.0.clone().get::<&str>().unwrap().to_string();
+                }
+                "ssid" => {
+                    connection.ssid = str::from_utf8(&v2.0
+                            .clone()
+                            .get::<dbus::arg::Array<u8, _>>()
+                            .unwrap()
+                            .collect::<Vec<u8>>())
+                        .unwrap()
+                        .to_string();
+                }
+                _ => (),
+            }
+        }
+    }
+
+    Ok(connection)
+}
+
+#[derive(Default, Debug)]
 pub struct Connection {
-    name: String,
-    ssid: String,
-    uuid: String,
-    device: String,
     path: String,
-    interface: Interface,
-    security: Security,
-    state: ConnectionState,
+    id: String,
+    uuid: String,
+    ssid: String, /* device: String,
+                   * interface: Interface,
+                   * security: Security,
+                   * state: ConnectionState, */
 }
