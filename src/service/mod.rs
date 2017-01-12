@@ -1,12 +1,7 @@
 extern crate dbus;
 
 use std;
-use general::ServiceState;
-
-const SERVICE: &'static str = "org.freedesktop.systemd1";
-const MANAGER_PATH: &'static str = "/org/freedesktop/systemd1";
-const MANAGER_INTERFACE: &'static str = "org.freedesktop.systemd1.Manager";
-const UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
+use general::*;
 
 /// Enables the Network Manager service.
 ///
@@ -22,7 +17,10 @@ pub fn enable(time_out: i32) -> Result<ServiceState, String> {
         return Ok(ServiceState::Active);
     }
 
-    let mut message = dbus_message!(SERVICE, MANAGER_PATH, MANAGER_INTERFACE, "StartUnit");
+    let mut message = dbus_message!(SD_SERVICE_MANAGER,
+                                    SD_SERVICE_PATH,
+                                    SD_MANAGER_INTERFACE,
+                                    "StartUnit");
     message.append_items(&["NetworkManager.service".into(), "fail".into()]);
     dbus_connect!(message).unwrap();
 
@@ -43,7 +41,10 @@ pub fn disable(time_out: i32) -> Result<ServiceState, String> {
         return Ok(ServiceState::Inactive);
     }
 
-    let mut message = dbus_message!(SERVICE, MANAGER_PATH, MANAGER_INTERFACE, "StopUnit");
+    let mut message = dbus_message!(SD_SERVICE_MANAGER,
+                                    SD_SERVICE_PATH,
+                                    SD_MANAGER_INTERFACE,
+                                    "StopUnit");
     message.append_items(&["NetworkManager.service".into(), "fail".into()]);
     dbus_connect!(message).unwrap();
 
@@ -59,12 +60,18 @@ pub fn disable(time_out: i32) -> Result<ServiceState, String> {
 /// println!("{:?}", state);
 /// ```
 pub fn state() -> Result<ServiceState, String> {
-    let mut message = dbus_message!(SERVICE, MANAGER_PATH, MANAGER_INTERFACE, "GetUnit");
+    let mut message = dbus_message!(SD_SERVICE_MANAGER,
+                                    SD_SERVICE_PATH,
+                                    SD_MANAGER_INTERFACE,
+                                    "GetUnit");
     message.append_items(&["NetworkManager.service".into()]);
     let response = dbus_connect!(message).unwrap();
     let unit_path: dbus::Path = response.get1().unwrap();
 
-    let state: ServiceState = dbus_property!(SERVICE, unit_path, UNIT_INTERFACE, "ActiveState")
+    let state: ServiceState = dbus_property!(SD_SERVICE_MANAGER,
+                                             unit_path,
+                                             SD_UNIT_INTERFACE,
+                                             "ActiveState")
         .inner::<&String>()
         .unwrap()
         .parse()

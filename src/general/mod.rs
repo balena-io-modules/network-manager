@@ -4,10 +4,20 @@ extern crate enum_primitive;
 use std::str::FromStr;
 use enum_primitive::FromPrimitive;
 
-const NM_SERVICE: &'static str = "org.freedesktop.NetworkManager";
-const NM_PATH: &'static str = "/org/freedesktop/NetworkManager";
-const NM_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
+pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
+pub const SD_SERVICE_MANAGER: &'static str = "org.freedesktop.systemd1";
 
+pub const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
+pub const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
+pub const SD_SERVICE_PATH: &'static str = "/org/freedesktop/systemd1";
+
+pub const NM_SERVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
+pub const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
+pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
+                                                   Connection";
+pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
+pub const SD_MANAGER_INTERFACE: &'static str = "org.freedesktop.systemd1.Manager";
+pub const SD_UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
 
 /// Gets the Network Manager status.
 ///
@@ -20,23 +30,41 @@ const NM_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
 pub fn status() -> Result<Status, String> {
     let mut status: Status = Default::default();
 
-    let message = dbus_message!(NM_SERVICE, NM_PATH, NM_INTERFACE, "state");
+    let message = dbus_message!(NM_SERVICE_MANAGER,
+                                NM_SERVICE_PATH,
+                                NM_SERVICE_INTERFACE,
+                                "state");
     let response = dbus_connect!(message).unwrap();
     let val: u32 = response.get1().unwrap();
     status.state = NetworkManagerState::from(val);
 
-    let message = dbus_message!(NM_SERVICE, NM_PATH, NM_INTERFACE, "CheckConnectivity");
+    let message = dbus_message!(NM_SERVICE_MANAGER,
+                                NM_SERVICE_PATH,
+                                NM_SERVICE_INTERFACE,
+                                "CheckConnectivity");
     let response = dbus_connect!(message).unwrap();
     let val: u32 = response.get1().unwrap();
     status.connectivity = Connectivity::from(val);
 
-    status.wireless_network_enabled =
-        dbus_property!(NM_SERVICE, NM_PATH, NM_INTERFACE, "WirelessEnabled").inner().unwrap();
+    status.wireless_network_enabled = dbus_property!(NM_SERVICE_MANAGER,
+                                                     NM_SERVICE_PATH,
+                                                     NM_SERVICE_INTERFACE,
+                                                     "WirelessEnabled")
+        .inner()
+        .unwrap();
 
-    status.networking_enabled =
-        dbus_property!(NM_SERVICE, NM_PATH, NM_INTERFACE, "NetworkingEnabled").inner().unwrap();
+    status.networking_enabled = dbus_property!(NM_SERVICE_MANAGER,
+                                               NM_SERVICE_PATH,
+                                               NM_SERVICE_INTERFACE,
+                                               "NetworkingEnabled")
+        .inner()
+        .unwrap();
 
     Ok(status)
+}
+
+pub fn dbus_path_to_string(path: dbus::Path) -> String {
+    path.as_cstr().to_str().unwrap().to_string()
 }
 
 impl From<u32> for NetworkManagerState {
@@ -59,6 +87,18 @@ impl From<u32> for Connectivity {
 
 impl From<Connectivity> for u32 {
     fn from(val: Connectivity) -> u32 {
+        val as u32
+    }
+}
+
+impl From<u32> for ConnectionState {
+    fn from(val: u32) -> ConnectionState {
+        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
+    }
+}
+
+impl From<ConnectionState> for u32 {
+    fn from(val: ConnectionState) -> u32 {
         val as u32
     }
 }
@@ -123,13 +163,15 @@ impl FromStr for ServiceState {
     }
 }
 
+enum_from_primitive!{
 #[derive(Debug)]
 pub enum ConnectionState {
-    Unknown,
-    Activating,
-    Activated,
-    Deactivating,
-    Deactivated,
+    Unknown = 0,
+    Activating = 1,
+    Activated = 2,
+    Deactivating = 3,
+    Deactivated = 4,
+}
 }
 
 #[derive(Debug)]

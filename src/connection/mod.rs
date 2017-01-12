@@ -1,12 +1,7 @@
 extern crate dbus;
 
 use std::str;
-use general::{Interface, Security, ConnectionState};
-
-const NM_SERVICE: &'static str = "org.freedesktop.NetworkManager";
-const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
-const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
-const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.Connection";
+use general::*;
 
 /// Get a list of Network Manager connections.
 ///
@@ -17,7 +12,7 @@ const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Se
 /// println!("{:?}", connections);
 /// ```
 pub fn list() -> Result<Vec<Connection>, String> {
-    let message = dbus_message!(NM_SERVICE,
+    let message = dbus_message!(NM_SERVICE_MANAGER,
                                 NM_SETTINGS_PATH,
                                 NM_SETTINGS_INTERFACE,
                                 "ListConnections");
@@ -116,11 +111,66 @@ pub fn disable(c: &Connection, t: i32) -> Result<ConnectionState, String> {
     Ok(ConnectionState::Deactivated)
 }
 
-fn get(path: dbus::Path) -> Result<Connection, String> {
-    let mut connection =
-        Connection { path: path.as_cstr().to_str().unwrap().to_string(), ..Default::default() };
+/// Gets the state of a Network Manager connection.
+///
+/// # Examples
+///
+/// ```
+/// let connections = network_manager::connection::list().unwrap();
+/// let connection = &connections[0];
+/// let state = network_manager::connection::state(connection).unwrap();
+/// println!("{:?}", state);
+/// ```
+pub fn state(connection: &Connection) -> Result<ConnectionState, String> {
+    // Get a vector containing active connection paths for all the active connections
+    let active_paths = dbus_property!(NM_SERVICE_MANAGER,
+                                      NM_SERVICE_PATH,
+                                      NM_SERVICE_INTERFACE,
+                                      "ActiveConnections")
+        .inner::<&Vec<dbus::MessageItem>>()
+        .unwrap()
+        .iter()
+        .map(|p| dbus_path_to_string(p.inner::<&dbus::Path>().unwrap().to_owned()))
+        .collect::<Vec<_>>();
+    // How can we avoid this ^ collect - it gets turned back into an iterator below.
 
-    let message = dbus_message!(NM_SERVICE,
+    // Get a vector containing settings paths for all active connections
+    let settings_paths = active_paths.iter()
+        .map(|p| {
+            dbus_path_to_string(dbus_property!(NM_SERVICE_MANAGER,
+                                               p,
+                                               NM_ACTIVE_INTERFACE,
+                                               "Connection")
+                .inner::<&dbus::Path>()
+                .unwrap()
+                .to_owned())
+        });
+
+    // Pre-set the state as it won't get changed unless the passed in connection.path is present
+    let mut state = ConnectionState::Deactivated;
+
+    // Loop over the active paths and settings paths
+    // If the passed in connection.path is equal to the settings path the state is
+    // retrieved using the active connection path
+    for (active_path, settings_path) in active_paths.iter().zip(settings_paths) {
+        if settings_path == connection.path {
+            state = ConnectionState::from(dbus_property!(NM_SERVICE_MANAGER,
+                                                         active_path,
+                                                         NM_ACTIVE_INTERFACE,
+                                                         "State")
+                .inner::<u32>()
+                .unwrap());
+            break;
+        }
+    }
+
+    Ok(state)
+}
+
+fn get(path: dbus::Path) -> Result<Connection, String> {
+    let mut connection = Connection { path: dbus_path_to_string(path), ..Default::default() };
+
+    let message = dbus_message!(NM_SERVICE_MANAGER,
                                 connection.path.clone(),
                                 NM_CONNECTION_INTERFACE,
                                 "GetSettings");
