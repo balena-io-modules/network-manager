@@ -1,14 +1,15 @@
 extern crate dbus;
 
-use std::str;
+use std;
 use general::*;
 
-/// Get a list of Network Manager connections.
+/// Get a list of Network Manager connections sorted by path.
 ///
 /// # Examples
 ///
-/// ```
-/// let connections = network_manager::connection::list().unwrap();
+/// ```no_run
+/// use network_manager::connection;
+/// let connections = connection::list().unwrap();
 /// println!("{:?}", connections);
 /// ```
 pub fn list() -> Result<Vec<Connection>, String> {
@@ -18,9 +19,21 @@ pub fn list() -> Result<Vec<Connection>, String> {
                                 "ListConnections");
     let response = dbus_connect!(message).unwrap();
     let paths: dbus::arg::Array<dbus::Path, _> = response.get1().unwrap();
-    let connections = paths.map(|p| get(p).unwrap()).collect::<Vec<Connection>>();
+    let mut connections: Vec<Connection> = paths.map(|p| get_connection(p).unwrap())
+        .collect();
+    connections.sort_by(|a, b| extract_sort_value(a.clone()).cmp(&extract_sort_value(b.clone())));
 
     Ok(connections)
+}
+
+#[test]
+fn test_list_function() {
+    let connections = list().unwrap();
+    assert!(connections.len() > 0);
+    for (index, value) in connections.iter().enumerate() {
+        assert_ne!(Connection { ..Default::default() }, value.clone());
+        assert_eq!(index as i32, extract_sort_value(value.clone()));
+    }
 }
 
 /// Creates a Network Manager connection.
@@ -45,10 +58,12 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
         path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_string(),
         id: "resin_io".to_string(),
         uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_string(),
-        ssid: "resin_io".to_string(), /* device: "wlp4s0".to_string(),
-                                       * interface: Interface::WiFi,
-                                       * security: Security::WPA2,
-                                       * state: ConnectionState::Activated, */
+        ssid: "resin_io".to_string(),
+        active_path: "test".to_string(),
+        state: ConnectionState::Deactivated, /* device: "wlp4s0".to_string(),
+                                              * interface: Interface::WiFi,
+                                              * security: Security::WPA2,
+                                              * state: ConnectionState::Activated, */
     };
 
     Ok(connection1)
@@ -73,101 +88,87 @@ pub fn delete(c: &Connection) -> Result<(), String> {
 ///
 /// # Examples
 ///
+/// ```no_run
+/// use network_manager::connection;
+/// let connections = connection::list().unwrap();
+/// let mut connection = connections[0].clone();
+/// connection::enable(&mut connection, 10).unwrap();
+/// println!("{:?}", connection.state);
 /// ```
-/// let connections = network_manager::connection::list().unwrap();
-/// let connection = &connections[0];
-/// let state = network_manager::connection::enable(connection, 10).unwrap();
-/// println!("{:?}", state);
-/// ```
-pub fn enable(c: &Connection, t: i32) -> Result<ConnectionState, String> {
-    // Enable connection
-
-    if t != 0 {
-        // Wait until the connection state is 'Activated' or
-        // until the time has elapsed
+pub fn enable(connection: &mut Connection, time_out: i32) -> Result<(), String> {
+    update_state(connection).unwrap();
+    if connection.state == ConnectionState::Activated {
+        return Ok(());
     }
 
-    Ok(ConnectionState::Activated)
+    let mut message = dbus_message!(NM_SERVICE_MANAGER,
+                                    NM_SERVICE_PATH,
+                                    NM_SERVICE_INTERFACE,
+                                    "ActivateConnection");
+    message.append_items(&[dbus::MessageItem::ObjectPath(connection.path.to_string().into()),
+                           dbus::MessageItem::ObjectPath("/".into()),
+                           dbus::MessageItem::ObjectPath("/".into())]);
+    dbus_connect!(message).unwrap();
+
+    wait(connection, time_out, ConnectionState::Activated)
 }
 
 /// Disables a Network Manager connection.
 ///
 /// # Examples
 ///
+/// ```no_run
+/// use network_manager::connection;
+/// let connections = connection::list().unwrap();
+/// let mut connection = connections[0].clone();
+/// connection::disable(&mut connection, 10).unwrap();
+/// println!("{:?}", connection.state);
 /// ```
-/// let connections = network_manager::connection::list().unwrap();
-/// let connection = &connections[0];
-/// let state = network_manager::connection::disable(connection, 10).unwrap();
-/// println!("{:?}", state);
-/// ```
-pub fn disable(c: &Connection, t: i32) -> Result<ConnectionState, String> {
-    // Disable connection
-
-    if t != 0 {
-        // Wait until the connection state is 'Deactivated' or
-        // until the time has elapsed
+pub fn disable(connection: &mut Connection, time_out: i32) -> Result<(), String> {
+    update_state(connection).unwrap();
+    if connection.state == ConnectionState::Deactivated {
+        return Ok(());
     }
 
-    Ok(ConnectionState::Deactivated)
+    let mut message = dbus_message!(NM_SERVICE_MANAGER,
+                                    NM_SERVICE_PATH,
+                                    NM_SERVICE_INTERFACE,
+                                    "DeactivateConnection");
+    message.append_items(&[dbus::MessageItem::ObjectPath(connection.active_path
+                               .to_string()
+                               .into())]);
+    dbus_connect!(message).unwrap();
+
+    wait(connection, time_out, ConnectionState::Deactivated)
 }
 
-/// Gets the state of a Network Manager connection.
-///
-/// # Examples
-///
-/// ```
-/// let connections = network_manager::connection::list().unwrap();
-/// let connection = &connections[0];
-/// let state = network_manager::connection::state(connection).unwrap();
-/// println!("{:?}", state);
-/// ```
-pub fn state(connection: &Connection) -> Result<ConnectionState, String> {
-    // Get a vector containing active connection paths for all the active connections
-    let active_paths = dbus_property!(NM_SERVICE_MANAGER,
-                                      NM_SERVICE_PATH,
-                                      NM_SERVICE_INTERFACE,
-                                      "ActiveConnections")
-        .inner::<&Vec<dbus::MessageItem>>()
-        .unwrap()
-        .iter()
-        .map(|p| dbus_path_to_string(p.inner::<&dbus::Path>().unwrap().to_owned()))
-        .collect::<Vec<_>>();
-    // How can we avoid this ^ collect - it gets turned back into an iterator below.
+#[test]
+fn test_enable_disable_functions() {
+    let connections = list().unwrap();
 
-    // Get a vector containing settings paths for all active connections
-    let settings_paths = active_paths.iter()
-        .map(|p| {
-            dbus_path_to_string(dbus_property!(NM_SERVICE_MANAGER,
-                                               p,
-                                               NM_ACTIVE_INTERFACE,
-                                               "Connection")
-                .inner::<&dbus::Path>()
-                .unwrap()
-                .to_owned())
-        });
+    // Note - replace "TP-LINK_2.4GHz_9BDD8F" with one of your configured connections to test
+    let mut connection =
+        connections.iter().filter(|c| c.ssid == "TP-LINK_2.4GHz_9BDD8F").nth(0).unwrap().clone();
 
-    // Pre-set the state as it won't get changed unless the passed in connection.path is present
-    let mut state = ConnectionState::Deactivated;
+    assert!(connection.state == ConnectionState::Activated ||
+            connection.state == ConnectionState::Deactivated);
 
-    // Loop over the active paths and settings paths
-    // If the passed in connection.path is equal to the settings path the state is
-    // retrieved using the active connection path
-    for (active_path, settings_path) in active_paths.iter().zip(settings_paths) {
-        if settings_path == connection.path {
-            state = ConnectionState::from(dbus_property!(NM_SERVICE_MANAGER,
-                                                         active_path,
-                                                         NM_ACTIVE_INTERFACE,
-                                                         "State")
-                .inner::<u32>()
-                .unwrap());
-            break;
-        }
+    if connection.state == ConnectionState::Activated {
+        disable(&mut connection, 10).unwrap();
+        assert_eq!(ConnectionState::Deactivated, connection.state);
+
+        enable(&mut connection, 10).unwrap();
+        assert_eq!(ConnectionState::Activated, connection.state);
+    } else {
+        enable(&mut connection, 10).unwrap();
+        assert_eq!(ConnectionState::Activated, connection.state);
+
+        disable(&mut connection, 10).unwrap();
+        assert_eq!(ConnectionState::Deactivated, connection.state);
     }
-
-    Ok(state)
 }
 
-fn get(path: dbus::Path) -> Result<Connection, String> {
+fn get_connection(path: dbus::Path) -> Result<Connection, String> {
     let mut connection = Connection { path: dbus_path_to_string(path), ..Default::default() };
 
     let message = dbus_message!(NM_SERVICE_MANAGER,
@@ -189,7 +190,7 @@ fn get(path: dbus::Path) -> Result<Connection, String> {
                     connection.uuid = v2.0.clone().get::<&str>().unwrap().to_string();
                 }
                 "ssid" => {
-                    connection.ssid = str::from_utf8(&v2.0
+                    connection.ssid = std::str::from_utf8(&v2.0
                             .clone()
                             .get::<dbus::arg::Array<u8, _>>()
                             .unwrap()
@@ -202,16 +203,101 @@ fn get(path: dbus::Path) -> Result<Connection, String> {
         }
     }
 
+    update_state(&mut connection).unwrap();
+
     Ok(connection)
 }
 
-#[derive(Default, Debug)]
+fn extract_sort_value(connection: Connection) -> i32 {
+    connection.path.rsplit('/').nth(0).unwrap().parse::<i32>().unwrap()
+}
+
+fn update_state(connection: &mut Connection) -> Result<(), String> {
+    let active_paths: Vec<String> = dbus_property!(NM_SERVICE_MANAGER,
+                                                   NM_SERVICE_PATH,
+                                                   NM_SERVICE_INTERFACE,
+                                                   "ActiveConnections")
+        .unwrap()
+        .inner::<&Vec<dbus::MessageItem>>()
+        .unwrap()
+        .iter()
+        .map(|p| dbus_path_to_string(p.inner::<&dbus::Path>().unwrap().to_owned()))
+        .collect();
+
+    let settings_paths = active_paths.iter().map(|p| {
+        dbus_path_to_string(dbus_property!(NM_SERVICE_MANAGER,
+                                           p,
+                                           NM_ACTIVE_INTERFACE,
+                                           "Connection")
+            .unwrap()
+            .inner::<&dbus::Path>()
+            .unwrap()
+            .to_owned())
+    });
+
+    connection.active_path = "".to_string();
+    connection.state = ConnectionState::Deactivated;
+
+    for (active_path, settings_path) in active_paths.iter().zip(settings_paths) {
+        if connection.path == settings_path {
+            connection.active_path = active_path.to_owned();
+            connection.state = ConnectionState::from(dbus_property!(NM_SERVICE_MANAGER,
+                                                                    connection.active_path
+                                                                        .clone(),
+                                                                    NM_ACTIVE_INTERFACE,
+                                                                    "State")
+                .unwrap_or(dbus::MessageItem::UInt32(u32::from(ConnectionState::Deactivated)))
+                .inner::<u32>()
+                .unwrap());
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+fn wait(connection: &mut Connection,
+        time_out: i32,
+        target_state: ConnectionState)
+        -> Result<(), String> {
+    if time_out == 0 {
+        return Ok(());
+    }
+
+    let mut total_time = 0;
+    while total_time < time_out {
+        update_state(connection).unwrap();
+        if connection.state == target_state {
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        total_time = total_time + 1;
+    }
+
+    Err("service timed out".to_string())
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Connection {
-    path: String,
-    id: String,
-    uuid: String,
-    ssid: String, /* device: String,
-                   * interface: Interface,
-                   * security: Security,
-                   * state: ConnectionState, */
+    pub path: String,
+    pub active_path: String,
+    pub id: String,
+    pub uuid: String,
+    pub ssid: String,
+    pub state: ConnectionState, /* device: String,
+                                 * interface: Interface,
+                                 * security: Security, */
+}
+
+impl Default for Connection {
+    fn default() -> Connection {
+        Connection {
+            path: "".to_string(),
+            active_path: "".to_string(),
+            id: "".to_string(),
+            uuid: "".to_string(),
+            ssid: "".to_string(),
+            state: ConnectionState::Unknown,
+        }
+    }
 }

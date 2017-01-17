@@ -50,6 +50,7 @@ pub fn status() -> Result<Status, String> {
                                                      NM_SERVICE_PATH,
                                                      NM_SERVICE_INTERFACE,
                                                      "WirelessEnabled")
+        .unwrap()
         .inner()
         .unwrap();
 
@@ -57,6 +58,7 @@ pub fn status() -> Result<Status, String> {
                                                NM_SERVICE_PATH,
                                                NM_SERVICE_INTERFACE,
                                                "NetworkingEnabled")
+        .unwrap()
         .inner()
         .unwrap();
 
@@ -136,8 +138,7 @@ pub enum NetworkManagerState {
 }
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ServiceState {
     Active,
     Reloading,
@@ -164,7 +165,7 @@ impl FromStr for ServiceState {
 }
 
 enum_from_primitive!{
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConnectionState {
     Unknown = 0,
     Activating = 1,

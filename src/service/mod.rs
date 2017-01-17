@@ -72,6 +72,7 @@ pub fn state() -> Result<ServiceState, String> {
                                              unit_path,
                                              SD_UNIT_INTERFACE,
                                              "ActiveState")
+        .unwrap()
         .inner::<&String>()
         .unwrap()
         .parse()

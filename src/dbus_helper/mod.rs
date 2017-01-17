@@ -11,7 +11,7 @@ macro_rules! dbus_property {
    ($service:expr, $path:expr, $interface:expr, $property:expr) => {{
         let connection = dbus::Connection::get_private(dbus::BusType::System).unwrap();
         dbus::Props::new(&connection, $service, $path, $interface, 2000).
-            get($property).unwrap()
+            get($property)
     }}
 }
 
