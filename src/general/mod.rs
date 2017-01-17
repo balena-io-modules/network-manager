@@ -65,6 +65,7 @@ pub fn status() -> Result<Status, String> {
     Ok(status)
 }
 
+// This should be implemented as a trait in the dbus crate
 pub fn dbus_path_to_string(path: dbus::Path) -> String {
     path.as_cstr().to_str().unwrap().to_string()
 }
@@ -165,7 +166,7 @@ impl FromStr for ServiceState {
 }
 
 enum_from_primitive!{
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ConnectionState {
     Unknown = 0,
     Activating = 1,

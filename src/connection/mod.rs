@@ -21,7 +21,7 @@ pub fn list() -> Result<Vec<Connection>, String> {
     let paths: dbus::arg::Array<dbus::Path, _> = response.get1().unwrap();
     let mut connections: Vec<Connection> = paths.map(|p| get_connection(p).unwrap())
         .collect();
-    connections.sort_by(|a, b| extract_sort_value(a.clone()).cmp(&extract_sort_value(b.clone())));
+    connections.sort_by(|a, b| a.cmp(b));
 
     Ok(connections)
 }
@@ -30,9 +30,9 @@ pub fn list() -> Result<Vec<Connection>, String> {
 fn test_list_function() {
     let connections = list().unwrap();
     assert!(connections.len() > 0);
-    for (index, value) in connections.iter().enumerate() {
-        assert_ne!(Connection { ..Default::default() }, value.clone());
-        assert_eq!(index as i32, extract_sort_value(value.clone()));
+    for (index, val) in connections.iter().enumerate() {
+        assert_ne!(Connection { ..Default::default() }, val.clone());
+        assert_eq!(index as i32, i32::from(val));
     }
 }
 
@@ -208,9 +208,6 @@ fn get_connection(path: dbus::Path) -> Result<Connection, String> {
     Ok(connection)
 }
 
-fn extract_sort_value(connection: Connection) -> i32 {
-    connection.path.rsplit('/').nth(0).unwrap().parse::<i32>().unwrap()
-}
 
 fn update_state(connection: &mut Connection) -> Result<(), String> {
     let active_paths: Vec<String> = dbus_property!(NM_SERVICE_MANAGER,
@@ -277,7 +274,7 @@ fn wait(connection: &mut Connection,
     Err("service timed out".to_string())
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Connection {
     pub path: String,
     pub active_path: String,
@@ -299,5 +296,23 @@ impl Default for Connection {
             ssid: "".to_string(),
             state: ConnectionState::Unknown,
         }
+    }
+}
+
+impl Ord for Connection {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        i32::from(self).cmp(&i32::from(other))
+    }
+}
+
+impl PartialOrd for Connection {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl <'a> From<&'a Connection> for i32 {
+    fn from(val: &Connection) -> i32 {
+        val.clone().path.rsplit('/').nth(0).unwrap().parse::<i32>().unwrap()
     }
 }
