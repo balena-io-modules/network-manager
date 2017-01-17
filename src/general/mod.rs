@@ -23,8 +23,9 @@ pub const SD_UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
 ///
 /// # Examples
 ///
-/// ```
-/// let status = network_manager::general::status().unwrap();
+/// ```no_run
+/// use network_manager::general;
+/// let status = general::status().unwrap();
 /// println!("{:?}", status);
 /// ```
 pub fn status() -> Result<Status, String> {
@@ -34,7 +35,7 @@ pub fn status() -> Result<Status, String> {
                                 NM_SERVICE_PATH,
                                 NM_SERVICE_INTERFACE,
                                 "state");
-    let response = dbus_connect!(message).unwrap();
+    let response = dbus_connect!(message);
     let val: u32 = response.get1().unwrap();
     status.state = NetworkManagerState::from(val);
 
@@ -42,7 +43,7 @@ pub fn status() -> Result<Status, String> {
                                 NM_SERVICE_PATH,
                                 NM_SERVICE_INTERFACE,
                                 "CheckConnectivity");
-    let response = dbus_connect!(message).unwrap();
+    let response = dbus_connect!(message);
     let val: u32 = response.get1().unwrap();
     status.connectivity = Connectivity::from(val);
 
@@ -68,42 +69,6 @@ pub fn status() -> Result<Status, String> {
 // This should be implemented as a trait in the dbus crate
 pub fn dbus_path_to_string(path: dbus::Path) -> String {
     path.as_cstr().to_str().unwrap().to_string()
-}
-
-impl From<u32> for NetworkManagerState {
-    fn from(val: u32) -> NetworkManagerState {
-        NetworkManagerState::from_u32(val).expect("Invalid Network Manager State enum value")
-    }
-}
-
-impl From<NetworkManagerState> for u32 {
-    fn from(val: NetworkManagerState) -> u32 {
-        val as u32
-    }
-}
-
-impl From<u32> for Connectivity {
-    fn from(val: u32) -> Connectivity {
-        Connectivity::from_u32(val).expect("Invalid Connectivity enum value")
-    }
-}
-
-impl From<Connectivity> for u32 {
-    fn from(val: Connectivity) -> u32 {
-        val as u32
-    }
-}
-
-impl From<u32> for ConnectionState {
-    fn from(val: u32) -> ConnectionState {
-        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
-    }
-}
-
-impl From<ConnectionState> for u32 {
-    fn from(val: ConnectionState) -> u32 {
-        val as u32
-    }
 }
 
 #[derive(Debug)]
@@ -137,6 +102,18 @@ pub enum NetworkManagerState {
     ConnectedSite = 60,
     ConnectedGlobal = 70,
 }
+}
+
+impl From<u32> for NetworkManagerState {
+    fn from(val: u32) -> NetworkManagerState {
+        NetworkManagerState::from_u32(val).expect("Invalid Network Manager State enum value")
+    }
+}
+
+impl From<NetworkManagerState> for u32 {
+    fn from(val: NetworkManagerState) -> u32 {
+        val as u32
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -176,6 +153,18 @@ pub enum ConnectionState {
 }
 }
 
+impl From<u32> for ConnectionState {
+    fn from(val: u32) -> ConnectionState {
+        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
+    }
+}
+
+impl From<ConnectionState> for u32 {
+    fn from(val: ConnectionState) -> u32 {
+        val as u32
+    }
+}
+
 #[derive(Debug)]
 pub enum DeviceState {
     Unknown,
@@ -196,6 +185,18 @@ pub enum Connectivity { // See https://bugzilla.gnome.org/show_bug.cgi?id=776848
     Limited = 3,
     Full = 4,
 }
+}
+
+impl From<u32> for Connectivity {
+    fn from(val: u32) -> Connectivity {
+        Connectivity::from_u32(val).expect("Invalid Connectivity enum value")
+    }
+}
+
+impl From<Connectivity> for u32 {
+    fn from(val: Connectivity) -> u32 {
+        val as u32
+    }
 }
 
 #[derive(Debug)]
