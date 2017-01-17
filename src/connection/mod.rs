@@ -160,18 +160,22 @@ fn test_enable_disable_functions() {
     assert!(connection.state == ConnectionState::Activated ||
             connection.state == ConnectionState::Deactivated);
 
-    if connection.state == ConnectionState::Activated {
-        disable(&mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Deactivated, connection.state);
+    match connection.state {
+        ConnectionState::Activated => {
+            disable(&mut connection, 10).unwrap();
+            assert_eq!(ConnectionState::Deactivated, connection.state);
 
-        enable(&mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Activated, connection.state);
-    } else {
-        enable(&mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Activated, connection.state);
+            enable(&mut connection, 10).unwrap();
+            assert_eq!(ConnectionState::Activated, connection.state);
+        }
+        ConnectionState::Deactivated => {
+            enable(&mut connection, 10).unwrap();
+            assert_eq!(ConnectionState::Activated, connection.state);
 
-        disable(&mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Deactivated, connection.state);
+            disable(&mut connection, 10).unwrap();
+            assert_eq!(ConnectionState::Deactivated, connection.state);
+        }
+        _ => (),
     }
 }
 
