@@ -14,7 +14,6 @@ macro_rules! dbus_property {
 
         dbus::Props::new(&connection, $service, $path, $interface, 2000).
             get($property)
-            // .unwrap_or_else(|e| panic!("dbus_property error: {}", e))
     }}
 }
 
