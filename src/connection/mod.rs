@@ -53,6 +53,52 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
     // Create a connection
     // Get the connection
     // Return the connection
+    //
+    // dbus::arg::Dict<&str,dbus::arg::Dict<&str, dbus::arg::Variant<dbus::arg::Iter>,
+    // connection = {
+    //         '802-11-wireless': {
+    //             ssid: _.invokeMap(ssid, 'charCodeAt')
+    //         },
+    //         connection: {
+    //             id: ssid,
+    //             type: '802-11-wireless',
+    //         },
+    //         '802-11-wireless-security': {
+    //             'auth-alg': 'open',
+    //             'key-mgmt': 'wpa-psk',
+    //             'psk': passphrase,
+    //         }
+    //     }
+
+
+    let mut settings = std::collections::HashMap::new();
+
+    settings.insert("connection",
+                std::collections::HashMap::<&str, dbus::arg::Variant<_>>::new());
+    settings.insert("802-11-wireless",
+                std::collections::HashMap::<&str, dbus::arg::Variant<_>>::new());
+    settings.insert("802-11-wireless-security",
+                std::collections::HashMap::<&str, dbus::arg::Variant<_>>::new());
+
+    settings.get_mut("connection").unwrap().insert("id", dbus::arg::Variant("resin_io"));
+    settings.get_mut("connection").unwrap().insert("type", dbus::arg::Variant("802-11-wireless"));
+
+    // settings.get_mut("802-11-wireless").unwrap().insert("ssid", dbus::arg::Variant(vec![10, 20, 30]));
+
+    // let test = dbus::arg::Dict::new(settings);
+    println!("{:?}", settings);
+
+    // let mut message = dbus_message!(NM_SERVICE_MANAGER,
+    //                                 NM_SETTINGS_PATH,
+    //                                 NM_SETTINGS_INTERFACE,
+    //                                 "AddConnection");
+    // message.append_items(&[
+    //
+    //
+    //                dbus::MessageItem::ObjectPath(connection.path.to_string().into()),
+    //                dbus::MessageItem::ObjectPath("/".into()),
+    //                dbus::MessageItem::ObjectPath("/".into())]);
+    // dbus_connect!(message);
 
     let connection1 = Connection {
         path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_string(),
@@ -288,6 +334,59 @@ fn wait(connection: &mut Connection,
 
     Err("service timed out".to_string())
 }
+
+// // Contains fields needed for wireless connections
+// pub struct Settings {
+//     pub settings_path: dbus::Path,
+//     pub active_path: dbus::Path,
+//     pub connection: Connection,
+//     pub wireless: Wireless,
+//     pub wireless_security: WirelessSecurity,
+//     pub ipv4: Ip,
+//     pub ipv6: IP,
+// }
+//
+// pub struct Connection {
+//     pub id: String,
+//     pub permissions: dbus::arg::Array,
+//     pub secondaries: dbus::arg::Array,
+//     pub timestamp: u64,
+//     // Called `type` in the Network Manager spec, renamed to
+//     // `interface` because `type` is a reserved word.
+//     pub interface: String,
+//     pub uuid: String,
+// }
+//
+// // Called `802-11-wireless` in the Network Manager spec, renamed
+// // to `Wireless` because type names cannot contain numbers/dashes
+// pub struct Wireless {
+//     pub mac_address: dbus::arg::Array,
+//     pub mac_address_blacklist: dbus::arg::Array,
+//     pub mode: String,
+//     pub security: String,
+//     pub seen_bssids: dbus::arg::Array,
+//     pub ssid: dbus::arg::Array,
+// }
+//
+// // Called `802-11-wireless-security` in the Network Manager spec,
+// // renamed to `WirelessSecurity` because type names cannot contain numbers/dashes
+// pub struct WirelessSecurity {
+//     pub auth_alg: String,
+//     pub group: dbus::arg::Array,
+//     pub key_mgmt: String,
+//     pub pairwise: dbus::arg::Array,
+//     pub proto: dbus::arg::Array,
+// }
+//
+// pub struct Ip {
+//     pub address_data: dbus::arg::Array,
+//     pub addresses: dbus::arg::Array,
+//     pub dns: dbus::arg::Array,
+//     pub dns_search: dbus::arg::Array,
+//     pub method: String,
+//     pub route_data: dbus::arg::Array,
+//     pub routes: dbus::arg::Array,
+// }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Connection {
