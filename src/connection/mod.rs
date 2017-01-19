@@ -78,8 +78,12 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
 /// let connection = &connections[0];
 /// network_manager::connection::delete(connection).unwrap();
 /// ```
-pub fn delete(c: &Connection) -> Result<(), String> {
-    // Delete connection
+pub fn delete(connection: Connection) -> Result<(), String> {
+    let message = dbus_message!(NM_SERVICE_MANAGER,
+                                connection.path,
+                                NM_CONNECTION_INTERFACE,
+                                "Delete");
+    dbus_connect!(message);
 
     Ok(())
 }
