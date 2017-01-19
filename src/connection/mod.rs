@@ -50,55 +50,56 @@ fn test_list_function() {
 /// println!("{:?}", connection);
 /// ```
 pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection, String> {
-    // Create a connection
-    // Get the connection
-    // Return the connection
-    //
-    // dbus::arg::Dict<&str,dbus::arg::Dict<&str, dbus::arg::Variant<dbus::arg::Iter>,
-    // connection = {
-    //         '802-11-wireless': {
-    //             ssid: _.invokeMap(ssid, 'charCodeAt')
-    //         },
-    //         connection: {
-    //             id: ssid,
-    //             type: '802-11-wireless',
-    //         },
-    //         '802-11-wireless-security': {
-    //             'auth-alg': 'open',
-    //             'key-mgmt': 'wpa-psk',
-    //             'psk': passphrase,
-    //         }
-    //     }
-
-
     let mut settings = std::collections::HashMap::new();
 
     settings.insert("connection",
-                std::collections::HashMap::<&str, dbus::arg::Variant<_>>::new());
+                std::collections::HashMap::<&str, dbus::arg::Variant<dbus::MessageItem>>::new());
     settings.insert("802-11-wireless",
-                std::collections::HashMap::<&str, dbus::arg::Variant<_>>::new());
+                std::collections::HashMap::<&str, dbus::arg::Variant<dbus::MessageItem>>::new());
     settings.insert("802-11-wireless-security",
-                std::collections::HashMap::<&str, dbus::arg::Variant<_>>::new());
+                std::collections::HashMap::<&str, dbus::arg::Variant<dbus::MessageItem>>::new());
 
-    settings.get_mut("connection").unwrap().insert("id", dbus::arg::Variant("resin_io"));
-    settings.get_mut("connection").unwrap().insert("type", dbus::arg::Variant("802-11-wireless"));
+    settings.get_mut("connection")
+        .unwrap()
+        .insert("id", dbus::arg::Variant(dbus::MessageItem::from("joe")));
+    settings.get_mut("connection")
+        .unwrap()
+        .insert("type",
+                dbus::arg::Variant(dbus::MessageItem::from("802-11-wireless")));
 
-    // settings.get_mut("802-11-wireless").unwrap().insert("ssid", dbus::arg::Variant(vec![10, 20, 30]));
+    settings.get_mut("802-11-wireless")
+        .unwrap()
+        .insert("ssid",
+                dbus::arg::Variant(dbus::MessageItem::new_array(vec![dbus::MessageItem::from(106),
+                                        dbus::MessageItem::from(111),
+                                        dbus::MessageItem::from(101)])
+                    .unwrap()));
 
-    // let test = dbus::arg::Dict::new(settings);
+    settings.get_mut("802-11-wireless-security")
+        .unwrap()
+        .insert("auth-alg", dbus::arg::Variant(dbus::MessageItem::from("open")));
+    settings.get_mut("802-11-wireless-security")
+        .unwrap()
+        .insert("key-mgmt", dbus::arg::Variant(dbus::MessageItem::from("wpa-psk")));
+    settings.get_mut("802-11-wireless-security")
+        .unwrap()
+        .insert("psk", dbus::arg::Variant(dbus::MessageItem::from("12345678")));
+
     println!("{:?}", settings);
 
+    let test = dbus::arg::Dict::new(settings.iter());
+
+    let message = dbus::Message::new_method_call(NM_SERVICE_MANAGER, NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "AddConnection").unwrap().append1(test);
+
+    // let test = dbus::MessageItem::from(settings.iter());
+
     // let mut message = dbus_message!(NM_SERVICE_MANAGER,
-    //                                 NM_SETTINGS_PATH,
-    //                                 NM_SETTINGS_INTERFACE,
-    //                                 "AddConnection");
-    // message.append_items(&[
-    //
-    //
-    //                dbus::MessageItem::ObjectPath(connection.path.to_string().into()),
-    //                dbus::MessageItem::ObjectPath("/".into()),
-    //                dbus::MessageItem::ObjectPath("/".into())]);
-    // dbus_connect!(message);
+    //                                         NM_SETTINGS_PATH,
+    //                                         NM_SETTINGS_INTERFACE,
+    //                                         "AddConnection");
+    //         message.append_items(&[test]);
+    //         dbus_connect!(message);
+
 
     let connection1 = Connection {
         path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_string(),
