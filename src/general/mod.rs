@@ -5,19 +5,15 @@ use std::str::FromStr;
 use enum_primitive::FromPrimitive;
 
 pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
-pub const SD_SERVICE_MANAGER: &'static str = "org.freedesktop.systemd1";
 
 pub const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
 pub const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
-pub const SD_SERVICE_PATH: &'static str = "/org/freedesktop/systemd1";
 
 pub const NM_SERVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
 pub const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
 pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
                                                    Connection";
 pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
-pub const SD_MANAGER_INTERFACE: &'static str = "org.freedesktop.systemd1.Manager";
-pub const SD_UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
 
 /// Gets the Network Manager status.
 ///
@@ -116,31 +112,6 @@ impl From<NetworkManagerState> for u32 {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ServiceState {
-    Active,
-    Reloading,
-    Inactive,
-    Failed,
-    Activating,
-    Deactivating,
-}
-
-impl FromStr for ServiceState {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "active" => Ok(ServiceState::Active),
-            "reloading" => Ok(ServiceState::Reloading),
-            "inactive" => Ok(ServiceState::Inactive),
-            "failed" => Ok(ServiceState::Failed),
-            "activating" => Ok(ServiceState::Activating),
-            "deactivating" => Ok(ServiceState::Deactivating),
-            _ => Err("invalid service state value"),
-        }
-    }
-}
 
 enum_from_primitive!{
 #[derive(Debug, Clone, Eq, PartialEq)]

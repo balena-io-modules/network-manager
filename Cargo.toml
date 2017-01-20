@@ -8,5 +8,5 @@ clippy = {version = "*", optional = true}
 dbus = "0.4.1"
 enum_primitive = "0.1.0"
 
-[features]
-default = []
+# [features]
+# default = []
