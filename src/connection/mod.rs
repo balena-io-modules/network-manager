@@ -85,11 +85,11 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
         .unwrap()
         .insert("psk", dbus::arg::Variant(dbus::MessageItem::from("12345678")));
 
-    println!("{:?}", settings);
+    // println!("{:?}", settings);
 
-    let test = dbus::arg::Dict::new(settings.iter());
+    // let test = dbus::arg::Dict::new(settings.iter());
 
-    let message = dbus::Message::new_method_call(NM_SERVICE_MANAGER, NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "AddConnection").unwrap().append1(test);
+    // let message = dbus::Message::new_method_call(NM_SERVICE_MANAGER, NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "AddConnection").unwrap().append1(test);
 
     // let test = dbus::MessageItem::from(settings.iter());
 
