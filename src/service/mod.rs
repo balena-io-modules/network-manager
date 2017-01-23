@@ -160,15 +160,12 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
             }
 
             for (k, v) in try!(dictionary.ok_or(Error::NotFound)) {
-                match k {
-                    "ActiveState" => {
-                        let response = try!(v.0.clone().get::<&str>().ok_or(Error::NotFound));
-                        let state: State = try!(response.parse());
-                        if state == target_state {
-                            return Ok(target_state);
-                        }
+                if k == "ActiveState" {
+                    let response = try!(v.0.clone().get::<&str>().ok_or(Error::NotFound));
+                    let state: State = try!(response.parse());
+                    if state == target_state {
+                        return Ok(target_state);
                     }
-                    _ => (),
                 }
             }
         }
