@@ -58,50 +58,29 @@ pub fn enable(time_out: u64) -> Result<State, Error> {
 /// let state = service::disable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn disable(time_out: u64) -> Result<State, String> {
-    // match state().expect("Unable to get service state") {
-    //     ServiceState::Inactive => Ok(ServiceState::Inactive),
-    //     ServiceState::Deactivating => wait(time_out, ServiceState::Inactive),
-    //     ServiceState::Failed => Err("Service has failed".to_string()),
-    //     _ => {
-    //         let mut message = dbus_message!(SD_SERVICE_MANAGER,
-    //                                         SD_SERVICE_PATH,
-    //                                         SD_MANAGER_INTERFACE,
-    //                                         "StopUnit");
-    //         message.append_items(&["NetworkManager.service".into(), "fail".into()]);
-    //         dbus_connect!(message);
-    //
-    //         wait(time_out, ServiceState::Inactive)
-    //     }
-    // }
-    Ok(State::Active)
-}
+pub fn disable(time_out: u64) -> Result<State, Error> {
+    let state = try!(state());
+    match state {
+        State::Inactive => Ok(state),
+        State::Deactivating => handler(time_out, State::Inactive),
+        State::Failed => Err(Error::Failed),
+        _ => {
+            let message = try!(Message::new_method_call(SD_SERVICE_MANAGER,
+                                                        SD_SERVICE_PATH,
+                                                        SD_MANAGER_INTERFACE,
+                                                        "StopUnit")
+                    .map_err(Error::Message))
+                .append2("NetworkManager.service", "fail");
 
-// #[test]
-// fn test_enable_disable_functions() {
-//     let s = state().unwrap();
-//
-//     assert!(s == ServiceState::Active || s == ServiceState::Inactive);
-//
-//     match s {
-//         ServiceState::Active => {
-//             disable(10).unwrap();
-//             assert_eq!(ServiceState::Inactive, state().unwrap());
-//
-//             enable(10).unwrap();
-//             assert_eq!(ServiceState::Active, state().unwrap());
-//         }
-//         ServiceState::Inactive => {
-//             enable(10).unwrap();
-//             assert_eq!(ServiceState::Active, state().unwrap());
-//
-//             disable(10).unwrap();
-//             assert_eq!(ServiceState::Inactive, state().unwrap());
-//         }
-//         _ => (),
-//     }
-// }
-//
+            let connection = try!(Connection::get_private(BusType::System)
+                .map_err(Error::Connection));
+
+            try!(connection.send_with_reply_and_block(message, 2000).map_err(Error::Connection));
+
+            handler(time_out, State::Inactive)
+        }
+    }
+}
 
 /// Gets the state of the Network Manager service.
 ///
@@ -143,16 +122,20 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
         return state();
     }
 
-    let timer = Timer::default().sleep(Duration::from_secs(time_out)).then(|_| Err(Error::TimedOut));
+    let timer =
+        Timer::default().sleep(Duration::from_secs(time_out)).then(|_| Err(Error::TimedOut));
 
-    let pool = CpuPool::new_num_cpus();
-    let process = pool.spawn_fn(|| {
+    let process = CpuPool::new_num_cpus().spawn_fn(|| {
         let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
         try!(connection.add_match("type='signal', sender='org.freedesktop.systemd1', \
                         interface='org.freedesktop.DBus.Properties', \
                         member='PropertiesChanged', \
                         path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'")
             .map_err(Error::Connection));
+
+        if try!(state()) == target_state {
+            return Ok(target_state);
+        }
 
         for item in connection.iter(0) {
             let response = if let ConnectionItem::Signal(ref signal) = item {
@@ -162,15 +145,10 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
             };
 
             if try!(response.interface().ok_or(Error::NotFound)) !=
-               Interface::from("org.freedesktop.DBus.Properties") {
-                continue;
-            }
-
-            if try!(response.member().ok_or(Error::NotFound)) != Member::from("PropertiesChanged") {
-                continue;
-            }
-
-            if try!(response.path().ok_or(Error::NotFound)) !=
+               Interface::from("org.freedesktop.DBus.Properties") ||
+               try!(response.member().ok_or(Error::NotFound)) !=
+               Member::from("PropertiesChanged") ||
+               try!(response.path().ok_or(Error::NotFound)) !=
                Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice") {
                 continue;
             }
@@ -200,6 +178,31 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
     match timer.select(process).map(|(result, _)| result).wait() {
         Ok(val) => Ok(val),
         Err(val) => Err(val.0),
+    }
+}
+
+#[test]
+fn test_integration() {
+    let s = state().unwrap();
+
+    assert!(s == State::Active || s == State::Inactive);
+
+    match s {
+        State::Active => {
+            disable(10).unwrap();
+            assert_eq!(State::Inactive, state().unwrap());
+
+            enable(10).unwrap();
+            assert_eq!(State::Active, state().unwrap());
+        }
+        State::Inactive => {
+            enable(10).unwrap();
+            assert_eq!(State::Active, state().unwrap());
+
+            disable(10).unwrap();
+            assert_eq!(State::Inactive, state().unwrap());
+        }
+        _ => (),
     }
 }
 
