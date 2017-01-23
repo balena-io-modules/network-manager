@@ -7,6 +7,9 @@ authors = ["Joseph Roberts <joe@resin.io>"]
 clippy = {version = "*", optional = true}
 dbus = "0.4.1"
 enum_primitive = "0.1.0"
+futures = "0.1.9"
+futures-cpupool = "0.1.2"
+tokio-timer = "0.1.0"
 
 # [features]
 # default = []

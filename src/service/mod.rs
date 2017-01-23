@@ -1,7 +1,15 @@
 extern crate dbus;
+extern crate futures;
+extern crate futures_cpupool;
+extern crate tokio_timer;
 
 use std::str::FromStr;
-use self::dbus::{Connection, Message, Props, BusType};
+use std::time::Duration;
+use self::dbus::{Connection, ConnectionItem, Message, Props, BusType, Path, Interface, Member};
+use self::dbus::arg::{Dict, Iter, Variant};
+use self::futures::Future;
+use self::futures_cpupool::CpuPool;
+use self::tokio_timer::Timer;
 
 pub const SD_SERVICE_MANAGER: &'static str = "org.freedesktop.systemd1";
 pub const SD_SERVICE_PATH: &'static str = "/org/freedesktop/systemd1";
@@ -17,7 +25,7 @@ pub const SD_UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
 /// let state = service::enable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn enable(time_out: i32) -> Result<State, Error> {
+pub fn enable(time_out: u64) -> Result<State, Error> {
     let state = try!(state());
     match state {
         State::Active => Ok(state),
@@ -50,7 +58,7 @@ pub fn enable(time_out: i32) -> Result<State, Error> {
 /// let state = service::disable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn disable(time_out: i32) -> Result<State, String> {
+pub fn disable(time_out: u64) -> Result<State, String> {
     // match state().expect("Unable to get service state") {
     //     ServiceState::Inactive => Ok(ServiceState::Inactive),
     //     ServiceState::Deactivating => wait(time_out, ServiceState::Inactive),
@@ -117,7 +125,7 @@ pub fn state() -> Result<State, Error> {
     let response = try!(connection.send_with_reply_and_block(message, 2000)
         .map_err(Error::Connection));
 
-    let path = try!(response.get1::<dbus::Path>().ok_or(Error::NotFound));
+    let path = try!(response.get1::<Path>().ok_or(Error::NotFound));
 
     let response = try!(Props::new(&connection,
                                    SD_SERVICE_MANAGER,
@@ -130,43 +138,72 @@ pub fn state() -> Result<State, Error> {
     try!(response.inner::<&str>().ok().ok_or(Error::NotFound)).parse()
 }
 
-fn handler(time_out: i32, target_state: State) -> Result<State, Error> {
+fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
     if time_out == 0 {
         return state();
     }
 
-    let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
-    try!(connection.add_match("interface='org.freedesktop.systemd1.Unit',member='ActiveState'").map_err(Error::Connection));
+    let timer = Timer::default().sleep(Duration::from_secs(time_out)).then(|_| Err(Error::TimedOut));
 
-    println!("hey");
+    let pool = CpuPool::new_num_cpus();
+    let process = pool.spawn_fn(|| {
+        let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
+        try!(connection.add_match("type='signal', sender='org.freedesktop.systemd1', \
+                        interface='org.freedesktop.DBus.Properties', \
+                        member='PropertiesChanged', \
+                        path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'")
+            .map_err(Error::Connection));
 
-    for item in connection.iter(time_out) {
-        println!("{:?}", item);
+        for item in connection.iter(0) {
+            let response = if let ConnectionItem::Signal(ref signal) = item {
+                signal
+            } else {
+                continue;
+            };
+
+            if try!(response.interface().ok_or(Error::NotFound)) !=
+               Interface::from("org.freedesktop.DBus.Properties") {
+                continue;
+            }
+
+            if try!(response.member().ok_or(Error::NotFound)) != Member::from("PropertiesChanged") {
+                continue;
+            }
+
+            if try!(response.path().ok_or(Error::NotFound)) !=
+               Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice") {
+                continue;
+            }
+
+            let (interface, dictionary) = response.get2::<&str, Dict<&str, Variant<Iter>, _>>();
+
+            if try!(interface.ok_or(Error::NotFound)) != "org.freedesktop.systemd1.Unit" {
+                continue;
+            }
+
+            for (k, v) in try!(dictionary.ok_or(Error::NotFound)) {
+                match k {
+                    "ActiveState" => {
+                        let response = try!(v.0.clone().get::<&str>().ok_or(Error::NotFound));
+                        let state: State = try!(response.parse());
+                        if state == target_state {
+                            return Ok(target_state);
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        }
+        Err(Error::NotFound)
+    });
+
+    match timer.select(process).map(|(result, _)| result).wait() {
+        Ok(val) => Ok(val),
+        Err(val) => Err(val.0),
     }
-
-    println!("bye");
-
-    Ok(State::Active)
 }
 
-
-
-
-// fn wait(time_out: i32, target_state: ServiceState) -> Result<ServiceState, String> {
-//
-//     let mut total_time = 0;
-//     while total_time < time_out {
-//         if state().unwrap() == target_state {
-//             return state();
-//         }
-//         std::thread::sleep(std::time::Duration::from_secs(1));
-//         total_time += 1;
-//     }
-//
-//     Err("service timed out".to_string())
-// }
-
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum State {
     Active,
     Reloading,
@@ -181,6 +218,7 @@ pub enum Error {
     Message(String),
     Connection(dbus::Error),
     Props(dbus::Error),
+    TimedOut,
     Failed,
     NotFound,
 }
