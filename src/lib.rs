@@ -13,6 +13,7 @@ extern crate enum_primitive;
 
 #[macro_use]
 mod dbus_helper;
+pub mod errors;
 pub mod general;
 pub mod wifi;
 pub mod service;

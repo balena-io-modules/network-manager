@@ -3,6 +3,7 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate tokio_timer;
 
+use errors::Error;
 use std::str::FromStr;
 use std::time::Duration;
 use self::dbus::{Connection, ConnectionItem, Message, Props, BusType, Path, Interface, Member};
@@ -211,16 +212,6 @@ pub enum State {
     Failed,
     Activating,
     Deactivating,
-}
-
-#[derive(Debug)]
-pub enum Error {
-    Message(String),
-    Connection(dbus::Error),
-    Props(dbus::Error),
-    TimedOut,
-    Failed,
-    NotFound,
 }
 
 impl FromStr for State {
