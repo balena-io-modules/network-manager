@@ -7,6 +7,7 @@ pub enum Error {
     Message(String),
     Connection(dbus::Error),
     Props(dbus::Error),
+    Array(dbus::ArrayError),
     TimedOut,
     Failed,
     NotFound,

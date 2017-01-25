@@ -1,6 +1,8 @@
 extern crate dbus;
 
-
+use errors::*;
+use general::{NM_SERVICE_MANAGER, NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE};
+use enum_primitive::FromPrimitive;
 // use std::str::FromStr;
 // use std::time::Duration;
 use std::collections::HashMap;
@@ -45,34 +47,30 @@ use self::dbus::arg::{Dict, Variant};
 /// }
 ///
 ///
-// imports - service class too
-// error handling
-// traits
-// examples
-// types
-// move from general
+
 /// Creates a Network Manager connection.
 ///
 /// # Examples
 ///
 /// ```
 /// ```
-pub fn create(ssid: &str, password: &str) -> Result<Settings, String> {
+pub fn create(ssid: &str, password: &str) -> Result<Settings> {
     let mut connection = HashMap::new();
     connection.insert("id", Variant(MessageItem::from(ssid)));
-    connection.insert("type", Variant(MessageItem::from("802-11-wireless"))); //TODO create and use `type` enum
+    connection.insert("type", Variant(MessageItem::from("802-11-wireless")));
 
     let mut wireless = HashMap::new();
     wireless.insert("ssid",
-                    Variant(MessageItem::new_array(ssid.to_string().into_bytes()
+                    Variant(try!(MessageItem::new_array(ssid.to_string()
+                            .into_bytes()
                             .iter()
-                            .map(|&item| MessageItem::from(item))
+                            .map(|&c| MessageItem::from(c))
                             .collect())
-                        .unwrap()));
+                        .map_err(Error::Array))));
 
     let mut wireless_security = HashMap::new();
-    wireless_security.insert("auth-alg", Variant(MessageItem::from("open"))); // TODO create and use `auth-alg` enum
-    wireless_security.insert("key-mgmt", Variant(MessageItem::from("wpa-psk"))); // TODO create and use `key-mgmt` enum
+    wireless_security.insert("auth-alg", Variant(MessageItem::from("open")));
+    wireless_security.insert("key-mgmt", Variant(MessageItem::from("wpa-psk")));
     wireless_security.insert("psk", Variant(MessageItem::from(password)));
 
     let mut settings = HashMap::new();
@@ -80,20 +78,21 @@ pub fn create(ssid: &str, password: &str) -> Result<Settings, String> {
     settings.insert("802-11-wireless", Dict::new(wireless));
     settings.insert("802-11-wireless-security", Dict::new(wireless_security));
 
-    let message = Message::new_method_call("org.freedesktop.NetworkManager",
-                                           "/org/freedesktop/NetworkManager/Settings",
-                                           "org.freedesktop.NetworkManager.Settings",
-                                           "AddConnection")
-        .unwrap()
+    let message = try!(Message::new_method_call(NM_SERVICE_MANAGER,
+                                                NM_SETTINGS_PATH,
+                                                NM_SETTINGS_INTERFACE,
+                                                "AddConnection")
+            .map_err(Error::Message))
         .append1(Dict::new(settings));
 
-    let connection = dbus::Connection::get_private(BusType::System).unwrap();
+    let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
 
-    let response = connection.send_with_reply_and_block(message, 2000).unwrap();
+    let response = try!(connection.send_with_reply_and_block(message, 2000)
+        .map_err(Error::Connection));
 
-    let path = response.get1::<Path>().unwrap();
+    let path = try!(response.get1::<Path>().ok_or(Error::NotFound));
 
-    get_connection(path)
+    get(path)
 }
 
 /// // Deletes a Network Manager connection.
@@ -210,45 +209,47 @@ pub fn create(ssid: &str, password: &str) -> Result<Settings, String> {
 ///     }
 /// }
 ///
-/// fn get_connection(path: dbus::Path) -> Result<Connection, String> {
-///     let mut connection = Connection { path: dbus_path_to_string(path), ..Default::default() };
-///
-///     let message = dbus_message!(NM_SERVICE_MANAGER,
-///                                 connection.path.clone(),
-///                                 NM_CONNECTION_INTERFACE,
-///                                 "GetSettings");
-///     let response = dbus_connect!(message);
-///     let dictionary: dbus::arg::Dict<&str,
-///                                     dbus::arg::Dict<&str, dbus::arg::Variant<dbus::arg::Iter>, _>,
-///                                     _> = response.get1().unwrap();
-///
-///     for (_, v1) in dictionary {
-///         for (k2, v2) in v1 {
-///             match k2 {
-///                 "id" => {
-///                     connection.id = v2.0.clone().get::<&str>().unwrap().to_string();
-///                 }
-///                 "uuid" => {
-///                     connection.uuid = v2.0.clone().get::<&str>().unwrap().to_string();
-///                 }
-///                 "ssid" => {
-///                     connection.ssid = std::str::from_utf8(&v2.0
-///                             .clone()
-///                             .get::<dbus::arg::Array<u8, _>>()
-///                             .unwrap()
-///                             .collect::<Vec<u8>>())
-///                         .unwrap()
-///                         .to_string();
-///                 }
-///                 _ => (),
-///             }
-///         }
-///     }
-///
-///     update_state(&mut connection).unwrap();
-///
-///     Ok(connection)
-/// }
+fn get(path: dbus::Path) -> Result<Settings> {
+    let mut settings = Settings { path: path, ..Default::default() };
+
+    return Ok(settings);
+
+    // let message = dbus_message!(NM_SERVICE_MANAGER,
+    //                             connection.path.clone(),
+    //                             NM_CONNECTION_INTERFACE,
+    //                             "GetSettings");
+    // let response = dbus_connect!(message);
+    // let dictionary: dbus::arg::Dict<&str,
+    //                                 dbus::arg::Dict<&str, dbus::arg::Variant<dbus::arg::Iter>, _>,
+    //                                 _> = response.get1().unwrap();
+    //
+    // for (_, v1) in dictionary {
+    //     for (k2, v2) in v1 {
+    //         match k2 {
+    //             "id" => {
+    //                 connection.id = v2.0.clone().get::<&str>().unwrap().to_string();
+    //             }
+    //             "uuid" => {
+    //                 connection.uuid = v2.0.clone().get::<&str>().unwrap().to_string();
+    //             }
+    //             "ssid" => {
+    //                 connection.ssid = std::str::from_utf8(&v2.0
+    //                         .clone()
+    //                         .get::<dbus::arg::Array<u8, _>>()
+    //                         .unwrap()
+    //                         .collect::<Vec<u8>>())
+    //                     .unwrap()
+    //                     .to_string();
+    //             }
+    //             _ => (),
+    //         }
+    //     }
+    // }
+    //
+    // update_state(&mut connection).unwrap();
+    //
+    // Ok(connection)
+}
 ///
 /// fn update_state(connection: &mut Connection) -> Result<(), String> {
 ///     let active_paths: Vec<String> = dbus_property!(NM_SERVICE_MANAGER,
@@ -369,33 +370,20 @@ pub fn create(ssid: &str, password: &str) -> Result<Settings, String> {
 //     pub routes: dbus::arg::Array,
 // }
 
-// #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Settings {
-    pub path: String,
-    pub active_path: String,
-    pub id: String,
-    pub uuid: String,
-    pub ssid: String,
-    pub state: State, /* device: String,
-                                 * interface: Interface,
-                                 * security: Security, */
-}
-
-
 enum_from_primitive!{
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum State {
-    Unknown = 0,
-    Activating = 1,
-    Activated = 2,
-    Deactivating = 3,
-    Deactivated = 4,
-}
+//#[derive(Debug, Clone, Eq, PartialEq)]
+    pub enum State {
+        Unknown = 0,
+        Activating = 1,
+        Activated = 2,
+        Deactivating = 3,
+        Deactivated = 4,
+    }
 }
 
 impl From<u32> for State {
     fn from(val: u32) -> State {
-        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
+        State::from_u32(val).map_err(Error::NotFound);
     }
 }
 
@@ -404,18 +392,27 @@ impl From<State> for u32 {
         val as u32
     }
 }
-// impl Default for Connection {
-//     fn default() -> Connection {
-//         Connection {
-//             path: "".to_string(),
-//             active_path: "".to_string(),
-//             id: "".to_string(),
-//             uuid: "".to_string(),
-//             ssid: "".to_string(),
-//             state: ConnectionState::Unknown,
-//         }
-//     }
-// }
+
+// #[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Settings {
+    pub path: Path,
+    pub active_path: Path<'m>,
+    pub id: String,
+    pub ssid: String,
+    pub state: State,
+}
+
+impl Default for Connection {
+    fn default() -> Connection {
+        Connection {
+            path: Path::from(""),
+            active_path: Path::from(""),
+            id: "".to_string(),
+            ssid: "".to_string(),
+            state: State::Unknown,
+        }
+    }
+}
 //
 // impl Ord for Connection {
 //     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
