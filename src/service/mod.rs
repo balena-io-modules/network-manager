@@ -3,7 +3,7 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate tokio_timer;
 
-use errors::Error;
+use errors::*;
 use std::str::FromStr;
 use std::time::Duration;
 use self::dbus::{Connection, ConnectionItem, Message, Props, BusType, Path, Interface, Member};
@@ -26,7 +26,7 @@ pub const SD_UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
 /// let state = service::enable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn enable(time_out: u64) -> Result<State, Error> {
+pub fn enable(time_out: u64) -> Result<State> {
     let state = try!(state());
     match state {
         State::Active => Ok(state),
@@ -59,7 +59,7 @@ pub fn enable(time_out: u64) -> Result<State, Error> {
 /// let state = service::disable(10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn disable(time_out: u64) -> Result<State, Error> {
+pub fn disable(time_out: u64) -> Result<State> {
     let state = try!(state());
     match state {
         State::Inactive => Ok(state),
@@ -92,7 +92,7 @@ pub fn disable(time_out: u64) -> Result<State, Error> {
 /// let state = service::state().unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn state() -> Result<State, Error> {
+pub fn state() -> Result<State> {
     let message = try!(Message::new_method_call(SD_SERVICE_MANAGER,
                                                 SD_SERVICE_PATH,
                                                 SD_MANAGER_INTERFACE,
@@ -118,7 +118,7 @@ pub fn state() -> Result<State, Error> {
     try!(response.inner::<&str>().ok().ok_or(Error::NotFound)).parse()
 }
 
-fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
+fn handler(time_out: u64, target_state: State) -> Result<State> {
     if time_out == 0 {
         return state();
     }
@@ -216,7 +216,7 @@ pub enum State {
 
 impl FromStr for State {
     type Err = Error;
-    fn from_str(s: &str) -> Result<State, Error> {
+    fn from_str(s: &str) -> Result<State> {
         match s {
             "active" => Ok(State::Active),
             "reloading" => Ok(State::Reloading),
