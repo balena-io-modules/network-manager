@@ -4,13 +4,12 @@ extern crate dbus;
 // use std::str::FromStr;
 // use std::time::Duration;
 use std::collections::HashMap;
-// use self::dbus::{Connection, ConnectionItem, Message, Props, BusType, Path, Interface, Member};
-use self::dbus::MessageItem;
+use self::dbus::{Connection, Message, MessageItem, BusType, Path};
 use self::dbus::arg::{Dict, Variant};
 // use self::futures::Future;
 // use self::futures_cpupool::CpuPool;
 // use self::tokio_timer::Timer;
-use general::ConnectionState;
+// use general::ConnectionState;
 
 /// // Get a list of Network Manager connections sorted by path.
 /// //
@@ -46,7 +45,7 @@ use general::ConnectionState;
 /// }
 ///
 ///
-// imports
+// imports - service class too
 // error handling
 // traits
 // examples
@@ -58,14 +57,14 @@ use general::ConnectionState;
 ///
 /// ```
 /// ```
-pub fn create(ssid: String, password: String) -> Result<Connection, String> {
+pub fn create(ssid: &str, password: &str) -> Result<Settings, String> {
     let mut connection = HashMap::new();
-    connection.insert("id", Variant(MessageItem::from(ssid.clone())));
+    connection.insert("id", Variant(MessageItem::from(ssid)));
     connection.insert("type", Variant(MessageItem::from("802-11-wireless"))); //TODO create and use `type` enum
 
     let mut wireless = HashMap::new();
     wireless.insert("ssid",
-                    Variant(MessageItem::new_array(ssid.into_bytes()
+                    Variant(MessageItem::new_array(ssid.to_string().into_bytes()
                             .iter()
                             .map(|&item| MessageItem::from(item))
                             .collect())
@@ -88,24 +87,13 @@ pub fn create(ssid: String, password: String) -> Result<Connection, String> {
         .unwrap()
         .append1(Dict::new(settings));
 
-    let connection = Connection::get_private(BusType::System).unwrap();
+    let connection = dbus::Connection::get_private(BusType::System).unwrap();
 
-    let reply = connection.send_with_reply_and_block(message, 2000).unwrap();
-    println!("{:?}", reply);
+    let response = connection.send_with_reply_and_block(message, 2000).unwrap();
 
-    let connection1 = Connection {
-        path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_string(),
-        id: "resin_io".to_string(),
-        uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_string(),
-        ssid: "resin_io".to_string(),
-        active_path: "test".to_string(),
-        state: ConnectionState::Deactivated, /* device: "wlp4s0".to_string(),
-                                              * interface: Interface::WiFi,
-                                              * security: Security::WPA2,
-                                              * state: ConnectionState::Activated, */
-    };
+    let path = response.get1::<Path>().unwrap();
 
-    Ok(connection1)
+    get_connection(path)
 }
 
 /// // Deletes a Network Manager connection.
@@ -382,15 +370,39 @@ pub fn create(ssid: String, password: String) -> Result<Connection, String> {
 // }
 
 // #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Connection {
+pub struct Settings {
     pub path: String,
     pub active_path: String,
     pub id: String,
     pub uuid: String,
     pub ssid: String,
-    pub state: ConnectionState, /* device: String,
+    pub state: State, /* device: String,
                                  * interface: Interface,
                                  * security: Security, */
+}
+
+
+enum_from_primitive!{
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum State {
+    Unknown = 0,
+    Activating = 1,
+    Activated = 2,
+    Deactivating = 3,
+    Deactivated = 4,
+}
+}
+
+impl From<u32> for State {
+    fn from(val: u32) -> State {
+        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
+    }
+}
+
+impl From<State> for u32 {
+    fn from(val: State) -> u32 {
+        val as u32
+    }
 }
 // impl Default for Connection {
 //     fn default() -> Connection {

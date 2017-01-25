@@ -113,28 +113,6 @@ impl From<NetworkManagerState> for u32 {
 }
 
 
-enum_from_primitive!{
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ConnectionState {
-    Unknown = 0,
-    Activating = 1,
-    Activated = 2,
-    Deactivating = 3,
-    Deactivated = 4,
-}
-}
-
-impl From<u32> for ConnectionState {
-    fn from(val: u32) -> ConnectionState {
-        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
-    }
-}
-
-impl From<ConnectionState> for u32 {
-    fn from(val: ConnectionState) -> u32 {
-        val as u32
-    }
-}
 
 #[derive(Debug)]
 pub enum DeviceState {
