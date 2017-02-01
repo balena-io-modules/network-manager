@@ -1,6 +1,7 @@
 extern crate dbus;
 
 use std;
+use std::env;
 use general::*;
 
 /// Get a list of Network Manager connections sorted by path.
@@ -156,10 +157,22 @@ pub fn disable(connection: &mut Connection, time_out: i32) -> Result<(), String>
 #[test]
 fn test_enable_disable_functions() {
     let connections = list().unwrap();
+    let mut connection;
 
-    // Note - replace "TP-LINK_2.4GHz_9BDD8F" with one of your configured connections to test
-    let mut connection =
-        connections.iter().filter(|c| c.ssid == "TP-LINK_2.4GHz_9BDD8F").nth(0).unwrap().clone();
+
+    // set enviorment variable $TEST_WIFI_SSID with the wifi's SSID that you want to test
+    // e.g.  export TEST_WIFI_SSID="Resin.io Wifi"
+    let wifiEnvVar = "TEST_WIFI_SSID";
+    match env::var(wifiEnvVar) {
+        Ok(ssid) => {
+            connection = connections.iter().filter(|c| c.ssid == ssid).nth(0).unwrap().clone()
+        }
+        Err(e) => {
+            panic!("couldn't retrieve enviorment variable {}: {}",
+                   wifiEnvVar,
+                   e)
+        }
+    };
 
     assert!(connection.state == ConnectionState::Activated ||
             connection.state == ConnectionState::Deactivated);
