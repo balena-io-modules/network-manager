@@ -1,0 +1,22 @@
+dist: trusty
+sudo: required
+language: rust
+cache: cargo
+rust:
+    - nightly
+    - beta
+    - stable
+matrix:
+    allow_failures:
+        - rust: nightly
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install -yq --no-install-recommends libdbus-1-dev
+install:
+    - (cargo install rustfmt || true)
+    - PATH=$PATH:/home/travis/.cargo/bin
+script:
+    - cargo clean
+    - cargo fmt -- --write-mode=diff
+    - ((test $TRAVIS_RUST_VERSION == "nightly" && cargo build --features "clippy") || true)
+    - cargo build --verbose
