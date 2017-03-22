@@ -156,7 +156,7 @@ pub fn disable(c: &Device, t: i32) -> Result<DeviceState, String> {
 
     if t != 0 {
         // Wait until the device state is 'Unavailable' or
-        // until the time has elapsed
+        // until the time has elapsed.
     }
 
     Ok(DeviceState::Unavailable)
