@@ -2,10 +2,8 @@ use dbus::{Connection, ConnPath, BusType};
 use dbus::stdintf::OrgFreedesktopDBusProperties;
 
 use general::{NM_DEVICE_INTERFACE, NM_SERVICE_INTERFACE, NM_SERVICE_PATH};
-use dbus_helper::{
-    variant_to_string_list, manager_path, property_as_string, property_as_i64,
-    property_as_bool
-};
+use dbus_helper::{variant_to_string_list, manager_path, property_as_string, property_as_i64,
+                  property_as_bool};
 
 
 #[derive(Debug)]
@@ -85,10 +83,7 @@ pub fn list() -> Result<Vec<Device>, String> {
 
     let path = manager_path(&connection, NM_SERVICE_PATH);
 
-    let devices = path.get(
-        NM_SERVICE_INTERFACE,
-        "Devices"
-    ).unwrap();
+    let devices = path.get(NM_SERVICE_INTERFACE, "Devices").unwrap();
 
     let device_paths = variant_to_string_list(devices).unwrap();
 
@@ -99,13 +94,9 @@ pub fn list() -> Result<Vec<Device>, String> {
 
         let interface = device_string(&path, "Interface").unwrap();
 
-        let device_type = DeviceType::from_i64(
-            device_i64(&path, "DeviceType").unwrap()
-        );
+        let device_type = DeviceType::from_i64(device_i64(&path, "DeviceType").unwrap());
 
-        let state = DeviceState::from_i64(
-            device_i64(&path, "State").unwrap()
-        );
+        let state = DeviceState::from_i64(device_i64(&path, "State").unwrap());
 
         let real = device_bool(&path, "Real").unwrap();
 

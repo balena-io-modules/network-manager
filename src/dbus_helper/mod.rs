@@ -51,11 +51,10 @@ pub fn variant_to_string_list(value: Variant<Box<RefArg>>) -> Option<Vec<String>
 }
 
 #[inline]
-pub fn property_as_string(
-    path: &ConnPath<&Connection>,
-    interface: &str,
-    property: &str
-) -> Option<String> {
+pub fn property_as_string(path: &ConnPath<&Connection>,
+                          interface: &str,
+                          property: &str)
+                          -> Option<String> {
     if let Ok(variant) = path.get(interface, property) {
         if let Some(data) = variant.as_str() {
             Some(data.to_string())
@@ -68,11 +67,10 @@ pub fn property_as_string(
 }
 
 #[inline]
-pub fn property_as_i64(
-    path: &ConnPath<&Connection>,
-    interface: &str,
-    property: &str
-) -> Option<i64> {
+pub fn property_as_i64(path: &ConnPath<&Connection>,
+                       interface: &str,
+                       property: &str)
+                       -> Option<i64> {
     if let Ok(variant) = path.get(interface, property) {
         if let Some(data) = variant.as_i64() {
             Some(data)
@@ -85,11 +83,10 @@ pub fn property_as_i64(
 }
 
 #[inline]
-pub fn property_as_bool(
-    path: &ConnPath<&Connection>,
-    interface: &str,
-    property: &str
-) -> Option<bool> {
+pub fn property_as_bool(path: &ConnPath<&Connection>,
+                        interface: &str,
+                        property: &str)
+                        -> Option<bool> {
     if let Ok(variant) = path.get(interface, property) {
         if let Some(data) = variant.as_i64() {
             Some(data != 0)
@@ -102,13 +99,8 @@ pub fn property_as_bool(
 }
 
 #[inline]
-pub fn manager_path<'a, P: Into<Path<'a>>>(
-    connection: &'a Connection,
-    path: P
-) -> ConnPath<'a, &'a Connection> {
-    connection.with_path(
-            NM_SERVICE_MANAGER,
-            path,
-            2000
-    )
+pub fn manager_path<'a, P: Into<Path<'a>>>(connection: &'a Connection,
+                                           path: P)
+                                           -> ConnPath<'a, &'a Connection> {
+    connection.with_path(NM_SERVICE_MANAGER, path, 2000)
 }

@@ -48,24 +48,27 @@ pub fn status() -> Result<Status, String> {
                                                      NM_SERVICE_PATH,
                                                      NM_SERVICE_INTERFACE,
                                                      "WirelessEnabled")
-        .unwrap()
-        .inner()
-        .unwrap();
+            .unwrap()
+            .inner()
+            .unwrap();
 
     status.networking_enabled = dbus_property!(NM_SERVICE_MANAGER,
                                                NM_SERVICE_PATH,
                                                NM_SERVICE_INTERFACE,
                                                "NetworkingEnabled")
-        .unwrap()
-        .inner()
-        .unwrap();
+            .unwrap()
+            .inner()
+            .unwrap();
 
     Ok(status)
 }
 
 // This should be implemented as a trait in the dbus crate
 pub fn dbus_path_to_string(path: dbus::Path) -> String {
-    path.as_cstr().to_str().unwrap().to_string()
+    path.as_cstr()
+        .to_str()
+        .unwrap()
+        .to_string()
 }
 
 #[derive(Debug)]
