@@ -14,6 +14,7 @@ pub const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.
 pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
                                                    Connection";
 pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
+pub const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
 
 /// Gets the Network Manager status.
 ///
@@ -136,17 +137,6 @@ impl From<ConnectionState> for u32 {
     }
 }
 
-#[derive(Debug)]
-pub enum DeviceState {
-    Unknown,
-    Unmanaged,
-    Unavailable,
-    Disconnected,
-    Activated,
-    Deactivating,
-    Failed,
-}
-
 enum_from_primitive!{
 #[derive(Debug, PartialEq)]
 pub enum Connectivity { // See https://bugzilla.gnome.org/show_bug.cgi?id=776848
@@ -176,13 +166,4 @@ pub enum Security {
     WEP,
     WPA1,
     WPA2,
-}
-
-#[derive(Debug)]
-pub enum Interface {
-    Unknown,
-    Generic,
-    Ethernet,
-    WiFi,
-    Bridge,
 }

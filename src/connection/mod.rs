@@ -3,6 +3,7 @@ extern crate dbus;
 use std;
 use std::env;
 use general::*;
+use device::DeviceType;
 
 /// Get a list of Network Manager connections sorted by path.
 ///
@@ -44,13 +45,13 @@ fn test_list_function() {
 /// ```
 /// let connection = network_manager::connection::create(
 ///     "resin_io",
-///     network_manager::general::Interface::WiFi,
+///     network_manager::general::DeviceType::WiFi,
 ///     network_manager::general::Security::WPA2,
 ///     "super_secret_passphase"
 ///     ).unwrap();
 /// println!("{:?}", connection);
 /// ```
-pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection, String> {
+pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connection, String> {
     // Create a connection
     // Get the connection
     // Return the connection
@@ -62,7 +63,7 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
         ssid: "resin_io".to_string(),
         active_path: "test".to_string(),
         state: ConnectionState::Deactivated, /* device: "wlp4s0".to_string(),
-                                              * interface: Interface::WiFi,
+                                              * interface: DeviceType::WiFi,
                                               * security: Security::WPA2,
                                               * state: ConnectionState::Activated, */
     };
@@ -310,7 +311,7 @@ pub struct Connection {
     pub uuid: String,
     pub ssid: String,
     pub state: ConnectionState, /* device: String,
-                                 * interface: Interface,
+                                 * device_type: DeviceType,
                                  * security: Security, */
 }
 
