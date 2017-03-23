@@ -15,9 +15,8 @@ pub struct Device {
     real: bool,
 }
 
-impl DeviceState {
-    #[inline]
-    fn from_i64(state: i64) -> Self {
+impl From<i64> for DeviceState {
+    fn from(state: i64) -> Self {
         match state {
             0 => DeviceState::Unknown,
             10 => DeviceState::Unmanaged,
@@ -42,9 +41,8 @@ pub enum DeviceType {
     Bridge,
 }
 
-impl DeviceType {
-    #[inline]
-    fn from_i64(state: i64) -> Self {
+impl From<i64> for DeviceType {
+    fn from(state: i64) -> Self {
         match state {
             0 => DeviceType::Unknown,
             14 => DeviceType::Generic,
@@ -94,9 +92,9 @@ pub fn list() -> Result<Vec<Device>, String> {
 
         let interface = device_string(&path, "Interface").unwrap();
 
-        let device_type = DeviceType::from_i64(device_i64(&path, "DeviceType").unwrap());
+        let device_type = DeviceType::from(device_i64(&path, "DeviceType").unwrap());
 
-        let state = DeviceState::from_i64(device_i64(&path, "State").unwrap());
+        let state = DeviceState::from(device_i64(&path, "State").unwrap());
 
         let real = device_bool(&path, "Real").unwrap();
 
