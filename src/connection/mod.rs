@@ -154,7 +154,7 @@ pub fn disable(connection: &mut Connection, time_out: i32) -> Result<(), String>
     }
 }
 
-//#[test]
+#[test]
 fn test_enable_disable_functions() {
     let connections = list().unwrap();
     let mut connection;
