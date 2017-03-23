@@ -31,7 +31,6 @@ macro_rules! dbus_connect {
     }}
 }
 
-#[inline]
 pub fn variant_to_string_list(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
     let mut result = Vec::new();
 
@@ -50,7 +49,6 @@ pub fn variant_to_string_list(value: Variant<Box<RefArg>>) -> Option<Vec<String>
     }
 }
 
-#[inline]
 pub fn property_as_string(path: &ConnPath<&Connection>,
                           interface: &str,
                           property: &str)
@@ -66,7 +64,6 @@ pub fn property_as_string(path: &ConnPath<&Connection>,
     }
 }
 
-#[inline]
 pub fn property_as_i64(path: &ConnPath<&Connection>,
                        interface: &str,
                        property: &str)
@@ -82,7 +79,6 @@ pub fn property_as_i64(path: &ConnPath<&Connection>,
     }
 }
 
-#[inline]
 pub fn property_as_bool(path: &ConnPath<&Connection>,
                         interface: &str,
                         property: &str)
@@ -98,7 +94,6 @@ pub fn property_as_bool(path: &ConnPath<&Connection>,
     }
 }
 
-#[inline]
 pub fn manager_path<'a, P: Into<Path<'a>>>(connection: &'a Connection,
                                            path: P)
                                            -> ConnPath<'a, &'a Connection> {

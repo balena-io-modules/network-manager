@@ -160,17 +160,14 @@ pub fn disable(c: &Device, t: i32) -> Result<DeviceState, String> {
     Ok(DeviceState::Unavailable)
 }
 
-#[inline]
 fn device_string(path: &ConnPath<&Connection>, property: &str) -> Option<String> {
     property_as_string(path, NM_DEVICE_INTERFACE, property)
 }
 
-#[inline]
 fn device_i64(path: &ConnPath<&Connection>, property: &str) -> Option<i64> {
     property_as_i64(path, NM_DEVICE_INTERFACE, property)
 }
 
-#[inline]
 fn device_bool(path: &ConnPath<&Connection>, property: &str) -> Option<bool> {
     property_as_bool(path, NM_DEVICE_INTERFACE, property)
 }
