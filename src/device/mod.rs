@@ -15,22 +15,6 @@ pub struct Device {
     real: bool,
 }
 
-impl From<i64> for DeviceState {
-    fn from(state: i64) -> Self {
-        match state {
-            0 => DeviceState::Unknown,
-            10 => DeviceState::Unmanaged,
-            20 => DeviceState::Unavailable,
-            30 => DeviceState::Disconnected,
-            100 => DeviceState::Activated,
-            110 => DeviceState::Deactivating,
-            120 => DeviceState::Failed,
-            _ => DeviceState::Unknown,
-
-        }
-    }
-}
-
 
 #[derive(Debug)]
 pub enum DeviceType {
@@ -65,6 +49,22 @@ pub enum DeviceState {
     Activated,
     Deactivating,
     Failed,
+}
+
+impl From<i64> for DeviceState {
+    fn from(state: i64) -> Self {
+        match state {
+            0 => DeviceState::Unknown,
+            10 => DeviceState::Unmanaged,
+            20 => DeviceState::Unavailable,
+            30 => DeviceState::Disconnected,
+            100 => DeviceState::Activated,
+            110 => DeviceState::Deactivating,
+            120 => DeviceState::Failed,
+            _ => DeviceState::Unknown,
+
+        }
+    }
 }
 
 
