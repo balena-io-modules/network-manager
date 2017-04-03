@@ -5,7 +5,7 @@ authors = ["Joseph Roberts <joe@resin.io>"]
 
 [dependencies]
 clippy = {version = "*", optional = true}
-dbus = "0.4.1"
+dbus = "0.5.2"
 enum_primitive = "0.1.0"
 futures = "0.1.9"
 futures-cpupool = "0.1.2"

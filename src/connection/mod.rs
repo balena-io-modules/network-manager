@@ -3,6 +3,7 @@ extern crate dbus;
 use std;
 use std::env;
 use general::*;
+use device::DeviceType;
 
 /// Get a list of Network Manager connections sorted by path.
 ///
@@ -20,8 +21,7 @@ pub fn list() -> Result<Vec<Connection>, String> {
                                 "ListConnections");
     let response = dbus_connect!(message);
     let paths: dbus::arg::Array<dbus::Path, _> = response.get1().unwrap();
-    let mut connections: Vec<_> = paths.map(|p| get_connection(p).unwrap())
-        .collect();
+    let mut connections: Vec<_> = paths.map(|p| get_connection(p).unwrap()).collect();
     connections.sort_by(|a, b| a.cmp(b));
 
     Ok(connections)
@@ -44,13 +44,13 @@ fn test_list_function() {
 /// ```
 /// let connection = network_manager::connection::create(
 ///     "resin_io",
-///     network_manager::general::Interface::WiFi,
+///     network_manager::device::DeviceType::WiFi,
 ///     network_manager::general::Security::WPA2,
 ///     "super_secret_passphase"
 ///     ).unwrap();
 /// println!("{:?}", connection);
 /// ```
-pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection, String> {
+pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connection, String> {
     // Create a connection
     // Get the connection
     // Return the connection
@@ -62,7 +62,7 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
         ssid: "resin_io".to_string(),
         active_path: "test".to_string(),
         state: ConnectionState::Deactivated, /* device: "wlp4s0".to_string(),
-                                              * interface: Interface::WiFi,
+                                              * interface: DeviceType::WiFi,
                                               * security: Security::WPA2,
                                               * state: ConnectionState::Activated, */
     };
@@ -75,9 +75,8 @@ pub fn create(s: &str, i: Interface, sc: Security, p: &str) -> Result<Connection
 /// # Examples
 ///
 /// ```
-/// let connections = network_manager::connection::list().unwrap();
-/// let connection = &connections[0];
-/// network_manager::connection::delete(connection).unwrap();
+/// let mut connections = network_manager::connection::list().unwrap();
+/// network_manager::connection::delete(connections.pop().unwrap()).unwrap();
 /// ```
 pub fn delete(connection: Connection) -> Result<(), String> {
     let message = dbus_message!(NM_SERVICE_MANAGER,
@@ -111,10 +110,11 @@ pub fn enable(connection: &mut Connection, time_out: i32) -> Result<(), String> 
                                             NM_SERVICE_PATH,
                                             NM_SERVICE_INTERFACE,
                                             "ActivateConnection");
-            message.append_items(&[
-                           dbus::MessageItem::ObjectPath(connection.path.to_string().into()),
-                           dbus::MessageItem::ObjectPath("/".into()),
-                           dbus::MessageItem::ObjectPath("/".into())]);
+            message.append_items(&[dbus::MessageItem::ObjectPath(connection.path
+                                                                     .to_string()
+                                                                     .into()),
+                                   dbus::MessageItem::ObjectPath("/".into()),
+                                   dbus::MessageItem::ObjectPath("/".into())]);
             dbus_connect!(message);
 
             wait(connection, time_out, ConnectionState::Activated)
@@ -145,8 +145,8 @@ pub fn disable(connection: &mut Connection, time_out: i32) -> Result<(), String>
                                             NM_SERVICE_INTERFACE,
                                             "DeactivateConnection");
             message.append_items(&[dbus::MessageItem::ObjectPath(connection.active_path
-                                       .to_string()
-                                       .into())]);
+                                                                     .to_string()
+                                                                     .into())]);
             dbus_connect!(message);
 
             wait(connection, time_out, ConnectionState::Deactivated)
@@ -165,7 +165,11 @@ fn test_enable_disable_functions() {
     let wifiEnvVar = "TEST_WIFI_SSID";
     match env::var(wifiEnvVar) {
         Ok(ssid) => {
-            connection = connections.iter().filter(|c| c.ssid == ssid).nth(0).unwrap().clone()
+            connection = connections.iter()
+                .filter(|c| c.ssid == ssid)
+                .nth(0)
+                .unwrap()
+                .clone()
         }
         Err(e) => {
             panic!("couldn't retrieve enviorment variable {}: {}",
@@ -212,19 +216,28 @@ fn get_connection(path: dbus::Path) -> Result<Connection, String> {
         for (k2, v2) in v1 {
             match k2 {
                 "id" => {
-                    connection.id = v2.0.clone().get::<&str>().unwrap().to_string();
-                }
-                "uuid" => {
-                    connection.uuid = v2.0.clone().get::<&str>().unwrap().to_string();
-                }
-                "ssid" => {
-                    connection.ssid = std::str::from_utf8(&v2.0
-                            .clone()
-                            .get::<dbus::arg::Array<u8, _>>()
-                            .unwrap()
-                            .collect::<Vec<u8>>())
+                    connection.id = v2.0
+                        .clone()
+                        .get::<&str>()
                         .unwrap()
                         .to_string();
+                }
+                "uuid" => {
+                    connection.uuid = v2.0
+                        .clone()
+                        .get::<&str>()
+                        .unwrap()
+                        .to_string();
+                }
+                "ssid" => {
+                    connection.ssid =
+                        std::str::from_utf8(&v2.0
+                                                 .clone()
+                                                 .get::<dbus::arg::Array<u8, _>>()
+                                                 .unwrap()
+                                                 .collect::<Vec<u8>>())
+                                .unwrap()
+                                .to_string();
                 }
                 _ => (),
             }
@@ -241,22 +254,22 @@ fn update_state(connection: &mut Connection) -> Result<(), String> {
                                                    NM_SERVICE_PATH,
                                                    NM_SERVICE_INTERFACE,
                                                    "ActiveConnections")
-        .unwrap()
-        .inner::<&Vec<dbus::MessageItem>>()
-        .unwrap()
-        .iter()
-        .map(|p| dbus_path_to_string(p.inner::<&dbus::Path>().unwrap().to_owned()))
-        .collect();
+            .unwrap()
+            .inner::<&Vec<dbus::MessageItem>>()
+            .unwrap()
+            .iter()
+            .map(|p| dbus_path_to_string(p.inner::<&dbus::Path>().unwrap().to_owned()))
+            .collect();
 
     let settings_paths = active_paths.iter().map(|p| {
         dbus_path_to_string(dbus_property!(NM_SERVICE_MANAGER,
                                            p,
                                            NM_ACTIVE_INTERFACE,
                                            "Connection")
-            .unwrap()
-            .inner::<&dbus::Path>()
-            .unwrap()
-            .to_owned())
+                                    .unwrap()
+                                    .inner::<&dbus::Path>()
+                                    .unwrap()
+                                    .to_owned())
     });
 
     connection.active_path = "".to_string();
@@ -310,7 +323,7 @@ pub struct Connection {
     pub uuid: String,
     pub ssid: String,
     pub state: ConnectionState, /* device: String,
-                                 * interface: Interface,
+                                 * device_type: DeviceType,
                                  * security: Security, */
 }
 
@@ -341,6 +354,12 @@ impl PartialOrd for Connection {
 
 impl<'a> From<&'a Connection> for i32 {
     fn from(val: &Connection) -> i32 {
-        val.clone().path.rsplit('/').nth(0).unwrap().parse::<i32>().unwrap()
+        val.clone()
+            .path
+            .rsplit('/')
+            .nth(0)
+            .unwrap()
+            .parse::<i32>()
+            .unwrap()
     }
 }

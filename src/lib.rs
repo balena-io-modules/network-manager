@@ -9,6 +9,8 @@
 #[macro_use]
 extern crate enum_primitive;
 
+extern crate dbus;
+
 #[macro_use]
 mod dbus_helper;
 pub mod general;

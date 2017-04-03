@@ -14,6 +14,7 @@ pub const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.
 pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
                                                    Connection";
 pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
+pub const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
 
 /// Gets the Network Manager status.
 ///
@@ -47,24 +48,27 @@ pub fn status() -> Result<Status, String> {
                                                      NM_SERVICE_PATH,
                                                      NM_SERVICE_INTERFACE,
                                                      "WirelessEnabled")
-        .unwrap()
-        .inner()
-        .unwrap();
+            .unwrap()
+            .inner()
+            .unwrap();
 
     status.networking_enabled = dbus_property!(NM_SERVICE_MANAGER,
                                                NM_SERVICE_PATH,
                                                NM_SERVICE_INTERFACE,
                                                "NetworkingEnabled")
-        .unwrap()
-        .inner()
-        .unwrap();
+            .unwrap()
+            .inner()
+            .unwrap();
 
     Ok(status)
 }
 
 // This should be implemented as a trait in the dbus crate
 pub fn dbus_path_to_string(path: dbus::Path) -> String {
-    path.as_cstr().to_str().unwrap().to_string()
+    path.as_cstr()
+        .to_str()
+        .unwrap()
+        .to_string()
 }
 
 #[derive(Debug)]
@@ -136,17 +140,6 @@ impl From<ConnectionState> for u32 {
     }
 }
 
-#[derive(Debug)]
-pub enum DeviceState {
-    Unknown,
-    Unmanaged,
-    Unavailable,
-    Disconnected,
-    Activated,
-    Deactivating,
-    Failed,
-}
-
 enum_from_primitive!{
 #[derive(Debug, PartialEq)]
 pub enum Connectivity { // See https://bugzilla.gnome.org/show_bug.cgi?id=776848
@@ -176,13 +169,4 @@ pub enum Security {
     WEP,
     WPA1,
     WPA2,
-}
-
-#[derive(Debug)]
-pub enum Interface {
-    Unknown,
-    Generic,
-    Ethernet,
-    WiFi,
-    Bridge,
 }

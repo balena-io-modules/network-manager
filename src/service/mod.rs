@@ -36,11 +36,11 @@ pub fn enable(time_out: u64) -> Result<State, Error> {
                                                         SD_SERVICE_PATH,
                                                         SD_MANAGER_INTERFACE,
                                                         "StartUnit")
-                    .map_err(Error::Message))
-                .append2("NetworkManager.service", "fail");
+                                       .map_err(Error::Message))
+                    .append2("NetworkManager.service", "fail");
 
             let connection = try!(Connection::get_private(BusType::System)
-                .map_err(Error::Connection));
+                                      .map_err(Error::Connection));
 
             try!(connection.send_with_reply_and_block(message, 2000).map_err(Error::Connection));
 
@@ -69,11 +69,11 @@ pub fn disable(time_out: u64) -> Result<State, Error> {
                                                         SD_SERVICE_PATH,
                                                         SD_MANAGER_INTERFACE,
                                                         "StopUnit")
-                    .map_err(Error::Message))
-                .append2("NetworkManager.service", "fail");
+                                       .map_err(Error::Message))
+                    .append2("NetworkManager.service", "fail");
 
             let connection = try!(Connection::get_private(BusType::System)
-                .map_err(Error::Connection));
+                                      .map_err(Error::Connection));
 
             try!(connection.send_with_reply_and_block(message, 2000).map_err(Error::Connection));
 
@@ -96,13 +96,13 @@ pub fn state() -> Result<State, Error> {
                                                 SD_SERVICE_PATH,
                                                 SD_MANAGER_INTERFACE,
                                                 "GetUnit")
-            .map_err(Error::Message))
-        .append1("NetworkManager.service");
+                               .map_err(Error::Message))
+            .append1("NetworkManager.service");
 
     let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
 
     let response = try!(connection.send_with_reply_and_block(message, 2000)
-        .map_err(Error::Connection));
+                            .map_err(Error::Connection));
 
     let path = try!(response.get1::<Path>().ok_or(Error::NotFound));
 
@@ -111,8 +111,8 @@ pub fn state() -> Result<State, Error> {
                                    path,
                                    SD_UNIT_INTERFACE,
                                    2000)
-        .get("ActiveState")
-        .map_err(Error::Props));
+                                .get("ActiveState")
+                                .map_err(Error::Props));
 
     try!(response.inner::<&str>().ok().ok_or(Error::NotFound)).parse()
 }
@@ -131,7 +131,7 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
                         interface='org.freedesktop.DBus.Properties', \
                         member='PropertiesChanged', \
                         path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'")
-            .map_err(Error::Connection));
+                 .map_err(Error::Connection));
 
         if try!(state()) == target_state {
             return Ok(target_state);
@@ -161,7 +161,10 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
 
             for (k, v) in try!(dictionary.ok_or(Error::NotFound)) {
                 if k == "ActiveState" {
-                    let response = try!(v.0.clone().get::<&str>().ok_or(Error::NotFound));
+                    let response = try!(v.0
+                                            .clone()
+                                            .get::<&str>()
+                                            .ok_or(Error::NotFound));
                     let state: State = try!(response.parse());
                     if state == target_state {
                         return Ok(target_state);
