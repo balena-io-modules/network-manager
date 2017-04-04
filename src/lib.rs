@@ -18,3 +18,4 @@ pub mod wifi;
 pub mod service;
 pub mod connection;
 pub mod device;
+pub mod manager;
