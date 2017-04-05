@@ -1,6 +1,7 @@
 extern crate dbus;
 
 use std;
+use std::env;
 use general::*;
 use device::DeviceType;
 use manager::NetworkManager;
@@ -11,7 +12,8 @@ use manager::NetworkManager;
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// let manager = network_manager::manager::NetworkManager::new();
+/// use network_manager::manager::NetworkManager;
+/// let manager = NetworkManager::new();
 /// let connections = connection::list(&manager).unwrap();
 /// println!("{:?}", connections);
 /// ```
@@ -84,9 +86,11 @@ pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connecti
 /// # Examples
 ///
 /// ```
-/// let manager = network_manager::manager::NetworkManager::new();
-/// let mut connections = network_manager::connection::list(&manager).unwrap();
-/// network_manager::connection::delete(connections.pop().unwrap()).unwrap();
+/// use network_manager::connection;
+/// use network_manager::manager::NetworkManager;
+/// let manager = NetworkManager::new();
+/// let mut connections = connection::list(&manager).unwrap();
+/// connection::delete(connections.pop().unwrap()).unwrap();
 /// ```
 pub fn delete(connection: Connection) -> Result<(), String> {
     let message = dbus_message!(NM_SERVICE_MANAGER,
@@ -104,7 +108,8 @@ pub fn delete(connection: Connection) -> Result<(), String> {
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// let manager = network_manager::manager::NetworkManager::new();
+/// use network_manager::manager::NetworkManager;
+/// let manager = NetworkManager::new();
 /// let connections = connection::list(&manager).unwrap();
 /// let mut connection = connections[0].clone();
 /// connection::enable(&manager, &mut connection, 10).unwrap();
@@ -144,7 +149,8 @@ pub fn enable(manager: &NetworkManager,
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// let manager = network_manager::manager::NetworkManager::new();
+/// use network_manager::manager::NetworkManager;
+/// let manager = NetworkManager::new();
 /// let connections = connection::list(&manager).unwrap();
 /// let mut connection = connections[0].clone();
 /// connection::disable(&manager, &mut connection, 10).unwrap();
