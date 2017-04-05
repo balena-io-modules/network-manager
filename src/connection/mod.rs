@@ -4,6 +4,7 @@ use std;
 use std::env;
 use general::*;
 use device::DeviceType;
+use manager;
 use manager::NetworkManager;
 
 /// Get a list of Network Manager connections sorted by path.
@@ -12,8 +13,8 @@ use manager::NetworkManager;
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// use network_manager::manager::NetworkManager;
-/// let manager = NetworkManager::new();
+/// use network_manager::manager;
+/// let manager = manager::new();
 /// let connections = connection::list(&manager).unwrap();
 /// println!("{:?}", connections);
 /// ```
@@ -33,7 +34,7 @@ pub fn list(manager: &NetworkManager) -> Result<Vec<Connection>, String> {
 
 #[test]
 fn test_list_function() {
-    let manager = NetworkManager::new();
+    let manager = manager::new();
 
     let connections = list(&manager).unwrap();
     assert!(connections.len() > 0);
@@ -86,17 +87,13 @@ pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connecti
 ///
 /// ```
 /// use network_manager::connection;
-/// use network_manager::manager::NetworkManager;
-/// let manager = NetworkManager::new();
+/// use network_manager::manager;
+/// let manager = manager::new();
 /// let mut connections = connection::list(&manager).unwrap();
-/// connection::delete(connections.pop().unwrap()).unwrap();
+/// connection::delete(&manager, connections.pop().unwrap()).unwrap();
 /// ```
-pub fn delete(connection: Connection) -> Result<(), String> {
-    let message = dbus_message!(NM_SERVICE_MANAGER,
-                                connection.path,
-                                NM_CONNECTION_INTERFACE,
-                                "Delete");
-    dbus_connect!(message);
+pub fn delete(manager: &NetworkManager, connection: Connection) -> Result<(), String> {
+    try!(manager.delete_connection(&connection.path));
 
     Ok(())
 }
@@ -107,8 +104,8 @@ pub fn delete(connection: Connection) -> Result<(), String> {
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// use network_manager::manager::NetworkManager;
-/// let manager = NetworkManager::new();
+/// use network_manager::manager;
+/// let manager = manager::new();
 /// let connections = connection::list(&manager).unwrap();
 /// let mut connection = connections[0].clone();
 /// connection::enable(&manager, &mut connection, 10).unwrap();
@@ -148,8 +145,8 @@ pub fn enable(manager: &NetworkManager,
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// use network_manager::manager::NetworkManager;
-/// let manager = NetworkManager::new();
+/// use network_manager::manager;
+/// let manager = manager::new();
 /// let connections = connection::list(&manager).unwrap();
 /// let mut connection = connections[0].clone();
 /// connection::disable(&manager, &mut connection, 10).unwrap();
@@ -183,7 +180,7 @@ pub fn disable(manager: &NetworkManager,
 
 #[test]
 fn test_enable_disable_functions() {
-    let manager = NetworkManager::new();
+    let manager = manager::new();
 
     let connections = list(&manager).unwrap();
     let mut connection;

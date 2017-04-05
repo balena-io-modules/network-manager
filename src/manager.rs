@@ -9,6 +9,11 @@ use connection::ConnectionSettings;
 use general::*;
 
 
+pub fn new() -> NetworkManager {
+    NetworkManager::new()
+}
+
+
 pub struct NetworkManager {
     connection: DBusConnection,
 }
@@ -84,6 +89,14 @@ impl NetworkManager {
                uuid: uuid,
                ssid: ssid,
            })
+    }
+
+    pub fn delete_connection(&self, path: &String) -> Result<(), String> {
+        let response = try!(self.call(path, NM_CONNECTION_INTERFACE, "Delete"));
+
+        println!("{:?}", response);
+
+        Ok(())
     }
 
     fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
