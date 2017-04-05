@@ -42,7 +42,9 @@ pub fn enable(time_out: u64) -> Result<State, Error> {
             let connection = try!(Connection::get_private(BusType::System)
                                       .map_err(Error::Connection));
 
-            try!(connection.send_with_reply_and_block(message, 2000).map_err(Error::Connection));
+            try!(connection
+                     .send_with_reply_and_block(message, 2000)
+                     .map_err(Error::Connection));
 
             handler(time_out, State::Active)
         }
@@ -75,7 +77,9 @@ pub fn disable(time_out: u64) -> Result<State, Error> {
             let connection = try!(Connection::get_private(BusType::System)
                                       .map_err(Error::Connection));
 
-            try!(connection.send_with_reply_and_block(message, 2000).map_err(Error::Connection));
+            try!(connection
+                     .send_with_reply_and_block(message, 2000)
+                     .map_err(Error::Connection));
 
             handler(time_out, State::Inactive)
         }
@@ -101,7 +105,8 @@ pub fn state() -> Result<State, Error> {
 
     let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
 
-    let response = try!(connection.send_with_reply_and_block(message, 2000)
+    let response = try!(connection
+                            .send_with_reply_and_block(message, 2000)
                             .map_err(Error::Connection));
 
     let path = try!(response.get1::<Path>().ok_or(Error::NotFound));
@@ -122,12 +127,14 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
         return state();
     }
 
-    let timer =
-        Timer::default().sleep(Duration::from_secs(time_out)).then(|_| Err(Error::TimedOut));
+    let timer = Timer::default()
+        .sleep(Duration::from_secs(time_out))
+        .then(|_| Err(Error::TimedOut));
 
     let process = CpuPool::new_num_cpus().spawn_fn(|| {
         let connection = try!(Connection::get_private(BusType::System).map_err(Error::Connection));
-        try!(connection.add_match("type='signal', sender='org.freedesktop.systemd1', \
+        try!(connection
+                 .add_match("type='signal', sender='org.freedesktop.systemd1', \
                         interface='org.freedesktop.DBus.Properties', \
                         member='PropertiesChanged', \
                         path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'")
@@ -161,10 +168,7 @@ fn handler(time_out: u64, target_state: State) -> Result<State, Error> {
 
             for (k, v) in try!(dictionary.ok_or(Error::NotFound)) {
                 if k == "ActiveState" {
-                    let response = try!(v.0
-                                            .clone()
-                                            .get::<&str>()
-                                            .ok_or(Error::NotFound));
+                    let response = try!(v.0.clone().get::<&str>().ok_or(Error::NotFound));
                     let state: State = try!(response.parse());
                     if state == target_state {
                         return Ok(target_state);

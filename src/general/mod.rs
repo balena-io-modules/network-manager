@@ -1,7 +1,6 @@
 extern crate dbus;
 extern crate enum_primitive;
 
-use std::str::FromStr;
 use enum_primitive::FromPrimitive;
 
 pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
@@ -65,10 +64,7 @@ pub fn status() -> Result<Status, String> {
 
 // This should be implemented as a trait in the dbus crate
 pub fn dbus_path_to_string(path: dbus::Path) -> String {
-    path.as_cstr()
-        .to_str()
-        .unwrap()
-        .to_string()
+    path.as_cstr().to_str().unwrap().to_string()
 }
 
 #[derive(Debug)]
