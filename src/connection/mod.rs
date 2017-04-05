@@ -40,7 +40,6 @@ fn test_list_function() {
 
     for (index, val) in connections.iter().enumerate() {
         assert_ne!(Connection { ..Default::default() }, val.clone());
-        assert_eq!(index as i32, i32::from(val));
     }
 }
 
