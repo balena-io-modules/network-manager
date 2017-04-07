@@ -1,12 +1,27 @@
 use dbus::Connection as DBusConnection;
-use dbus::{BusType, Path, ConnPath, Message};
+use dbus::{BusType, Path, ConnPath, Message, MessageItem};
 use dbus::arg::{Dict, Variant, Iter, Array, Get, RefArg};
 use dbus::stdintf::OrgFreedesktopDBusProperties;
 
 use enum_primitive::FromPrimitive;
 
-use connection::ConnectionSettings;
-use general::*;
+use connection::{ConnectionSettings, ConnectionState};
+use device::{DeviceType, DeviceState};
+use status::{Connectivity, NetworkManagerState};
+
+
+pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
+
+pub const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
+pub const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
+
+pub const NM_SERVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
+pub const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
+pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
+                                                   Connection";
+pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
+pub const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
+
 
 
 pub fn new() -> NetworkManager {
@@ -18,13 +33,35 @@ pub struct NetworkManager {
     connection: DBusConnection,
 }
 
-
 impl NetworkManager {
     pub fn new() -> Self {
         let connection = DBusConnection::get_private(BusType::System).unwrap();
 
         NetworkManager { connection: connection }
+    }
 
+    pub fn get_state(&self) -> Result<NetworkManagerState, String> {
+        let response = try!(self.call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state"));
+
+        let state_u32: u32 = try!(self.extract(&response));
+
+        Ok(NetworkManagerState::from(state_u32))
+    }
+
+    pub fn check_connectivity(&self) -> Result<Connectivity, String> {
+        let response = try!(self.call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity"));
+
+        let connectivity_u32: u32 = try!(self.extract(&response));
+
+        Ok(Connectivity::from(connectivity_u32))
+    }
+
+    pub fn is_wireless_enabled(&self) -> Result<bool, String> {
+        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
+    }
+
+    pub fn is_networking_enabled(&self) -> Result<bool, String> {
+        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>, String> {
@@ -92,14 +129,61 @@ impl NetworkManager {
     }
 
     pub fn delete_connection(&self, path: &String) -> Result<(), String> {
-        let response = try!(self.call(path, NM_CONNECTION_INTERFACE, "Delete"));
-
-        println!("{:?}", response);
+        try!(self.call(path, NM_CONNECTION_INTERFACE, "Delete"));
 
         Ok(())
     }
 
+    pub fn activate_connection(&self, path: &String) -> Result<(), String> {
+        try!(self.call_with_args(NM_SERVICE_PATH,
+                                 NM_SERVICE_INTERFACE,
+                                 "ActivateConnection",
+                                 &[MessageItem::ObjectPath(path.to_string().into()),
+                                   MessageItem::ObjectPath("/".into()),
+                                   MessageItem::ObjectPath("/".into())]));
+
+        Ok(())
+    }
+
+    pub fn deactivate_connection(&self, path: &String) -> Result<(), String> {
+        try!(self.call_with_args(NM_SERVICE_PATH,
+                                 NM_SERVICE_INTERFACE,
+                                 "DeactivateConnection",
+                                 &[MessageItem::ObjectPath(path.to_string().into())]));
+
+        Ok(())
+    }
+
+    pub fn get_devices(&self) -> Result<Vec<String>, String> {
+        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
+    }
+
+    pub fn get_device_interface(&self, path: &String) -> Result<String, String> {
+        self.property(path, NM_DEVICE_INTERFACE, "Interface")
+    }
+
+    pub fn get_device_type(&self, path: &String) -> Result<DeviceType, String> {
+        self.property(path, NM_DEVICE_INTERFACE, "DeviceType")
+    }
+
+    pub fn get_device_state(&self, path: &String) -> Result<DeviceState, String> {
+        self.property(path, NM_DEVICE_INTERFACE, "State")
+    }
+
+    pub fn is_device_real(&self, path: &String) -> Result<bool, String> {
+        self.property(path, NM_DEVICE_INTERFACE, "Real")
+    }
+
     fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
+        self.call_with_args(path, interface, method, &[])
+    }
+
+    fn call_with_args(&self,
+                      path: &str,
+                      interface: &str,
+                      method: &str,
+                      items: &[MessageItem])
+                      -> Result<Message, String> {
         let call_error = |details: &str| {
             Err(format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
                         interface,
@@ -109,7 +193,11 @@ impl NetworkManager {
         };
 
         match Message::new_method_call(NM_SERVICE_MANAGER, path, interface, method) {
-            Ok(message) => {
+            Ok(mut message) => {
+                if items.len() > 0 {
+                    message.append_items(items);
+                }
+
                 match self.connection.send_with_reply_and_block(message, 2000) {
                     Ok(response) => Ok(response),
                     Err(err) => {
@@ -195,9 +283,30 @@ impl VariantTo<i64> for NetworkManager {
 }
 
 
+impl VariantTo<bool> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<bool> {
+        variant_to_bool(value)
+    }
+}
+
+
 impl VariantTo<Vec<String>> for NetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
         variant_to_string_list(value)
+    }
+}
+
+
+impl VariantTo<DeviceType> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
+        variant_to_device_type(value)
+    }
+}
+
+
+impl VariantTo<DeviceState> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
+        variant_to_device_state(value)
     }
 }
 
@@ -232,6 +341,33 @@ fn variant_to_string(value: Variant<Box<RefArg>>) -> Option<String> {
 
 fn variant_to_i64(value: Variant<Box<RefArg>>) -> Option<i64> {
     value.0.as_i64()
+}
+
+
+fn variant_to_bool(value: Variant<Box<RefArg>>) -> Option<bool> {
+    if let Some(integer) = value.0.as_i64() {
+        Some(integer == 0)
+    } else {
+        None
+    }
+}
+
+
+fn variant_to_device_type(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
+    if let Some(integer) = value.0.as_i64() {
+        Some(DeviceType::from(integer))
+    } else {
+        None
+    }
+}
+
+
+fn variant_to_device_state(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
+    if let Some(integer) = value.0.as_i64() {
+        Some(DeviceState::from(integer))
+    } else {
+        None
+    }
 }
 
 

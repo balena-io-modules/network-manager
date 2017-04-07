@@ -2,8 +2,11 @@ extern crate dbus;
 
 use std;
 use std::env;
-use general::*;
+
+use enum_primitive::FromPrimitive;
+
 use device::DeviceType;
+use wifi::Security;
 use manager;
 use manager::NetworkManager;
 
@@ -52,7 +55,7 @@ fn test_list_function() {
 /// let connection = network_manager::connection::create(
 ///     "resin_io",
 ///     network_manager::device::DeviceType::WiFi,
-///     network_manager::general::Security::WPA2,
+///     network_manager::wifi::Security::WPA2,
 ///     "super_secret_passphase"
 ///     ).unwrap();
 /// println!("{:?}", connection);
@@ -93,9 +96,7 @@ pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connecti
 /// connection::delete(&manager, connections.pop().unwrap()).unwrap();
 /// ```
 pub fn delete(manager: &NetworkManager, connection: Connection) -> Result<(), String> {
-    try!(manager.delete_connection(&connection.path));
-
-    Ok(())
+    manager.delete_connection(&connection.path)
 }
 
 /// Enables a Network Manager connection.
@@ -122,17 +123,7 @@ pub fn enable(manager: &NetworkManager,
         }
         ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
         _ => {
-            let mut message = dbus_message!(NM_SERVICE_MANAGER,
-                                            NM_SERVICE_PATH,
-                                            NM_SERVICE_INTERFACE,
-                                            "ActivateConnection");
-            message.append_items(&[dbus::MessageItem::ObjectPath(connection
-                                                                     .path
-                                                                     .to_string()
-                                                                     .into()),
-                                   dbus::MessageItem::ObjectPath("/".into()),
-                                   dbus::MessageItem::ObjectPath("/".into())]);
-            dbus_connect!(message);
+            try!(manager.activate_connection(&connection.path));
 
             wait(manager, connection, time_out, ConnectionState::Activated)
         }
@@ -163,15 +154,7 @@ pub fn disable(manager: &NetworkManager,
         }
         ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
         _ => {
-            let mut message = dbus_message!(NM_SERVICE_MANAGER,
-                                            NM_SERVICE_PATH,
-                                            NM_SERVICE_INTERFACE,
-                                            "DeactivateConnection");
-            message.append_items(&[dbus::MessageItem::ObjectPath(connection
-                                                                     .active_path
-                                                                     .to_string()
-                                                                     .into())]);
-            dbus_connect!(message);
+            try!(manager.deactivate_connection(&connection.active_path));
 
             wait(manager, connection, time_out, ConnectionState::Deactivated)
         }
@@ -336,4 +319,28 @@ pub struct ConnectionSettings {
     pub id: String,
     pub uuid: String,
     pub ssid: String,
+}
+
+
+enum_from_primitive!{
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ConnectionState {
+    Unknown = 0,
+    Activating = 1,
+    Activated = 2,
+    Deactivating = 3,
+    Deactivated = 4,
+}
+}
+
+impl From<u32> for ConnectionState {
+    fn from(val: u32) -> ConnectionState {
+        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
+    }
+}
+
+impl From<ConnectionState> for u32 {
+    fn from(val: ConnectionState) -> u32 {
+        val as u32
+    }
 }
