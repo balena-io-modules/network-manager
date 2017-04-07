@@ -1,4 +1,4 @@
-use general::Security;
+
 
 /// Scans for Wi-Fi access points.
 ///
@@ -24,6 +24,15 @@ pub fn scan() -> Result<Vec<AccessPoint>, String> {
     };
 
     Ok(vec![ap1, ap2])
+}
+
+
+#[derive(Debug)]
+pub enum Security {
+    None,
+    WEP,
+    WPA1,
+    WPA2,
 }
 
 #[derive(Debug)]

@@ -11,9 +11,7 @@ extern crate enum_primitive;
 
 extern crate dbus;
 
-#[macro_use]
-mod dbus_helper;
-pub mod general;
+pub mod status;
 pub mod wifi;
 pub mod service;
 pub mod connection;

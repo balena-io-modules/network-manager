@@ -1,9 +1,5 @@
-use dbus::{Connection, ConnPath, BusType};
-use dbus::stdintf::OrgFreedesktopDBusProperties;
-
-use general::{NM_DEVICE_INTERFACE, NM_SERVICE_INTERFACE, NM_SERVICE_PATH};
-use dbus_helper::{variant_to_string_list, manager_path, property_as_string, property_as_i64,
-                  property_as_bool};
+use manager;
+use manager::NetworkManager;
 
 
 #[derive(Debug)]
@@ -73,30 +69,25 @@ impl From<i64> for DeviceState {
 /// # Examples
 ///
 /// ```
-/// let devices = network_manager::device::list().unwrap();
+/// use network_manager::device;
+/// use network_manager::manager;
+/// let manager = manager::new();
+/// let devices = device::list(&manager).unwrap();
 /// println!("{:?}", devices);
 /// ```
-pub fn list() -> Result<Vec<Device>, String> {
-    let connection = Connection::get_private(BusType::System).unwrap();
-
-    let path = manager_path(&connection, NM_SERVICE_PATH);
-
-    let devices = path.get(NM_SERVICE_INTERFACE, "Devices").unwrap();
-
-    let device_paths = variant_to_string_list(devices).unwrap();
+pub fn list(manager: &NetworkManager) -> Result<Vec<Device>, String> {
+    let device_paths = try!(manager.get_devices());
 
     let mut result = Vec::new();
 
     for device_path in device_paths {
-        let path = manager_path(&connection, &device_path);
+        let interface = try!(manager.get_device_interface(&device_path));
 
-        let interface = device_string(&path, "Interface").unwrap();
+        let device_type = try!(manager.get_device_type(&device_path));
 
-        let device_type = DeviceType::from(device_i64(&path, "DeviceType").unwrap());
+        let state = try!(manager.get_device_state(&device_path));
 
-        let state = DeviceState::from(device_i64(&path, "State").unwrap());
-
-        let real = device_bool(&path, "Real").unwrap();
+        let real = try!(manager.is_device_real(&device_path));
 
         let device = Device {
             interface: interface,
@@ -114,7 +105,8 @@ pub fn list() -> Result<Vec<Device>, String> {
 
 #[test]
 fn test_list_function() {
-    let devices = list().unwrap();
+    let manager = manager::new();
+    let devices = list(&manager).unwrap();
     assert!(devices.len() > 0);
 }
 
@@ -123,12 +115,15 @@ fn test_list_function() {
 /// # Examples
 ///
 /// ```
-/// let devices = network_manager::device::list().unwrap();
+/// use network_manager::device;
+/// use network_manager::manager;
+/// let manager = manager::new();
+/// let devices = device::list(&manager).unwrap();
 /// let device = &devices[0];
-/// let state = network_manager::device::enable(device, 10).unwrap();
+/// let state = device::enable(&manager, device, 10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn enable(c: &Device, t: i32) -> Result<DeviceState, String> {
+pub fn enable(manager: &NetworkManager, c: &Device, t: i32) -> Result<DeviceState, String> {
     // Enable device
 
     if t != 0 {
@@ -144,12 +139,15 @@ pub fn enable(c: &Device, t: i32) -> Result<DeviceState, String> {
 /// # Examples
 ///
 /// ```
-/// let devices = network_manager::device::list().unwrap();
+/// use network_manager::device;
+/// use network_manager::manager;
+/// let manager = manager::new();
+/// let devices = device::list(&manager).unwrap();
 /// let device = &devices[0];
-/// let state = network_manager::device::disable(device, 10).unwrap();
+/// let state = device::disable(&manager, device, 10).unwrap();
 /// println!("{:?}", state);
 /// ```
-pub fn disable(c: &Device, t: i32) -> Result<DeviceState, String> {
+pub fn disable(manager: &NetworkManager, c: &Device, t: i32) -> Result<DeviceState, String> {
     // Disable device
 
     if t != 0 {
@@ -158,16 +156,4 @@ pub fn disable(c: &Device, t: i32) -> Result<DeviceState, String> {
     }
 
     Ok(DeviceState::Unavailable)
-}
-
-fn device_string(path: &ConnPath<&Connection>, property: &str) -> Option<String> {
-    property_as_string(path, NM_DEVICE_INTERFACE, property)
-}
-
-fn device_i64(path: &ConnPath<&Connection>, property: &str) -> Option<i64> {
-    property_as_i64(path, NM_DEVICE_INTERFACE, property)
-}
-
-fn device_bool(path: &ConnPath<&Connection>, property: &str) -> Option<bool> {
-    property_as_bool(path, NM_DEVICE_INTERFACE, property)
 }
