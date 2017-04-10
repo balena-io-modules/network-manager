@@ -128,6 +128,10 @@ impl NetworkManager {
            })
     }
 
+    pub fn get_connection_devices(&self, path: &String) -> Result<Vec<String>, String> {
+        self.property(path, NM_ACTIVE_INTERFACE, "Devices")
+    }
+
     pub fn delete_connection(&self, path: &String) -> Result<(), String> {
         try!(self.call(path, NM_CONNECTION_INTERFACE, "Delete"));
 

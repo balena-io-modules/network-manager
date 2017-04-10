@@ -13,6 +13,26 @@ pub struct Device {
     pub real: bool,
 }
 
+impl Device {
+    pub fn from_path(manager: &NetworkManager, path: &String) -> Result<Device, String> {
+        let interface = try!(manager.get_device_interface(&path));
+
+        let device_type = try!(manager.get_device_type(&path));
+
+        let state = try!(manager.get_device_state(&path));
+
+        let real = try!(manager.is_device_real(&path));
+
+        Ok(Device {
+               interface: interface,
+               path: path.clone(),
+               device_type: device_type,
+               state: state,
+               real: real,
+           })
+    }
+}
+
 
 #[derive(Debug)]
 pub enum DeviceType {
@@ -82,22 +102,8 @@ pub fn list(manager: &NetworkManager) -> Result<Vec<Device>, String> {
 
     let mut result = Vec::new();
 
-    for device_path in device_paths {
-        let interface = try!(manager.get_device_interface(&device_path));
-
-        let device_type = try!(manager.get_device_type(&device_path));
-
-        let state = try!(manager.get_device_state(&device_path));
-
-        let real = try!(manager.is_device_real(&device_path));
-
-        let device = Device {
-            interface: interface,
-            path: device_path.clone(),
-            device_type: device_type,
-            state: state,
-            real: real,
-        };
+    for path in device_paths {
+        let device = try!(Device::from_path(manager, &path));
 
         result.push(device);
     }
@@ -185,4 +191,56 @@ fn wait(manager: &NetworkManager,
     }
 
     Err("service timed out".to_string())
+}
+
+
+#[test]
+fn test_connect_disconnect_functions() {
+    use connection;
+
+    let manager = manager::new();
+
+    let connections = connection::list(&manager).unwrap();
+    let mut connection;
+
+
+    // set enviorment variable $TEST_WIFI_SSID with the wifi's SSID that you want to test
+    // e.g.  export TEST_WIFI_SSID="Resin.io Wifi"
+    let wifiEnvVar = "TEST_WIFI_SSID";
+    match ::std::env::var(wifiEnvVar) {
+        Ok(ssid) => {
+            connection = connections
+                .iter()
+                .filter(|c| c.settings.ssid == ssid)
+                .nth(0)
+                .unwrap()
+                .clone()
+        }
+        Err(e) => {
+            panic!("couldn't retrieve enviorment variable {}: {}",
+                   wifiEnvVar,
+                   e)
+        }
+    };
+
+    let device_paths = manager
+        .get_connection_devices(&connection.active_path)
+        .unwrap();
+    assert!(device_paths.len() > 0);
+
+    let mut device = Device::from_path(&manager, &device_paths[0]).unwrap();
+
+    if device.state == DeviceState::Activated {
+        disconnect(&manager, &mut device, 10).unwrap();
+        assert_eq!(DeviceState::Disconnected, device.state);
+
+        connect(&manager, &mut device, 10).unwrap();
+        assert_eq!(DeviceState::Activated, device.state);
+    } else {
+        connect(&manager, &mut device, 10).unwrap();
+        assert_eq!(DeviceState::Activated, device.state);
+
+        disconnect(&manager, &mut device, 10).unwrap();
+        assert_eq!(DeviceState::Disconnected, device.state);
+    }
 }
