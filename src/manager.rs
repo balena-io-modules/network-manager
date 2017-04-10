@@ -174,6 +174,23 @@ impl NetworkManager {
         self.property(path, NM_DEVICE_INTERFACE, "Real")
     }
 
+    pub fn activate_device(&self, path: &String) -> Result<(), String> {
+        try!(self.call_with_args(NM_SERVICE_PATH,
+                                 NM_SERVICE_INTERFACE,
+                                 "ActivateConnection",
+                                 &[MessageItem::ObjectPath("/".into()),
+                                   MessageItem::ObjectPath(path.to_string().into()),
+                                   MessageItem::ObjectPath("/".into())]));
+
+        Ok(())
+    }
+
+    pub fn disconnect_device(&self, path: &String) -> Result<(), String> {
+        try!(self.call(path, NM_DEVICE_INTERFACE, "Disconnect"));
+
+        Ok(())
+    }
+
     fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
         self.call_with_args(path, interface, method, &[])
     }

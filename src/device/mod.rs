@@ -1,14 +1,16 @@
+use std;
+
 use manager;
 use manager::NetworkManager;
 
 
 #[derive(Debug)]
 pub struct Device {
-    interface: String,
-    path: String,
-    device_type: DeviceType,
-    state: DeviceState,
-    real: bool,
+    pub interface: String,
+    pub path: String,
+    pub device_type: DeviceType,
+    pub state: DeviceState,
+    pub real: bool,
 }
 
 
@@ -36,7 +38,7 @@ impl From<i64> for DeviceType {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeviceState {
     Unknown,
     Unmanaged,
@@ -110,7 +112,7 @@ fn test_list_function() {
     assert!(devices.len() > 0);
 }
 
-/// Enables a Network Manager device.
+/// Connects a Network Manager device.
 ///
 /// # Examples
 ///
@@ -118,23 +120,22 @@ fn test_list_function() {
 /// use network_manager::device;
 /// use network_manager::manager;
 /// let manager = manager::new();
-/// let devices = device::list(&manager).unwrap();
-/// let device = &devices[0];
-/// let state = device::enable(&manager, device, 10).unwrap();
-/// println!("{:?}", state);
+/// let mut devices = device::list(&manager).unwrap();
+/// let device = &mut devices[0];
+/// device::connect(&manager, device, 10).unwrap();
 /// ```
-pub fn enable(manager: &NetworkManager, c: &Device, t: i32) -> Result<DeviceState, String> {
-    // Enable device
+pub fn connect(manager: &NetworkManager, device: &mut Device, time_out: i32) -> Result<(), String> {
+    match device.state {
+        DeviceState::Activated => Ok(()),
+        _ => {
+            try!(manager.activate_device(&device.path));
 
-    if t != 0 {
-        // Wait until the device state is 'Activated' or
-        // until the time has elapsed
+            wait(manager, device, time_out, DeviceState::Activated)
+        }
     }
-
-    Ok(DeviceState::Activated)
 }
 
-/// Disables a Network Manager device.
+/// Disconnect a Network Manager device.
 ///
 /// # Examples
 ///
@@ -142,18 +143,46 @@ pub fn enable(manager: &NetworkManager, c: &Device, t: i32) -> Result<DeviceStat
 /// use network_manager::device;
 /// use network_manager::manager;
 /// let manager = manager::new();
-/// let devices = device::list(&manager).unwrap();
-/// let device = &devices[0];
-/// let state = device::disable(&manager, device, 10).unwrap();
-/// println!("{:?}", state);
+/// let mut devices = device::list(&manager).unwrap();
+/// let device = &mut devices[0];
+/// device::disconnect(&manager, device, 10).unwrap();
 /// ```
-pub fn disable(manager: &NetworkManager, c: &Device, t: i32) -> Result<DeviceState, String> {
-    // Disable device
+pub fn disconnect(manager: &NetworkManager,
+                  device: &mut Device,
+                  time_out: i32)
+                  -> Result<(), String> {
+    match device.state {
+        DeviceState::Disconnected => Ok(()),
+        _ => {
+            try!(manager.disconnect_device(&device.path));
 
-    if t != 0 {
-        // Wait until the device state is 'Unavailable' or
-        // until the time has elapsed
+            wait(manager, device, time_out, DeviceState::Disconnected)
+        }
+    }
+}
+
+fn wait(manager: &NetworkManager,
+        device: &mut Device,
+        time_out: i32,
+        target_state: DeviceState)
+        -> Result<(), String> {
+    if time_out == 0 {
+        return Ok(());
     }
 
-    Ok(DeviceState::Unavailable)
+    let mut total_time = 0;
+
+    while total_time < time_out {
+        device.state = try!(manager.get_device_state(&device.path));
+
+        if device.state == target_state {
+            return Ok(());
+        }
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        total_time += 1;
+    }
+
+    Err("service timed out".to_string())
 }
