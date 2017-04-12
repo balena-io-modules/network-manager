@@ -8,7 +8,7 @@ use enum_primitive::FromPrimitive;
 use connection::{ConnectionSettings, ConnectionState};
 use device::{DeviceType, DeviceState};
 use status::{Connectivity, NetworkManagerState};
-
+use wifi::{NM80211ApSecurityFlags, NM80211ApFlags};
 
 pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
 
@@ -21,7 +21,8 @@ pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManage
                                                    Connection";
 pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
 pub const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
-
+pub const NM_WIRELESS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device.Wireless";
+pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkManager.AccessPoint";
 
 
 pub fn new() -> NetworkManager {
@@ -195,6 +196,38 @@ impl NetworkManager {
         Ok(())
     }
 
+    pub fn get_device_access_points(&self, path: &String) -> Result<Vec<String>, String> {
+        self.property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
+    }
+
+    pub fn get_access_point_ssid(&self, path: &String) -> Option<String> {
+        if let Ok(ssid_vec) = self.property(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
+            utf8_vec_u8_to_string(ssid_vec).ok()
+        } else {
+            None
+        }
+    }
+
+    pub fn get_access_point_strength(&self, path: &String) -> Result<u32, String> {
+        self.property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
+    }
+
+    pub fn get_access_point_flags(&self, path: &String) -> Result<NM80211ApFlags, String> {
+        self.property(path, NM_ACCESS_POINT_INTERFACE, "Flags")
+    }
+
+    pub fn get_access_point_wpa_flags(&self,
+                                      path: &String)
+                                      -> Result<NM80211ApSecurityFlags, String> {
+        self.property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
+    }
+
+    pub fn get_access_point_rsn_flags(&self,
+                                      path: &String)
+                                      -> Result<NM80211ApSecurityFlags, String> {
+        self.property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
+    }
+
     fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
         self.call_with_args(path, interface, method, &[])
     }
@@ -304,6 +337,13 @@ impl VariantTo<i64> for NetworkManager {
 }
 
 
+impl VariantTo<u32> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<u32> {
+        variant_to_u32(value)
+    }
+}
+
+
 impl VariantTo<bool> for NetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<bool> {
         variant_to_bool(value)
@@ -313,7 +353,14 @@ impl VariantTo<bool> for NetworkManager {
 
 impl VariantTo<Vec<String>> for NetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
-        variant_to_string_list(value)
+        variant_to_string_vec(value)
+    }
+}
+
+
+impl VariantTo<Vec<u8>> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
+        variant_to_u8_vec(value)
     }
 }
 
@@ -332,13 +379,46 @@ impl VariantTo<DeviceState> for NetworkManager {
 }
 
 
-fn variant_to_string_list(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
+impl VariantTo<NM80211ApFlags> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
+        variant_to_ap_flags(value)
+    }
+}
+
+
+impl VariantTo<NM80211ApSecurityFlags> for NetworkManager {
+    fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
+        variant_to_ap_security_flags(value)
+    }
+}
+
+
+fn variant_to_string_vec(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
     let mut result = Vec::new();
 
     if let Some(list) = value.0.as_iter() {
         for element in list {
             if let Some(string) = element.as_str() {
                 result.push(string.to_string());
+            } else {
+                return None;
+            }
+        }
+
+        Some(result)
+    } else {
+        None
+    }
+}
+
+
+fn variant_to_u8_vec(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
+    let mut result = Vec::new();
+
+    if let Some(list) = value.0.as_iter() {
+        for element in list {
+            if let Some(value) = element.as_i64() {
+                result.push(value as u8);
             } else {
                 return None;
             }
@@ -362,6 +442,14 @@ fn variant_to_string(value: Variant<Box<RefArg>>) -> Option<String> {
 
 fn variant_to_i64(value: Variant<Box<RefArg>>) -> Option<i64> {
     value.0.as_i64()
+}
+
+
+fn variant_to_u32(value: Variant<Box<RefArg>>) -> Option<u32> {
+    match value.0.as_i64() {
+        Some(integer) => Some(integer as u32),
+        None => None,
+    }
 }
 
 
@@ -392,6 +480,24 @@ fn variant_to_device_state(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
 }
 
 
+fn variant_to_ap_flags(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
+    if let Some(integer) = value.0.as_i64() {
+        Some(NM80211ApFlags::from_bits(integer as u32).unwrap())
+    } else {
+        None
+    }
+}
+
+
+fn variant_to_ap_security_flags(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
+    if let Some(integer) = value.0.as_i64() {
+        Some(NM80211ApSecurityFlags::from_bits(integer as u32).unwrap())
+    } else {
+        None
+    }
+}
+
+
 fn extract<'a, T>(var: &'a Variant<Iter>) -> Result<T, String>
     where T: Get<'a>
 {
@@ -402,16 +508,18 @@ fn extract<'a, T>(var: &'a Variant<Iter>) -> Result<T, String>
 }
 
 
+fn utf8_vec_u8_to_string(var: Vec<u8>) -> Result<String, String> {
+    match ::std::str::from_utf8(&var) {
+        Ok(string) => Ok(string.to_string()),
+        Err(_) => Err(format!("D-Bus variant not a UTF-8 string: {:?}", var)),
+    }
+}
+
 fn utf8_variant_to_string(var: &Variant<Iter>) -> Result<String, String> {
     let array_option = &var.0.clone().get::<Array<u8, _>>();
 
     if let Some(array) = *array_option {
-        let utf8_vec = array.collect::<Vec<u8>>();
-
-        match ::std::str::from_utf8(&utf8_vec) {
-            Ok(string) => Ok(string.to_string()),
-            Err(_) => Err(format!("D-Bus variant not a UTF-8 string: {:?}", var)),
-        }
+        utf8_vec_u8_to_string(array.collect())
     } else {
         Err(format!("D-Bus variant not an array: {:?}", var))
     }

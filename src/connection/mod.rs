@@ -55,7 +55,7 @@ fn test_list_function() {
 /// let connection = network_manager::connection::create(
 ///     "resin_io",
 ///     network_manager::device::DeviceType::WiFi,
-///     network_manager::wifi::Security::WPA2,
+///     network_manager::wifi::WPA2,
 ///     "super_secret_passphase"
 ///     ).unwrap();
 /// println!("{:?}", connection);
@@ -77,7 +77,7 @@ pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connecti
         settings: settings,
         state: ConnectionState::Deactivated, /* device: "wlp4s0".to_string(),
                                               * interface: DeviceType::WiFi,
-                                              * security: Security::WPA2,
+                                              * security: WPA2,
                                               * state: ConnectionState::Activated, */
     };
 
