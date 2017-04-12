@@ -122,15 +122,15 @@ fn test_list_function() {
 ///
 /// # Examples
 ///
-/// ```
-/// use network_manager::device;
-/// use network_manager::manager;
-/// let manager = manager::new();
-/// let mut devices = device::list(&manager).unwrap();
-/// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
-/// let device = &mut devices[i];
-/// device::connect(&manager, device, 10).unwrap();
-/// ```
+/// # ```
+/// # use network_manager::device;
+/// # use network_manager::manager;
+/// # let manager = manager::new();
+/// # let mut devices = device::list(&manager).unwrap();
+/// # let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
+/// # let device = &mut devices[i];
+/// # device::connect(&manager, device, 10).unwrap();
+/// # ```
 pub fn connect(manager: &NetworkManager, device: &mut Device, time_out: i32) -> Result<(), String> {
     match device.state {
         DeviceState::Activated => Ok(()),
