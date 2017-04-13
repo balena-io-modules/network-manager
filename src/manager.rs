@@ -78,10 +78,8 @@ impl NetworkManager {
     }
 
     pub fn get_active_connection_path(&self, path: &String) -> Option<String> {
-        match self.property(path, NM_ACTIVE_INTERFACE, "Connection") {
-            Ok(p) => Some(p),
-            Err(_) => None,
-        }
+        self.property(path, NM_ACTIVE_INTERFACE, "Connection")
+            .ok()
     }
 
     pub fn get_connection_state(&self, path: &String) -> Result<ConnectionState, String> {
@@ -90,10 +88,8 @@ impl NetworkManager {
             Err(_) => return Ok(ConnectionState::Unknown),
         };
 
-        match ConnectionState::from_i64(state_i64) {
-            Some(state) => Ok(state),
-            None => Err(format!("Undefined connection state for {}", path)),
-        }
+        ConnectionState::from_i64(state_i64).ok_or(format!("Undefined connection state for {}",
+                                                           path))
     }
 
     pub fn get_connection_settings(&self, path: &String) -> Result<ConnectionSettings, String> {
@@ -105,8 +101,11 @@ impl NetworkManager {
         let mut uuid = String::new();
         let mut ssid = String::new();
 
-        for (_, v1) in dict {
+        for (k1, v1) in dict {
+            println!("=== {:?}", k1);
             for (k2, v2) in v1 {
+                println!("===== {:?} : {:?}", k2, v2);
+
                 match k2 {
                     "id" => {
                         id = try!(extract::<String>(&v2));
@@ -269,10 +268,9 @@ impl NetworkManager {
     fn extract<'a, T>(&self, response: &'a Message) -> Result<T, String>
         where T: Get<'a>
     {
-        match response.get1() {
-            Some(data) => Ok(data),
-            None => Err("D-Bus wrong response type".to_string()),
-        }
+        response
+            .get1()
+            .ok_or("D-Bus wrong response type".to_string())
     }
 
     fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<'a, &'a DBusConnection> {
@@ -432,11 +430,7 @@ fn variant_to_u8_vec(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
 
 
 fn variant_to_string(value: Variant<Box<RefArg>>) -> Option<String> {
-    if let Some(string) = value.0.as_str() {
-        Some(string.to_string())
-    } else {
-        None
-    }
+    value.0.as_i64().and_then(|v| Some(v.to_string()))
 }
 
 
@@ -446,73 +440,56 @@ fn variant_to_i64(value: Variant<Box<RefArg>>) -> Option<i64> {
 
 
 fn variant_to_u32(value: Variant<Box<RefArg>>) -> Option<u32> {
-    match value.0.as_i64() {
-        Some(integer) => Some(integer as u32),
-        None => None,
-    }
+    value.0.as_i64().and_then(|v| Some(v as u32))
 }
 
 
 fn variant_to_bool(value: Variant<Box<RefArg>>) -> Option<bool> {
-    if let Some(integer) = value.0.as_i64() {
-        Some(integer == 0)
-    } else {
-        None
-    }
+    value.0.as_i64().and_then(|v| Some(v == 0))
 }
 
 
 fn variant_to_device_type(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
-    if let Some(integer) = value.0.as_i64() {
-        Some(DeviceType::from(integer))
-    } else {
-        None
-    }
+    value.0.as_i64().and_then(|v| Some(DeviceType::from(v)))
 }
 
 
 fn variant_to_device_state(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
-    if let Some(integer) = value.0.as_i64() {
-        Some(DeviceState::from(integer))
-    } else {
-        None
-    }
+    value
+        .0
+        .as_i64()
+        .and_then(|v| Some(DeviceState::from(v)))
 }
 
 
 fn variant_to_ap_flags(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
-    if let Some(integer) = value.0.as_i64() {
-        Some(NM80211ApFlags::from_bits(integer as u32).unwrap())
-    } else {
-        None
-    }
+    value
+        .0
+        .as_i64()
+        .and_then(|v| NM80211ApFlags::from_bits(v as u32))
 }
 
 
 fn variant_to_ap_security_flags(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
-    if let Some(integer) = value.0.as_i64() {
-        Some(NM80211ApSecurityFlags::from_bits(integer as u32).unwrap())
-    } else {
-        None
-    }
+    value
+        .0
+        .as_i64()
+        .and_then(|v| NM80211ApSecurityFlags::from_bits(v as u32))
 }
 
 
 fn extract<'a, T>(var: &'a Variant<Iter>) -> Result<T, String>
     where T: Get<'a>
 {
-    match var.0.clone().get::<T>() {
-        Some(value) => Ok(value),
-        None => Err(format!("D-Bus variant type does not match: {:?}", var)),
-    }
+    var.0
+        .clone()
+        .get::<T>()
+        .ok_or(format!("D-Bus variant type does not match: {:?}", var))
 }
 
 
 fn utf8_vec_u8_to_string(var: Vec<u8>) -> Result<String, String> {
-    match ::std::str::from_utf8(&var) {
-        Ok(string) => Ok(string.to_string()),
-        Err(_) => Err(format!("D-Bus variant not a UTF-8 string: {:?}", var)),
-    }
+    String::from_utf8(var).or(Err(format!("D-Bus variant not a UTF-8 string")))
 }
 
 fn utf8_variant_to_string(var: &Variant<Iter>) -> Result<String, String> {
