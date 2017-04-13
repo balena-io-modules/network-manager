@@ -202,7 +202,10 @@ fn test_connect_disconnect_functions() {
 
     let mut devices = list(&manager).unwrap();
 
-    let i = devices.iter().position(|ref d| d.device_type == DeviceType::WiFi).unwrap();
+    let i = devices
+        .iter()
+        .position(|ref d| d.device_type == DeviceType::WiFi)
+        .unwrap();
     let device = &mut devices[i];
 
     if device.state == DeviceState::Activated {
