@@ -142,9 +142,9 @@ impl NetworkManager {
         try!(self.call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
-                                 &[MessageItem::ObjectPath(path.to_string().into()),
-                                   MessageItem::ObjectPath("/".into()),
-                                   MessageItem::ObjectPath("/".into())]));
+                                 vec![&try!(Path::new(path.as_str())) as &RefArg,
+                                 &try!(Path::new("/")) as &RefArg,
+                                 &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
@@ -153,7 +153,7 @@ impl NetworkManager {
         try!(self.call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "DeactivateConnection",
-                                 &[MessageItem::ObjectPath(path.to_string().into())]));
+                                 vec![&try!(Path::new(path.as_str())) as &RefArg]));
 
         Ok(())
     }
@@ -182,9 +182,9 @@ impl NetworkManager {
         try!(self.call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
-                                 &[MessageItem::ObjectPath("/".into()),
-                                   MessageItem::ObjectPath(path.to_string().into()),
-                                   MessageItem::ObjectPath("/".into())]));
+                                 vec![&try!(Path::new("/")) as &RefArg,
+                                 &try!(Path::new(path.as_str())) as &RefArg,
+                                 &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
@@ -228,14 +228,14 @@ impl NetworkManager {
     }
 
     fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
-        self.call_with_args(path, interface, method, &[])
+        self.call_with_args(path, interface, method, vec![])
     }
 
     fn call_with_args(&self,
                       path: &str,
                       interface: &str,
                       method: &str,
-                      items: &[MessageItem])
+                      args: Vec<&RefArg>)
                       -> Result<Message, String> {
         let call_error = |details: &str| {
             Err(format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
@@ -247,8 +247,8 @@ impl NetworkManager {
 
         match Message::new_method_call(NM_SERVICE_MANAGER, path, interface, method) {
             Ok(mut message) => {
-                if items.len() > 0 {
-                    message.append_items(items);
+                if args.len() > 0 {
+                    message = message.append_ref(&args);
                 }
 
                 match self.connection.send_with_reply_and_block(message, 2000) {
