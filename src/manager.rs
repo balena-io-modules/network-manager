@@ -430,7 +430,7 @@ fn variant_to_u8_vec(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
 
 
 fn variant_to_string(value: Variant<Box<RefArg>>) -> Option<String> {
-    value.0.as_i64().and_then(|v| Some(v.to_string()))
+    value.0.as_str().and_then(|v| Some(v.to_string()))
 }
 
 
