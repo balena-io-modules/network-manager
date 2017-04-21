@@ -1,9 +1,11 @@
 use manager::NetworkManager;
+use device::Device;
 use device;
 
 
 #[derive(Debug)]
 pub struct AccessPoint {
+    pub path: String,
     pub ssid: String,
     pub strength: u32,
     pub security: Security,
@@ -66,25 +68,27 @@ bitflags! {
 /// ```
 /// use network_manager::manager;
 /// use network_manager::wifi;
+/// use network_manager::device;
 /// let manager = manager::new();
-/// let access_points = wifi::scan(&manager).unwrap();
+/// let mut devices = device::list(&manager).unwrap();
+/// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
+/// let device = &mut devices[i];
+/// let access_points = wifi::scan(&manager, device).unwrap();
 /// println!("{:?}", access_points);
 /// ```
-pub fn scan(manager: &NetworkManager) -> Result<Vec<AccessPoint>, String> {
-    let mut devices = try!(device::list(manager));
-
+pub fn scan(manager: &NetworkManager, device: &Device) -> Result<Vec<AccessPoint>, String> {
     let mut access_points = Vec::new();
 
-    for mut device in devices {
-        if device.device_type == device::DeviceType::WiFi {
-            let paths = try!(manager.get_device_access_points(&device.path));
+    if device.device_type == device::DeviceType::WiFi {
+        let paths = try!(manager.get_device_access_points(&device.path));
 
-            for path in paths {
-                if let Some(access_point) = try!(get_access_point(manager, &path)) {
-                    access_points.push(access_point);
-                }
+        for path in paths {
+            if let Some(access_point) = try!(get_access_point(manager, &path)) {
+                access_points.push(access_point);
             }
         }
+    } else {
+        return Err("Not a WiFi device".to_string());
     }
 
     access_points.sort_by_key(|ap| ap.strength);
@@ -103,6 +107,7 @@ fn get_access_point(manager: &NetworkManager,
         let security = try!(get_access_point_security(manager, path));
 
         let access_point = AccessPoint {
+            path: path.clone(),
             ssid: ssid,
             strength: strength,
             security: security,
