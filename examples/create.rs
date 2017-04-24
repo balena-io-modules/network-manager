@@ -20,17 +20,18 @@ fn main() {
     let manager = manager::new();
 
     let mut devices = device::list(&manager).unwrap();
-    let i = devices
+    let device_index = devices
         .iter()
         .position(|ref d| d.device_type == device::DeviceType::WiFi)
         .unwrap();
-    let device_ref = &mut devices[i];
+    let device_ref = &mut devices[device_index];
 
     let access_points = wifi::scan(&manager, device_ref).unwrap();
 
-    for access_point in access_points {
-        if access_point.ssid == args[1] {
-            connection::create(&manager, device_ref, &access_point, &args[2], 10).unwrap();
-        }
-    }
+    let ap_index = access_points
+        .iter()
+        .position(|ref ap| ap.ssid == args[1])
+        .unwrap();
+
+    connection::create(&manager, device_ref, &access_points[ap_index], &args[2], 10).unwrap();
 }
