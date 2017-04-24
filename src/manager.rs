@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use dbus::Connection as DBusConnection;
-use dbus::{BusType, Path, ConnPath, Message, MessageItem};
+use dbus::{BusType, Path, ConnPath, Message};
 use dbus::arg::{Dict, Variant, Iter, Array, Get, RefArg};
 use dbus::stdintf::OrgFreedesktopDBusProperties;
 
@@ -8,7 +10,7 @@ use enum_primitive::FromPrimitive;
 use connection::{ConnectionSettings, ConnectionState};
 use device::{DeviceType, DeviceState};
 use status::{Connectivity, NetworkManagerState};
-use wifi::{NM80211ApSecurityFlags, NM80211ApFlags};
+use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 
 pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
 
@@ -23,6 +25,8 @@ pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Co
 pub const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
 pub const NM_WIRELESS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device.Wireless";
 pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkManager.AccessPoint";
+
+pub const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
 
 
 pub fn new() -> NetworkManager {
@@ -101,11 +105,8 @@ impl NetworkManager {
         let mut uuid = String::new();
         let mut ssid = String::new();
 
-        for (k1, v1) in dict {
-            println!("=== {:?}", k1);
+        for (_, v1) in dict {
             for (k2, v2) in v1 {
-                println!("===== {:?} : {:?}", k2, v2);
-
                 match k2 {
                     "id" => {
                         id = try!(extract::<String>(&v2));
@@ -143,8 +144,8 @@ impl NetworkManager {
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
                                  vec![&try!(Path::new(path.as_str())) as &RefArg,
-                                 &try!(Path::new("/")) as &RefArg,
-                                 &try!(Path::new("/")) as &RefArg]));
+                                      &try!(Path::new("/")) as &RefArg,
+                                      &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
@@ -156,6 +157,54 @@ impl NetworkManager {
                                  vec![&try!(Path::new(path.as_str())) as &RefArg]));
 
         Ok(())
+    }
+
+    pub fn add_and_activate_connection(&self,
+                                       device_path: &String,
+                                       ap_path: &String,
+                                       ssid: &String,
+                                       security: &Security,
+                                       password: &str)
+                                       -> Result<(String, String), String> {
+        type SettingsMap = HashMap<String, Variant<Box<RefArg>>>;
+
+        let mut settings: HashMap<String, SettingsMap> = HashMap::new();
+
+        let mut wireless: SettingsMap = HashMap::new();
+        wireless.insert("ssid".to_string(),
+                        Variant(Box::new(string_to_utf8_vec_u8(&ssid.clone()))));
+        settings.insert("802-11-wireless".to_string(), wireless);
+
+        if *security != NONE {
+            let mut security_settings: SettingsMap = HashMap::new();
+
+            if security.contains(WEP) {
+                security_settings.insert("wep-key-type".to_string(),
+                                         Variant(Box::new(NM_WEP_KEY_TYPE_PASSPHRASE)));
+                security_settings.insert("wep-key0".to_string(),
+                                         Variant(Box::new(password.to_string())));
+            } else {
+                security_settings.insert("key-mgmt".to_string(),
+                                         Variant(Box::new("wpa-psk".to_string())));
+                security_settings.insert("psk".to_string(),
+                                         Variant(Box::new(password.to_string())));
+            };
+
+            settings.insert("802-11-wireless-security".to_string(), security_settings);
+        }
+
+        let response =
+            try!(self.call_with_args(NM_SERVICE_PATH,
+                                     NM_SERVICE_INTERFACE,
+                                     "AddAndActivateConnection",
+                                     vec![&settings as &RefArg,
+                                          &try!(Path::new(device_path.clone())) as &RefArg,
+                                          &try!(Path::new(ap_path.clone())) as &RefArg]));
+
+
+        let (conn_path, active_connection): (Path, Path) = try!(self.extract_two(&response));
+
+        Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
     }
 
     pub fn get_devices(&self) -> Result<Vec<String>, String> {
@@ -183,8 +232,8 @@ impl NetworkManager {
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
                                  vec![&try!(Path::new("/")) as &RefArg,
-                                 &try!(Path::new(path.as_str())) as &RefArg,
-                                 &try!(Path::new("/")) as &RefArg]));
+                                      &try!(Path::new(path.as_str())) as &RefArg,
+                                      &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
@@ -271,6 +320,21 @@ impl NetworkManager {
         response
             .get1()
             .ok_or("D-Bus wrong response type".to_string())
+    }
+
+    fn extract_two<'a, T1, T2>(&self, response: &'a Message) -> Result<(T1, T2), String>
+        where T1: Get<'a>,
+              T2: Get<'a>
+    {
+        let (first, second) = response.get2();
+
+        if let Some(first) = first {
+            if let Some(second) = second {
+                return Ok((first, second));
+            }
+        }
+
+        Err("D-Bus wrong response type".to_string())
     }
 
     fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<'a, &'a DBusConnection> {
@@ -499,5 +563,17 @@ fn utf8_variant_to_string(var: &Variant<Iter>) -> Result<String, String> {
         utf8_vec_u8_to_string(array.collect())
     } else {
         Err(format!("D-Bus variant not an array: {:?}", var))
+    }
+}
+
+fn string_to_utf8_vec_u8(var: &String) -> Vec<u8> {
+    var.as_bytes().to_vec()
+}
+
+fn path_to_string(path: &Path) -> Result<String, String> {
+    if let Ok(slice) = path.as_cstr().to_str() {
+        Ok(slice.to_string())
+    } else {
+        Err(format!("Path not a UTF-8 string: {:?}", path))
     }
 }
