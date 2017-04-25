@@ -5,8 +5,8 @@ use std::env;
 
 use enum_primitive::FromPrimitive;
 
-use device::DeviceType;
-use wifi::Security;
+use device::{Device, DeviceType};
+use wifi::{AccessPoint, Security};
 use manager;
 use manager::NetworkManager;
 
@@ -48,40 +48,26 @@ fn test_list_function() {
 }
 
 /// Creates a Network Manager connection.
-///
-/// # Examples
-///
-/// ```
-/// let connection = network_manager::connection::create(
-///     "resin_io",
-///     network_manager::device::DeviceType::WiFi,
-///     network_manager::wifi::Security::WPA2,
-///     "super_secret_passphase"
-///     ).unwrap();
-/// println!("{:?}", connection);
-/// ```
-pub fn create(s: &str, dt: DeviceType, sc: Security, p: &str) -> Result<Connection, String> {
-    // Create a connection
-    // Get the connection
-    // Return the connection
+pub fn create(manager: &NetworkManager,
+              device: &Device,
+              access_point: &AccessPoint,
+              password: &str,
+              time_out: i32)
+              -> Result<Connection, String> {
+    let (path, _) = try!(manager.add_and_activate_connection(&device.path,
+                                                             &access_point.path,
+                                                             &access_point.ssid,
+                                                             &access_point.security,
+                                                             password));
 
-    let settings = ConnectionSettings {
-        id: "resin_io".to_string(),
-        uuid: "3c8e6e8b-b895-4b07-97a5-bbc192c3b436".to_string(),
-        ssid: "resin_io".to_string(),
-    };
+    let mut connection = try!(get_connection(manager, &path));
 
-    let connection1 = Connection {
-        path: "/org/freedesktop/NetworkManager/ActiveConnection/187".to_string(),
-        active_path: "test".to_string(),
-        settings: settings,
-        state: ConnectionState::Deactivated, /* device: "wlp4s0".to_string(),
-                                              * interface: DeviceType::WiFi,
-                                              * security: Security::WPA2,
-                                              * state: ConnectionState::Activated, */
-    };
+    try!(wait(manager,
+              &mut connection,
+              time_out,
+              ConnectionState::Activated));
 
-    Ok(connection1)
+    Ok(connection)
 }
 
 /// Deletes a Network Manager connection.
