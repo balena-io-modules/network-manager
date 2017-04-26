@@ -74,7 +74,7 @@ pub fn create(manager: &NetworkManager,
 pub fn create_hotspot(manager: &NetworkManager,
                       device: &Device,
                       ssid: &str,
-                      password: &str,
+                      password: Option<String>,
                       time_out: i32)
                       -> Result<Connection, String> {
     if device.device_type != DeviceType::WiFi {

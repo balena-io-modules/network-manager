@@ -209,7 +209,7 @@ impl NetworkManager {
                           device_path: &String,
                           interface: &String,
                           ssid: &str,
-                          password: &str)
+                          password: Option<String>)
                           -> Result<(String, String), String> {
         let mut wireless: SettingsMap = HashMap::new();
         add_val(&mut wireless,
@@ -218,11 +218,6 @@ impl NetworkManager {
         add_str(&mut wireless, "band", "bg");
         add_val(&mut wireless, "hidden", false);
         add_str(&mut wireless, "mode", "ap");
-        add_str(&mut wireless, "security", "802-11-wireless-security");
-
-        let mut security: SettingsMap = HashMap::new();
-        add_str(&mut security, "key-mgmt", "wpa-psk");
-        add_str(&mut security, "psk", password);
 
         let mut connection: SettingsMap = HashMap::new();
         add_val(&mut connection, "autoconnect", false);
@@ -234,8 +229,18 @@ impl NetworkManager {
         add_str(&mut ipv4, "method", "shared");
 
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
+
+        if let Some(password) = password {
+            add_str(&mut wireless, "security", "802-11-wireless-security");
+
+            let mut security: SettingsMap = HashMap::new();
+            add_str(&mut security, "key-mgmt", "wpa-psk");
+            add_str(&mut security, "psk", &password);
+
+            settings.insert("802-11-wireless-security".to_string(), security);
+        }
+
         settings.insert("802-11-wireless".to_string(), wireless);
-        settings.insert("802-11-wireless-security".to_string(), security);
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
