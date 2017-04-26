@@ -12,6 +12,9 @@ use device::{DeviceType, DeviceState};
 use status::{Connectivity, NetworkManagerState};
 use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 
+
+type SettingsMap = HashMap<String, Variant<Box<RefArg>>>;
+
 pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
 
 pub const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
@@ -166,28 +169,23 @@ impl NetworkManager {
                                        security: &Security,
                                        password: &str)
                                        -> Result<(String, String), String> {
-        type SettingsMap = HashMap<String, Variant<Box<RefArg>>>;
-
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
 
         let mut wireless: SettingsMap = HashMap::new();
-        wireless.insert("ssid".to_string(),
-                        Variant(Box::new(string_to_utf8_vec_u8(&ssid.clone()))));
+        add_val(&mut wireless, "ssid", string_to_utf8_vec_u8(&ssid.clone()));
         settings.insert("802-11-wireless".to_string(), wireless);
 
         if *security != NONE {
             let mut security_settings: SettingsMap = HashMap::new();
 
             if security.contains(WEP) {
-                security_settings.insert("wep-key-type".to_string(),
-                                         Variant(Box::new(NM_WEP_KEY_TYPE_PASSPHRASE)));
-                security_settings.insert("wep-key0".to_string(),
-                                         Variant(Box::new(password.to_string())));
+                add_val(&mut security_settings,
+                        "wep-key-type",
+                        NM_WEP_KEY_TYPE_PASSPHRASE);
+                add_str(&mut security_settings, "wep-key0", password);
             } else {
-                security_settings.insert("key-mgmt".to_string(),
-                                         Variant(Box::new("wpa-psk".to_string())));
-                security_settings.insert("psk".to_string(),
-                                         Variant(Box::new(password.to_string())));
+                add_str(&mut security_settings, "key-mgmt", "wpa-psk");
+                add_str(&mut security_settings, "psk", password);
             };
 
             settings.insert("802-11-wireless-security".to_string(), security_settings);
@@ -200,6 +198,59 @@ impl NetworkManager {
                                      vec![&settings as &RefArg,
                                           &try!(Path::new(device_path.clone())) as &RefArg,
                                           &try!(Path::new(ap_path.clone())) as &RefArg]));
+
+
+        let (conn_path, active_connection): (Path, Path) = try!(self.extract_two(&response));
+
+        Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
+    }
+
+    pub fn create_hotspot(&self,
+                          device_path: &String,
+                          interface: &String,
+                          ssid: &str,
+                          password: Option<String>)
+                          -> Result<(String, String), String> {
+        let mut wireless: SettingsMap = HashMap::new();
+        add_val(&mut wireless,
+                "ssid",
+                string_to_utf8_vec_u8(&ssid.to_string()));
+        add_str(&mut wireless, "band", "bg");
+        add_val(&mut wireless, "hidden", false);
+        add_str(&mut wireless, "mode", "ap");
+
+        let mut connection: SettingsMap = HashMap::new();
+        add_val(&mut connection, "autoconnect", false);
+        add_str(&mut connection, "id", ssid);
+        add_str(&mut connection, "interface-name", interface);
+        add_str(&mut connection, "type", "802-11-wireless");
+
+        let mut ipv4: SettingsMap = HashMap::new();
+        add_str(&mut ipv4, "method", "shared");
+
+        let mut settings: HashMap<String, SettingsMap> = HashMap::new();
+
+        if let Some(password) = password {
+            add_str(&mut wireless, "security", "802-11-wireless-security");
+
+            let mut security: SettingsMap = HashMap::new();
+            add_str(&mut security, "key-mgmt", "wpa-psk");
+            add_str(&mut security, "psk", &password);
+
+            settings.insert("802-11-wireless-security".to_string(), security);
+        }
+
+        settings.insert("802-11-wireless".to_string(), wireless);
+        settings.insert("connection".to_string(), connection);
+        settings.insert("ipv4".to_string(), ipv4);
+
+        let response = try!(self.call_with_args(NM_SERVICE_PATH,
+                                                NM_SERVICE_INTERFACE,
+                                                "AddAndActivateConnection",
+                                                vec![&settings as &RefArg,
+                                                     &try!(Path::new(device_path.clone())) as
+                                                     &RefArg,
+                                                     &try!(Path::new("/")) as &RefArg]));
 
 
         let (conn_path, active_connection): (Path, Path) = try!(self.extract_two(&response));
@@ -576,4 +627,14 @@ fn path_to_string(path: &Path) -> Result<String, String> {
     } else {
         Err(format!("Path not a UTF-8 string: {:?}", path))
     }
+}
+
+fn add_val<T>(map: &mut SettingsMap, key: &str, value: T)
+    where T: RefArg + 'static
+{
+    map.insert(key.to_string(), Variant(Box::new(value)));
+}
+
+fn add_str(map: &mut SettingsMap, key: &str, value: &str) {
+    map.insert(key.to_string(), Variant(Box::new(value.to_string())));
 }

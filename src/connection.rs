@@ -70,6 +70,29 @@ pub fn create(manager: &NetworkManager,
     Ok(connection)
 }
 
+/// Starts a Wi-Fi hotspot.
+pub fn create_hotspot(manager: &NetworkManager,
+                      device: &Device,
+                      ssid: &str,
+                      password: Option<String>,
+                      time_out: i32)
+                      -> Result<Connection, String> {
+    if device.device_type != DeviceType::WiFi {
+        return Err("Not a WiFi device".to_string());
+    }
+
+    let (path, _) = try!(manager.create_hotspot(&device.path, &device.interface, ssid, password));
+
+    let mut connection = try!(get_connection(manager, &path));
+
+    try!(wait(manager,
+              &mut connection,
+              time_out,
+              ConnectionState::Activated));
+
+    Ok(connection)
+}
+
 /// Deletes a Network Manager connection.
 ///
 /// # Examples
@@ -79,9 +102,9 @@ pub fn create(manager: &NetworkManager,
 /// use network_manager::manager;
 /// let manager = manager::new();
 /// let mut connections = connection::list(&manager).unwrap();
-/// connection::delete(&manager, connections.pop().unwrap()).unwrap();
+/// connection::delete(&manager, &connections.pop().unwrap()).unwrap();
 /// ```
-pub fn delete(manager: &NetworkManager, connection: Connection) -> Result<(), String> {
+pub fn delete(manager: &NetworkManager, connection: &Connection) -> Result<(), String> {
     manager.delete_connection(&connection.path)
 }
 
