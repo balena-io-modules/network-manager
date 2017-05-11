@@ -6,10 +6,9 @@ use manager::NetworkManager;
 
 #[derive(Debug)]
 pub struct Device {
-    pub interface: String,
     pub path: String,
+    pub interface: String,
     pub device_type: DeviceType,
-    pub state: DeviceState,
 }
 
 impl Device {
@@ -18,13 +17,10 @@ impl Device {
 
         let device_type = try!(manager.get_device_type(&path));
 
-        let state = try!(manager.get_device_state(&path));
-
         Ok(Device {
                interface: interface,
                path: path.clone(),
                device_type: device_type,
-               state: state,
            })
     }
 }
@@ -122,14 +118,19 @@ fn test_list_function() {
 /// use network_manager::device;
 /// use network_manager::manager;
 /// let manager = manager::new();
-/// let mut devices = device::list(&manager).unwrap();
+/// let devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
-/// let device = &mut devices[i];
+/// let device = &devices[i];
 /// device::connect(&manager, device, 10).unwrap();
 /// ```
-pub fn connect(manager: &NetworkManager, device: &mut Device, time_out: i32) -> Result<(), String> {
-    match device.state {
-        DeviceState::Activated => Ok(()),
+pub fn connect(manager: &NetworkManager,
+               device: &Device,
+               time_out: i32)
+               -> Result<DeviceState, String> {
+    let state = try!(get_device_state(manager, device));
+
+    match state {
+        DeviceState::Activated => Ok(DeviceState::Activated),
         _ => {
             try!(manager.activate_device(&device.path));
 
@@ -146,17 +147,19 @@ pub fn connect(manager: &NetworkManager, device: &mut Device, time_out: i32) -> 
 /// use network_manager::device;
 /// use network_manager::manager;
 /// let manager = manager::new();
-/// let mut devices = device::list(&manager).unwrap();
+/// let devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
-/// let device = &mut devices[i];
+/// let device = &devices[i];
 /// device::disconnect(&manager, device, 10).unwrap();
 /// ```
 pub fn disconnect(manager: &NetworkManager,
-                  device: &mut Device,
+                  device: &Device,
                   time_out: i32)
-                  -> Result<(), String> {
-    match device.state {
-        DeviceState::Disconnected => Ok(()),
+                  -> Result<DeviceState, String> {
+    let state = try!(get_device_state(manager, device));
+
+    match state {
+        DeviceState::Disconnected => Ok(DeviceState::Disconnected),
         _ => {
             try!(manager.disconnect_device(&device.path));
 
@@ -166,55 +169,67 @@ pub fn disconnect(manager: &NetworkManager,
 }
 
 fn wait(manager: &NetworkManager,
-        device: &mut Device,
+        device: &Device,
         time_out: i32,
         target_state: DeviceState)
-        -> Result<(), String> {
+        -> Result<DeviceState, String> {
     if time_out == 0 {
-        return Ok(());
+        return get_device_state(manager, device);
     }
 
     let mut total_time = 0;
 
-    while total_time < time_out {
-        device.state = try!(manager.get_device_state(&device.path));
-
-        if device.state == target_state {
-            return Ok(());
-        }
-
+    loop {
         std::thread::sleep(std::time::Duration::from_secs(1));
 
-        total_time += 1;
-    }
+        let state = try!(get_device_state(manager, device));
 
-    Err("service timed out".to_string())
+        total_time += 1;
+
+        if state == target_state || total_time >= time_out {
+            return Ok(state);
+        }
+    }
 }
 
+
+pub fn get_device_state(manager: &NetworkManager, device: &Device) -> Result<DeviceState, String> {
+    manager.get_device_state(&device.path)
+}
 
 #[test]
 fn test_connect_disconnect_functions() {
     let manager = manager::new();
 
-    let mut devices = list(&manager).unwrap();
+    let devices = list(&manager).unwrap();
 
     let i = devices
         .iter()
         .position(|ref d| d.device_type == DeviceType::WiFi)
         .unwrap();
-    let device = &mut devices[i];
+    let device = &devices[i];
 
-    if device.state == DeviceState::Activated {
-        disconnect(&manager, device, 10).unwrap();
-        assert_eq!(DeviceState::Disconnected, device.state);
+    let state = get_device_state(&manager, device).unwrap();
 
-        connect(&manager, device, 10).unwrap();
-        assert_eq!(DeviceState::Activated, device.state);
+    if state == DeviceState::Activated {
+        let state = disconnect(&manager, device, 10).unwrap();
+        assert_eq!(DeviceState::Disconnected, state);
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
+
+        let state = connect(&manager, device, 10).unwrap();
+        assert_eq!(DeviceState::Activated, state);
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
     } else {
-        connect(&manager, device, 10).unwrap();
-        assert_eq!(DeviceState::Activated, device.state);
+        let state = connect(&manager, device, 10).unwrap();
+        assert_eq!(DeviceState::Activated, state);
 
-        disconnect(&manager, device, 10).unwrap();
-        assert_eq!(DeviceState::Disconnected, device.state);
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
+
+        let state = disconnect(&manager, device, 10).unwrap();
+        assert_eq!(DeviceState::Disconnected, state);
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
     }
 }

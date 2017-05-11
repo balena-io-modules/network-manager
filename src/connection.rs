@@ -60,12 +60,9 @@ pub fn create(manager: &NetworkManager,
                                                              &access_point.security,
                                                              password));
 
-    let mut connection = try!(get_connection(manager, &path));
+    let connection = try!(get_connection(manager, &path));
 
-    try!(wait(manager,
-              &mut connection,
-              time_out,
-              ConnectionState::Activated));
+    try!(wait(manager, &connection, time_out, ConnectionState::Activated));
 
     Ok(connection)
 }
@@ -83,12 +80,9 @@ pub fn create_hotspot(manager: &NetworkManager,
 
     let (path, _) = try!(manager.create_hotspot(&device.path, &device.interface, ssid, password));
 
-    let mut connection = try!(get_connection(manager, &path));
+    let connection = try!(get_connection(manager, &path));
 
-    try!(wait(manager,
-              &mut connection,
-              time_out,
-              ConnectionState::Activated));
+    try!(wait(manager, &connection, time_out, ConnectionState::Activated));
 
     Ok(connection)
 }
@@ -117,16 +111,16 @@ pub fn delete(manager: &NetworkManager, connection: &Connection) -> Result<(), S
 /// use network_manager::manager;
 /// let manager = manager::new();
 /// let connections = connection::list(&manager).unwrap();
-/// let mut connection = connections[0].clone();
-/// connection::enable(&manager, &mut connection, 10).unwrap();
-/// println!("{:?}", connection.state);
+/// connection::enable(&manager, &connections[0], 10).unwrap();
 /// ```
 pub fn enable(manager: &NetworkManager,
-              connection: &mut Connection,
+              connection: &Connection,
               time_out: i32)
-              -> Result<(), String> {
-    match connection.state {
-        ConnectionState::Activated => Ok(()),
+              -> Result<ConnectionState, String> {
+    let state = try!(get_connection_state(manager, connection));
+
+    match state {
+        ConnectionState::Activated => Ok(ConnectionState::Activated),
         ConnectionState::Activating => {
             wait(manager, connection, time_out, ConnectionState::Activated)
         }
@@ -148,24 +142,30 @@ pub fn enable(manager: &NetworkManager,
 /// use network_manager::manager;
 /// let manager = manager::new();
 /// let connections = connection::list(&manager).unwrap();
-/// let mut connection = connections[0].clone();
-/// connection::disable(&manager, &mut connection, 10).unwrap();
-/// println!("{:?}", connection.state);
+/// connection::disable(&manager, &connections[0], 10).unwrap();
 /// ```
 pub fn disable(manager: &NetworkManager,
-               connection: &mut Connection,
+               connection: &Connection,
                time_out: i32)
-               -> Result<(), String> {
-    match connection.state {
-        ConnectionState::Deactivated => Ok(()),
+               -> Result<ConnectionState, String> {
+    let state = try!(get_connection_state(manager, connection));
+
+    match state {
+        ConnectionState::Deactivated => Ok(ConnectionState::Deactivated),
         ConnectionState::Deactivating => {
             wait(manager, connection, time_out, ConnectionState::Deactivated)
         }
         ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
         _ => {
-            try!(manager.deactivate_connection(&connection.active_path));
+            let active_path_option = try!(get_connection_active_path(manager, connection));
 
-            wait(manager, connection, time_out, ConnectionState::Deactivated)
+            if let Some(active_path) = active_path_option {
+                try!(manager.deactivate_connection(&active_path));
+
+                wait(manager, connection, time_out, ConnectionState::Deactivated)
+            } else {
+                Ok(ConnectionState::Deactivated)
+            }
         }
     }
 }
@@ -175,15 +175,13 @@ fn test_enable_disable_functions() {
     let manager = manager::new();
 
     let connections = list(&manager).unwrap();
-    let mut connection;
-
 
     // set enviorment variable $TEST_WIFI_SSID with the wifi's SSID that you want to test
     // e.g.  export TEST_WIFI_SSID="Resin.io Wifi"
     let wifiEnvVar = "TEST_WIFI_SSID";
-    match env::var(wifiEnvVar) {
+    let connection = match env::var(wifiEnvVar) {
         Ok(ssid) => {
-            connection = connections
+            connections
                 .iter()
                 .filter(|c| c.settings.ssid == ssid)
                 .nth(0)
@@ -197,104 +195,105 @@ fn test_enable_disable_functions() {
         }
     };
 
-    if connection.state == ConnectionState::Activated {
-        disable(&manager, &mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Deactivated, connection.state);
+    let state = get_connection_state(&manager, &connection).unwrap();
 
-        enable(&manager, &mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Activated, connection.state);
+    if state == ConnectionState::Activated {
+        let state = disable(&manager, &connection, 10).unwrap();
+        assert_eq!(ConnectionState::Deactivated, state);
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
+
+        let state = enable(&manager, &connection, 10).unwrap();
+        assert_eq!(ConnectionState::Activated, state);
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
     } else {
-        enable(&manager, &mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Activated, connection.state);
+        let state = enable(&manager, &connection, 10).unwrap();
+        assert_eq!(ConnectionState::Activated, state);
 
-        disable(&manager, &mut connection, 10).unwrap();
-        assert_eq!(ConnectionState::Deactivated, connection.state);
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
+
+        let state = disable(&manager, &connection, 10).unwrap();
+        assert_eq!(ConnectionState::Deactivated, state);
+
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
     }
 }
 
 fn get_connection(manager: &NetworkManager, path: &String) -> Result<Connection, String> {
-    let mut connection = Connection::default();
+    let settings = try!(manager.get_connection_settings(path));
 
-    connection.path = path.clone();
-
-    connection.settings = try!(manager.get_connection_settings(path));
-
-    try!(update_state(manager, &mut connection));
-
-    Ok(connection)
+    Ok(Connection {
+           path: path.clone(),
+           settings: settings,
+       })
 }
 
-fn update_state(manager: &NetworkManager, connection: &mut Connection) -> Result<(), String> {
+pub fn get_connection_state(manager: &NetworkManager,
+                            connection: &Connection)
+                            -> Result<ConnectionState, String> {
+    let active_path_option = try!(get_connection_active_path(manager, connection));
+
+    if let Some(active_path) = active_path_option {
+        let state = try!(manager.get_connection_state(&active_path));
+
+        Ok(state)
+    } else {
+        Ok(ConnectionState::Deactivated)
+    }
+}
+
+fn get_connection_active_path(manager: &NetworkManager,
+                              connection: &Connection)
+                              -> Result<Option<String>, String> {
     let active_paths = try!(manager.get_active_connections());
 
-    let mut settings_paths = Vec::new();
-
-    for active_path in &active_paths {
+    for active_path in active_paths {
         if let Some(settings_path) = manager.get_active_connection_path(&active_path) {
-            settings_paths.push(settings_path)
+            if connection.path == settings_path {
+                return Ok(Some(active_path));
+            }
         }
     }
 
-    // TODO: Consider using Option<String> instead for deactivated connections
-    connection.active_path = "".to_string();
-    connection.state = ConnectionState::Deactivated;
-
-    for (active_path, settings_path) in active_paths.iter().zip(settings_paths.iter()) {
-        if connection.path == *settings_path {
-
-            connection.active_path = active_path.clone();
-            connection.state = try!(manager.get_connection_state(&active_path));
-
-            break;
-        }
-    }
-
-    Ok(())
+    Ok(None)
 }
 
 fn wait(manager: &NetworkManager,
-        connection: &mut Connection,
+        connection: &Connection,
         time_out: i32,
         target_state: ConnectionState)
-        -> Result<(), String> {
+        -> Result<ConnectionState, String> {
     if time_out == 0 {
-        return Ok(());
+        return get_connection_state(manager, connection);
     }
 
     let mut total_time = 0;
 
-    while total_time < time_out {
-        try!(update_state(manager, connection));
-
-        if connection.state == target_state {
-            return Ok(());
-        }
-
+    loop {
         std::thread::sleep(std::time::Duration::from_secs(1));
 
-        total_time += 1;
-    }
+        let state = try!(get_connection_state(manager, connection));
 
-    Err("service timed out".to_string())
+        total_time += 1;
+
+        if state == target_state || total_time >= time_out {
+            return Ok(state);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Connection {
     pub path: String,
-    pub active_path: String,
     pub settings: ConnectionSettings,
-    pub state: ConnectionState, /* device: String,
-                                 * device_type: DeviceType,
-                                 * security: Security, */
 }
 
 impl Default for Connection {
     fn default() -> Connection {
         Connection {
             path: "".to_string(),
-            active_path: "".to_string(),
             settings: ConnectionSettings::default(),
-            state: ConnectionState::Unknown,
         }
     }
 }
