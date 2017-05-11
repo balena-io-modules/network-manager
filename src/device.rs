@@ -116,7 +116,7 @@ fn test_list_function() {
 ///
 /// ```
 /// use network_manager::device;
-/// use network_manager::manager;
+/// use network_manager::dbus_nm;
 /// let manager = dbus_nm::new();
 /// let devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
@@ -145,7 +145,7 @@ pub fn connect(manager: &DBusNetworkManager,
 ///
 /// ```
 /// use network_manager::device;
-/// use network_manager::manager;
+/// use network_manager::dbus_nm;
 /// let manager = dbus_nm::new();
 /// let devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
