@@ -4,6 +4,7 @@ use dbus::Connection as DBusConnection;
 use dbus::{BusType, Path, ConnPath, Message};
 use dbus::arg::{Dict, Variant, Iter, Array, Get, RefArg};
 use dbus::stdintf::OrgFreedesktopDBusProperties;
+use dbus::Error;
 
 use enum_primitive::FromPrimitive;
 
@@ -30,6 +31,9 @@ pub const NM_WIRELESS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.
 pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkManager.AccessPoint";
 
 pub const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
+
+pub const TIMEOUT: i32 = 10_000;
+pub const RETRIES_ALLOWED: usize = 50;
 
 
 pub fn new() -> NetworkManager {
@@ -85,8 +89,7 @@ impl NetworkManager {
     }
 
     pub fn get_active_connection_path(&self, path: &String) -> Option<String> {
-        self.property(path, NM_ACTIVE_INTERFACE, "Connection")
-            .ok()
+        self.property(path, NM_ACTIVE_INTERFACE, "Connection").ok()
     }
 
     pub fn get_connection_state(&self, path: &String) -> Result<ConnectionState, String> {
@@ -95,8 +98,8 @@ impl NetworkManager {
             Err(_) => return Ok(ConnectionState::Unknown),
         };
 
-        ConnectionState::from_i64(state_i64).ok_or(format!("Undefined connection state for {}",
-                                                           path))
+        ConnectionState::from_i64(state_i64)
+            .ok_or(format!("Undefined connection state for {}", path))
     }
 
     pub fn get_connection_settings(&self, path: &String) -> Result<ConnectionSettings, String> {
@@ -345,23 +348,64 @@ impl NetworkManager {
                         details))
         };
 
+        match self.call_with_args_retry(path, interface, method, args) {
+            Ok(response) => Ok(response),
+            Err(error) => call_error(&error),
+        }
+    }
+
+    fn call_with_args_retry(&self,
+                            path: &str,
+                            interface: &str,
+                            method: &str,
+                            args: Vec<&RefArg>)
+                            -> Result<Message, String> {
+        let mut retries = 0;
+
+        loop {
+            if let Ok(result) = self.create_and_send_message(path, interface, method, &args) {
+                return result;
+            }
+
+            retries += 1;
+
+            if retries == RETRIES_ALLOWED {
+                return Err(format!("method failed after {} retries", RETRIES_ALLOWED));
+            }
+
+            ::std::thread::sleep(::std::time::Duration::from_secs(1));
+        }
+    }
+
+    fn create_and_send_message(&self,
+                               path: &str,
+                               interface: &str,
+                               method: &str,
+                               args: &Vec<&RefArg>)
+                               -> Result<Result<Message, String>, String> {
         match Message::new_method_call(NM_SERVICE_MANAGER, path, interface, method) {
             Ok(mut message) => {
                 if args.len() > 0 {
-                    message = message.append_ref(&args);
+                    message = message.append_ref(args);
                 }
 
-                match self.connection.send_with_reply_and_block(message, 2000) {
-                    Ok(response) => Ok(response),
-                    Err(err) => {
-                        match err.message() {
-                            Some(details) => call_error(details),
-                            None => call_error("no details"),
-                        }
-                    }
+                self.send_message_checked(message)
+            }
+            Err(details) => Ok(Err(details)),
+        }
+    }
+
+    fn send_message_checked(&self, message: Message) -> Result<Result<Message, String>, String> {
+        match self.connection.send_with_reply_and_block(message, TIMEOUT) {
+            Ok(response) => Ok(Ok(response)),
+            Err(err) => {
+                let message = get_error_message(&err).to_string();
+                if err.name() == Some("org.freedesktop.NetworkManager.UnknownConnection") {
+                    return Err(message);
+                } else {
+                    Ok(Err(message))
                 }
             }
-            Err(details) => call_error(&details),
         }
     }
 
@@ -389,7 +433,7 @@ impl NetworkManager {
     }
 
     fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<'a, &'a DBusConnection> {
-        self.connection.with_path(NM_SERVICE_MANAGER, path, 2000)
+        self.connection.with_path(NM_SERVICE_MANAGER, path, TIMEOUT)
     }
 }
 
@@ -570,10 +614,7 @@ fn variant_to_device_type(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
 
 
 fn variant_to_device_state(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
-    value
-        .0
-        .as_i64()
-        .and_then(|v| Some(DeviceState::from(v)))
+    value.0.as_i64().and_then(|v| Some(DeviceState::from(v)))
 }
 
 
@@ -637,4 +678,11 @@ fn add_val<T>(map: &mut SettingsMap, key: &str, value: T)
 
 fn add_str(map: &mut SettingsMap, key: &str, value: &str) {
     map.insert(key.to_string(), Variant(Box::new(value.to_string())));
+}
+
+fn get_error_message(err: &Error) -> &str {
+    match err.message() {
+        Some(details) => details,
+        None => "Undefined error message",
+    }
 }
