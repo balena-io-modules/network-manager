@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use dbus::Connection as DBusConnection;
-use dbus::{BusType, Path, ConnPath, Message};
-use dbus::arg::{Dict, Variant, Iter, Array, Get, RefArg};
-use dbus::stdintf::OrgFreedesktopDBusProperties;
-use dbus::Error;
-
 use enum_primitive::FromPrimitive;
 
+use dbus::Path;
+use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
+
+use dbus_api::{DBusApi, extract, utf8_vec_u8_to_string, utf8_variant_to_string,
+               string_to_utf8_vec_u8, path_to_string, VariantTo};
 use connection::{ConnectionSettings, ConnectionState};
 use device::{DeviceType, DeviceState};
 use status::{Connectivity, NetworkManagerState};
@@ -32,68 +31,75 @@ pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkMana
 
 pub const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
 
-pub const TIMEOUT: i32 = 10_000;
-pub const RETRIES_ALLOWED: usize = 50;
-
-
 pub fn new() -> DBusNetworkManager {
     DBusNetworkManager::new()
 }
 
 
 pub struct DBusNetworkManager {
-    connection: DBusConnection,
+    dbus: DBusApi,
 }
 
 impl DBusNetworkManager {
     pub fn new() -> Self {
-        let connection = DBusConnection::get_private(BusType::System).unwrap();
-
-        DBusNetworkManager { connection: connection }
+        DBusNetworkManager {
+            dbus: DBusApi::new(NM_SERVICE_MANAGER,
+                               vec!["org.freedesktop.NetworkManager.UnknownConnection"]),
+        }
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
-        let response = try!(self.call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state"));
+        let response = try!(self.dbus
+                                .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state"));
 
-        let state_u32: u32 = try!(self.extract(&response));
+        let state_u32: u32 = try!(self.dbus.extract(&response));
 
         Ok(NetworkManagerState::from(state_u32))
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity, String> {
-        let response = try!(self.call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity"));
+        let response =
+            try!(self.dbus
+                     .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity"));
 
-        let connectivity_u32: u32 = try!(self.extract(&response));
+        let connectivity_u32: u32 = try!(self.dbus.extract(&response));
 
         Ok(Connectivity::from(connectivity_u32))
     }
 
     pub fn is_wireless_enabled(&self) -> Result<bool, String> {
-        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
     }
 
     pub fn is_networking_enabled(&self) -> Result<bool, String> {
-        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>, String> {
-        let response = try!(self.call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections"));
+        let response =
+            try!(self.dbus
+                     .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections"));
 
-        let array: Array<Path, _> = try!(self.extract(&response));
+        let array: Array<Path, _> = try!(self.dbus.extract(&response));
 
         Ok(array.map(|e| e.to_string()).collect())
     }
 
     pub fn get_active_connections(&self) -> Result<Vec<String>, String> {
-        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
     }
 
     pub fn get_active_connection_path(&self, path: &String) -> Option<String> {
-        self.property(path, NM_ACTIVE_INTERFACE, "Connection").ok()
+        self.dbus
+            .property(path, NM_ACTIVE_INTERFACE, "Connection")
+            .ok()
     }
 
     pub fn get_connection_state(&self, path: &String) -> Result<ConnectionState, String> {
-        let state_i64 = match self.property(path, NM_ACTIVE_INTERFACE, "State") {
+        let state_i64 = match self.dbus.property(path, NM_ACTIVE_INTERFACE, "State") {
             Ok(state_i64) => state_i64,
             Err(_) => return Ok(ConnectionState::Unknown),
         };
@@ -103,9 +109,10 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &String) -> Result<ConnectionSettings, String> {
-        let response = try!(self.call(&path, NM_CONNECTION_INTERFACE, "GetSettings"));
+        let response = try!(self.dbus
+                                .call(&path, NM_CONNECTION_INTERFACE, "GetSettings"));
 
-        let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = try!(self.extract(&response));
+        let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = try!(self.dbus.extract(&response));
 
         let mut id = String::new();
         let mut uuid = String::new();
@@ -136,17 +143,18 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_devices(&self, path: &String) -> Result<Vec<String>, String> {
-        self.property(path, NM_ACTIVE_INTERFACE, "Devices")
+        self.dbus.property(path, NM_ACTIVE_INTERFACE, "Devices")
     }
 
     pub fn delete_connection(&self, path: &String) -> Result<(), String> {
-        try!(self.call(path, NM_CONNECTION_INTERFACE, "Delete"));
+        try!(self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete"));
 
         Ok(())
     }
 
     pub fn activate_connection(&self, path: &String) -> Result<(), String> {
-        try!(self.call_with_args(NM_SERVICE_PATH,
+        try!(self.dbus
+                 .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
                                  vec![&try!(Path::new(path.as_str())) as &RefArg,
@@ -157,7 +165,8 @@ impl DBusNetworkManager {
     }
 
     pub fn deactivate_connection(&self, path: &String) -> Result<(), String> {
-        try!(self.call_with_args(NM_SERVICE_PATH,
+        try!(self.dbus
+                 .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "DeactivateConnection",
                                  vec![&try!(Path::new(path.as_str())) as &RefArg]));
@@ -195,7 +204,8 @@ impl DBusNetworkManager {
         }
 
         let response =
-            try!(self.call_with_args(NM_SERVICE_PATH,
+            try!(self.dbus
+                     .call_with_args(NM_SERVICE_PATH,
                                      NM_SERVICE_INTERFACE,
                                      "AddAndActivateConnection",
                                      vec![&settings as &RefArg,
@@ -203,7 +213,7 @@ impl DBusNetworkManager {
                                           &try!(Path::new(ap_path.clone())) as &RefArg]));
 
 
-        let (conn_path, active_connection): (Path, Path) = try!(self.extract_two(&response));
+        let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
 
         Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
     }
@@ -247,7 +257,8 @@ impl DBusNetworkManager {
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
-        let response = try!(self.call_with_args(NM_SERVICE_PATH,
+        let response = try!(self.dbus
+                                .call_with_args(NM_SERVICE_PATH,
                                                 NM_SERVICE_INTERFACE,
                                                 "AddAndActivateConnection",
                                                 vec![&settings as &RefArg,
@@ -256,33 +267,35 @@ impl DBusNetworkManager {
                                                      &try!(Path::new("/")) as &RefArg]));
 
 
-        let (conn_path, active_connection): (Path, Path) = try!(self.extract_two(&response));
+        let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
 
         Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
     }
 
     pub fn get_devices(&self) -> Result<Vec<String>, String> {
-        self.property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
     }
 
     pub fn get_device_interface(&self, path: &String) -> Result<String, String> {
-        self.property(path, NM_DEVICE_INTERFACE, "Interface")
+        self.dbus.property(path, NM_DEVICE_INTERFACE, "Interface")
     }
 
     pub fn get_device_type(&self, path: &String) -> Result<DeviceType, String> {
-        self.property(path, NM_DEVICE_INTERFACE, "DeviceType")
+        self.dbus.property(path, NM_DEVICE_INTERFACE, "DeviceType")
     }
 
     pub fn get_device_state(&self, path: &String) -> Result<DeviceState, String> {
-        self.property(path, NM_DEVICE_INTERFACE, "State")
+        self.dbus.property(path, NM_DEVICE_INTERFACE, "State")
     }
 
     pub fn is_device_real(&self, path: &String) -> Result<bool, String> {
-        self.property(path, NM_DEVICE_INTERFACE, "Real")
+        self.dbus.property(path, NM_DEVICE_INTERFACE, "Real")
     }
 
     pub fn activate_device(&self, path: &String) -> Result<(), String> {
-        try!(self.call_with_args(NM_SERVICE_PATH,
+        try!(self.dbus
+                 .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
                                  vec![&try!(Path::new("/")) as &RefArg,
@@ -293,17 +306,18 @@ impl DBusNetworkManager {
     }
 
     pub fn disconnect_device(&self, path: &String) -> Result<(), String> {
-        try!(self.call(path, NM_DEVICE_INTERFACE, "Disconnect"));
+        try!(self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect"));
 
         Ok(())
     }
 
     pub fn get_device_access_points(&self, path: &String) -> Result<Vec<String>, String> {
-        self.property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
+        self.dbus
+            .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
     }
 
     pub fn get_access_point_ssid(&self, path: &String) -> Option<String> {
-        if let Ok(ssid_vec) = self.property(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
+        if let Ok(ssid_vec) = self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
             utf8_vec_u8_to_string(ssid_vec).ok()
         } else {
             None
@@ -311,300 +325,55 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_strength(&self, path: &String) -> Result<u32, String> {
-        self.property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
+        self.dbus
+            .property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
     }
 
     pub fn get_access_point_flags(&self, path: &String) -> Result<NM80211ApFlags, String> {
-        self.property(path, NM_ACCESS_POINT_INTERFACE, "Flags")
+        self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Flags")
     }
 
     pub fn get_access_point_wpa_flags(&self,
                                       path: &String)
                                       -> Result<NM80211ApSecurityFlags, String> {
-        self.property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
+        self.dbus
+            .property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
     }
 
     pub fn get_access_point_rsn_flags(&self,
                                       path: &String)
                                       -> Result<NM80211ApSecurityFlags, String> {
-        self.property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
-    }
-
-    fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
-        self.call_with_args(path, interface, method, vec![])
-    }
-
-    fn call_with_args(&self,
-                      path: &str,
-                      interface: &str,
-                      method: &str,
-                      args: Vec<&RefArg>)
-                      -> Result<Message, String> {
-        let call_error = |details: &str| {
-            Err(format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
-                        interface,
-                        method,
-                        path,
-                        details))
-        };
-
-        match self.call_with_args_retry(path, interface, method, args) {
-            Ok(response) => Ok(response),
-            Err(error) => call_error(&error),
-        }
-    }
-
-    fn call_with_args_retry(&self,
-                            path: &str,
-                            interface: &str,
-                            method: &str,
-                            args: Vec<&RefArg>)
-                            -> Result<Message, String> {
-        let mut retries = 0;
-
-        loop {
-            if let Ok(result) = self.create_and_send_message(path, interface, method, &args) {
-                return result;
-            }
-
-            retries += 1;
-
-            if retries == RETRIES_ALLOWED {
-                return Err(format!("method failed after {} retries", RETRIES_ALLOWED));
-            }
-
-            ::std::thread::sleep(::std::time::Duration::from_secs(1));
-        }
-    }
-
-    fn create_and_send_message(&self,
-                               path: &str,
-                               interface: &str,
-                               method: &str,
-                               args: &Vec<&RefArg>)
-                               -> Result<Result<Message, String>, String> {
-        match Message::new_method_call(NM_SERVICE_MANAGER, path, interface, method) {
-            Ok(mut message) => {
-                if args.len() > 0 {
-                    message = message.append_ref(args);
-                }
-
-                self.send_message_checked(message)
-            }
-            Err(details) => Ok(Err(details)),
-        }
-    }
-
-    fn send_message_checked(&self, message: Message) -> Result<Result<Message, String>, String> {
-        match self.connection.send_with_reply_and_block(message, TIMEOUT) {
-            Ok(response) => Ok(Ok(response)),
-            Err(err) => {
-                let message = get_error_message(&err).to_string();
-                if err.name() == Some("org.freedesktop.NetworkManager.UnknownConnection") {
-                    return Err(message);
-                } else {
-                    Ok(Err(message))
-                }
-            }
-        }
-    }
-
-    fn extract<'a, T>(&self, response: &'a Message) -> Result<T, String>
-        where T: Get<'a>
-    {
-        response
-            .get1()
-            .ok_or("D-Bus wrong response type".to_string())
-    }
-
-    fn extract_two<'a, T1, T2>(&self, response: &'a Message) -> Result<(T1, T2), String>
-        where T1: Get<'a>,
-              T2: Get<'a>
-    {
-        let (first, second) = response.get2();
-
-        if let Some(first) = first {
-            if let Some(second) = second {
-                return Ok((first, second));
-            }
-        }
-
-        Err("D-Bus wrong response type".to_string())
-    }
-
-    fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<'a, &'a DBusConnection> {
-        self.connection.with_path(NM_SERVICE_MANAGER, path, TIMEOUT)
+        self.dbus
+            .property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
     }
 }
 
 
-trait Property<T> {
-    fn property(&self, path: &str, interface: &str, name: &str) -> Result<T, String>;
-}
-
-
-impl<T> Property<T> for DBusNetworkManager
-    where DBusNetworkManager: VariantTo<T>
-{
-    fn property(&self, path: &str, interface: &str, name: &str) -> Result<T, String> {
-        let property_error = |details: &str| {
-            Err(format!("D-Bus get '{}'::'{}' property failed on '{}': {}",
-                        interface,
-                        name,
-                        path,
-                        details))
-        };
-
-        let path = self.with_path(path);
-
-        match path.get(interface, name) {
-            Ok(variant) => {
-                match DBusNetworkManager::variant_to(variant) {
-                    Some(data) => Ok(data),
-                    None => property_error("wrong property type"),
-                }
-            }
-            Err(err) => {
-                match err.message() {
-                    Some(details) => property_error(details),
-                    None => property_error("no details"),
-                }
-            }
-        }
-    }
-}
-
-
-trait VariantTo<T> {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<T>;
-}
-
-
-impl VariantTo<String> for DBusNetworkManager {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<String> {
-        variant_to_string(value)
-    }
-}
-
-
-impl VariantTo<i64> for DBusNetworkManager {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<i64> {
-        variant_to_i64(value)
-    }
-}
-
-
-impl VariantTo<u32> for DBusNetworkManager {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<u32> {
-        variant_to_u32(value)
-    }
-}
-
-
-impl VariantTo<bool> for DBusNetworkManager {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<bool> {
-        variant_to_bool(value)
-    }
-}
-
-
-impl VariantTo<Vec<String>> for DBusNetworkManager {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
-        variant_to_string_vec(value)
-    }
-}
-
-
-impl VariantTo<Vec<u8>> for DBusNetworkManager {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
-        variant_to_u8_vec(value)
-    }
-}
-
-
-impl VariantTo<DeviceType> for DBusNetworkManager {
+impl VariantTo<DeviceType> for DBusApi {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
         variant_to_device_type(value)
     }
 }
 
 
-impl VariantTo<DeviceState> for DBusNetworkManager {
+impl VariantTo<DeviceState> for DBusApi {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
         variant_to_device_state(value)
     }
 }
 
 
-impl VariantTo<NM80211ApFlags> for DBusNetworkManager {
+impl VariantTo<NM80211ApFlags> for DBusApi {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
         variant_to_ap_flags(value)
     }
 }
 
 
-impl VariantTo<NM80211ApSecurityFlags> for DBusNetworkManager {
+impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
         variant_to_ap_security_flags(value)
     }
-}
-
-
-fn variant_to_string_vec(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
-    let mut result = Vec::new();
-
-    if let Some(list) = value.0.as_iter() {
-        for element in list {
-            if let Some(string) = element.as_str() {
-                result.push(string.to_string());
-            } else {
-                return None;
-            }
-        }
-
-        Some(result)
-    } else {
-        None
-    }
-}
-
-
-fn variant_to_u8_vec(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
-    let mut result = Vec::new();
-
-    if let Some(list) = value.0.as_iter() {
-        for element in list {
-            if let Some(value) = element.as_i64() {
-                result.push(value as u8);
-            } else {
-                return None;
-            }
-        }
-
-        Some(result)
-    } else {
-        None
-    }
-}
-
-
-fn variant_to_string(value: Variant<Box<RefArg>>) -> Option<String> {
-    value.0.as_str().and_then(|v| Some(v.to_string()))
-}
-
-
-fn variant_to_i64(value: Variant<Box<RefArg>>) -> Option<i64> {
-    value.0.as_i64()
-}
-
-
-fn variant_to_u32(value: Variant<Box<RefArg>>) -> Option<u32> {
-    value.0.as_i64().and_then(|v| Some(v as u32))
-}
-
-
-fn variant_to_bool(value: Variant<Box<RefArg>>) -> Option<bool> {
-    value.0.as_i64().and_then(|v| Some(v == 0))
 }
 
 
@@ -634,55 +403,12 @@ fn variant_to_ap_security_flags(value: Variant<Box<RefArg>>) -> Option<NM80211Ap
 }
 
 
-fn extract<'a, T>(var: &'a Variant<Iter>) -> Result<T, String>
-    where T: Get<'a>
-{
-    var.0
-        .clone()
-        .get::<T>()
-        .ok_or(format!("D-Bus variant type does not match: {:?}", var))
-}
-
-
-fn utf8_vec_u8_to_string(var: Vec<u8>) -> Result<String, String> {
-    String::from_utf8(var).or(Err(format!("D-Bus variant not a UTF-8 string")))
-}
-
-fn utf8_variant_to_string(var: &Variant<Iter>) -> Result<String, String> {
-    let array_option = &var.0.clone().get::<Array<u8, _>>();
-
-    if let Some(array) = *array_option {
-        utf8_vec_u8_to_string(array.collect())
-    } else {
-        Err(format!("D-Bus variant not an array: {:?}", var))
-    }
-}
-
-fn string_to_utf8_vec_u8(var: &String) -> Vec<u8> {
-    var.as_bytes().to_vec()
-}
-
-fn path_to_string(path: &Path) -> Result<String, String> {
-    if let Ok(slice) = path.as_cstr().to_str() {
-        Ok(slice.to_string())
-    } else {
-        Err(format!("Path not a UTF-8 string: {:?}", path))
-    }
-}
-
-fn add_val<T>(map: &mut SettingsMap, key: &str, value: T)
+pub fn add_val<T>(map: &mut SettingsMap, key: &str, value: T)
     where T: RefArg + 'static
 {
     map.insert(key.to_string(), Variant(Box::new(value)));
 }
 
-fn add_str(map: &mut SettingsMap, key: &str, value: &str) {
+pub fn add_str(map: &mut SettingsMap, key: &str, value: &str) {
     map.insert(key.to_string(), Variant(Box::new(value.to_string())));
-}
-
-fn get_error_message(err: &Error) -> &str {
-    match err.message() {
-        Some(details) => details,
-        None => "Undefined error message",
-    }
 }
