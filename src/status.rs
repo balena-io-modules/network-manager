@@ -3,7 +3,7 @@ extern crate enum_primitive;
 
 use enum_primitive::FromPrimitive;
 
-use manager::NetworkManager;
+use dbus_nm::DBusNetworkManager;
 
 /// Gets the Network Manager status.
 ///
@@ -11,12 +11,12 @@ use manager::NetworkManager;
 ///
 /// ```no_run
 /// use network_manager::status;
-/// use network_manager::manager;
-/// let manager = manager::new();
+/// use network_manager::dbus_nm;
+/// let manager = dbus_nm::new();
 /// let status = status::status(&manager).unwrap();
 /// println!("{:?}", status);
 /// ```
-pub fn status(manager: &NetworkManager) -> Result<Status, String> {
+pub fn status(manager: &DBusNetworkManager) -> Result<Status, String> {
     let mut status: Status = Default::default();
 
     status.state = try!(manager.get_state());

@@ -3,7 +3,7 @@ extern crate network_manager;
 use std::env;
 use std::process;
 
-use network_manager::manager;
+use network_manager::dbus_nm;
 use network_manager::device;
 use network_manager::connection;
 
@@ -74,7 +74,7 @@ fn main() {
         password,
     } = parse_options();
 
-    let manager = manager::new();
+    let manager = dbus_nm::new();
 
     let mut devices = device::list(&manager).unwrap();
 

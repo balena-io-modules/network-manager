@@ -7,8 +7,8 @@ use enum_primitive::FromPrimitive;
 
 use device::{Device, DeviceType};
 use wifi::{AccessPoint, Security};
-use manager;
-use manager::NetworkManager;
+use dbus_nm;
+use dbus_nm::DBusNetworkManager;
 
 /// Get a list of Network Manager connections sorted by path.
 ///
@@ -16,12 +16,12 @@ use manager::NetworkManager;
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// use network_manager::manager;
-/// let manager = manager::new();
+/// use network_manager::dbus_nm;
+/// let manager = dbus_nm::new();
 /// let connections = connection::list(&manager).unwrap();
 /// println!("{:?}", connections);
 /// ```
-pub fn list(manager: &NetworkManager) -> Result<Vec<Connection>, String> {
+pub fn list(manager: &DBusNetworkManager) -> Result<Vec<Connection>, String> {
     let paths = try!(manager.list_connections());
 
     let mut connections = Vec::new();
@@ -37,7 +37,7 @@ pub fn list(manager: &NetworkManager) -> Result<Vec<Connection>, String> {
 
 #[test]
 fn test_list_function() {
-    let manager = manager::new();
+    let manager = dbus_nm::new();
 
     let connections = list(&manager).unwrap();
     assert!(connections.len() > 0);
@@ -48,7 +48,7 @@ fn test_list_function() {
 }
 
 /// Creates a Network Manager connection.
-pub fn create(manager: &NetworkManager,
+pub fn create(manager: &DBusNetworkManager,
               device: &Device,
               access_point: &AccessPoint,
               password: &str,
@@ -68,7 +68,7 @@ pub fn create(manager: &NetworkManager,
 }
 
 /// Starts a Wi-Fi hotspot.
-pub fn create_hotspot(manager: &NetworkManager,
+pub fn create_hotspot(manager: &DBusNetworkManager,
                       device: &Device,
                       ssid: &str,
                       password: Option<String>,
@@ -93,12 +93,12 @@ pub fn create_hotspot(manager: &NetworkManager,
 ///
 /// ```
 /// use network_manager::connection;
-/// use network_manager::manager;
-/// let manager = manager::new();
+/// use network_manager::dbus_nm;
+/// let manager = dbus_nm::new();
 /// let mut connections = connection::list(&manager).unwrap();
 /// connection::delete(&manager, &connections.pop().unwrap()).unwrap();
 /// ```
-pub fn delete(manager: &NetworkManager, connection: &Connection) -> Result<(), String> {
+pub fn delete(manager: &DBusNetworkManager, connection: &Connection) -> Result<(), String> {
     manager.delete_connection(&connection.path)
 }
 
@@ -108,12 +108,12 @@ pub fn delete(manager: &NetworkManager, connection: &Connection) -> Result<(), S
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// use network_manager::manager;
-/// let manager = manager::new();
+/// use network_manager::dbus_nm;
+/// let manager = dbus_nm::new();
 /// let connections = connection::list(&manager).unwrap();
 /// connection::enable(&manager, &connections[0], 10).unwrap();
 /// ```
-pub fn enable(manager: &NetworkManager,
+pub fn enable(manager: &DBusNetworkManager,
               connection: &Connection,
               time_out: i32)
               -> Result<ConnectionState, String> {
@@ -139,12 +139,12 @@ pub fn enable(manager: &NetworkManager,
 ///
 /// ```no_run
 /// use network_manager::connection;
-/// use network_manager::manager;
-/// let manager = manager::new();
+/// use network_manager::dbus_nm;
+/// let manager = dbus_nm::new();
 /// let connections = connection::list(&manager).unwrap();
 /// connection::disable(&manager, &connections[0], 10).unwrap();
 /// ```
-pub fn disable(manager: &NetworkManager,
+pub fn disable(manager: &DBusNetworkManager,
                connection: &Connection,
                time_out: i32)
                -> Result<ConnectionState, String> {
@@ -172,7 +172,7 @@ pub fn disable(manager: &NetworkManager,
 
 #[test]
 fn test_enable_disable_functions() {
-    let manager = manager::new();
+    let manager = dbus_nm::new();
 
     let connections = list(&manager).unwrap();
 
@@ -220,7 +220,7 @@ fn test_enable_disable_functions() {
     }
 }
 
-fn get_connection(manager: &NetworkManager, path: &String) -> Result<Connection, String> {
+fn get_connection(manager: &DBusNetworkManager, path: &String) -> Result<Connection, String> {
     let settings = try!(manager.get_connection_settings(path));
 
     Ok(Connection {
@@ -229,7 +229,7 @@ fn get_connection(manager: &NetworkManager, path: &String) -> Result<Connection,
        })
 }
 
-pub fn get_connection_state(manager: &NetworkManager,
+pub fn get_connection_state(manager: &DBusNetworkManager,
                             connection: &Connection)
                             -> Result<ConnectionState, String> {
     let active_path_option = try!(get_connection_active_path(manager, connection));
@@ -243,7 +243,7 @@ pub fn get_connection_state(manager: &NetworkManager,
     }
 }
 
-fn get_connection_active_path(manager: &NetworkManager,
+fn get_connection_active_path(manager: &DBusNetworkManager,
                               connection: &Connection)
                               -> Result<Option<String>, String> {
     let active_paths = try!(manager.get_active_connections());
@@ -259,7 +259,7 @@ fn get_connection_active_path(manager: &NetworkManager,
     Ok(None)
 }
 
-fn wait(manager: &NetworkManager,
+fn wait(manager: &DBusNetworkManager,
         connection: &Connection,
         time_out: i32,
         target_state: ConnectionState)

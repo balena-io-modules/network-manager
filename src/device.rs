@@ -1,7 +1,7 @@
 use std;
 
-use manager;
-use manager::NetworkManager;
+use dbus_nm;
+use dbus_nm::DBusNetworkManager;
 
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn from_path(manager: &NetworkManager, path: &String) -> Result<Device, String> {
+    pub fn from_path(manager: &DBusNetworkManager, path: &String) -> Result<Device, String> {
         let interface = try!(manager.get_device_interface(&path));
 
         let device_type = try!(manager.get_device_type(&path));
@@ -84,12 +84,12 @@ impl From<i64> for DeviceState {
 ///
 /// ```
 /// use network_manager::device;
-/// use network_manager::manager;
-/// let manager = manager::new();
+/// use network_manager::dbus_nm;
+/// let manager = dbus_nm::new();
 /// let devices = device::list(&manager).unwrap();
 /// println!("{:?}", devices);
 /// ```
-pub fn list(manager: &NetworkManager) -> Result<Vec<Device>, String> {
+pub fn list(manager: &DBusNetworkManager) -> Result<Vec<Device>, String> {
     let device_paths = try!(manager.get_devices());
 
     let mut result = Vec::new();
@@ -105,7 +105,7 @@ pub fn list(manager: &NetworkManager) -> Result<Vec<Device>, String> {
 
 #[test]
 fn test_list_function() {
-    let manager = manager::new();
+    let manager = dbus_nm::new();
     let devices = list(&manager).unwrap();
     assert!(devices.len() > 0);
 }
@@ -117,13 +117,13 @@ fn test_list_function() {
 /// ```
 /// use network_manager::device;
 /// use network_manager::manager;
-/// let manager = manager::new();
+/// let manager = dbus_nm::new();
 /// let devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
 /// let device = &devices[i];
 /// device::connect(&manager, device, 10).unwrap();
 /// ```
-pub fn connect(manager: &NetworkManager,
+pub fn connect(manager: &DBusNetworkManager,
                device: &Device,
                time_out: i32)
                -> Result<DeviceState, String> {
@@ -146,13 +146,13 @@ pub fn connect(manager: &NetworkManager,
 /// ```
 /// use network_manager::device;
 /// use network_manager::manager;
-/// let manager = manager::new();
+/// let manager = dbus_nm::new();
 /// let devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
 /// let device = &devices[i];
 /// device::disconnect(&manager, device, 10).unwrap();
 /// ```
-pub fn disconnect(manager: &NetworkManager,
+pub fn disconnect(manager: &DBusNetworkManager,
                   device: &Device,
                   time_out: i32)
                   -> Result<DeviceState, String> {
@@ -168,7 +168,7 @@ pub fn disconnect(manager: &NetworkManager,
     }
 }
 
-fn wait(manager: &NetworkManager,
+fn wait(manager: &DBusNetworkManager,
         device: &Device,
         time_out: i32,
         target_state: DeviceState)
@@ -193,13 +193,15 @@ fn wait(manager: &NetworkManager,
 }
 
 
-pub fn get_device_state(manager: &NetworkManager, device: &Device) -> Result<DeviceState, String> {
+pub fn get_device_state(manager: &DBusNetworkManager,
+                        device: &Device)
+                        -> Result<DeviceState, String> {
     manager.get_device_state(&device.path)
 }
 
 #[test]
 fn test_connect_disconnect_functions() {
-    let manager = manager::new();
+    let manager = dbus_nm::new();
 
     let devices = list(&manager).unwrap();
 

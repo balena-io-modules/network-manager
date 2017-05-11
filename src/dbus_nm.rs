@@ -36,20 +36,20 @@ pub const TIMEOUT: i32 = 10_000;
 pub const RETRIES_ALLOWED: usize = 50;
 
 
-pub fn new() -> NetworkManager {
-    NetworkManager::new()
+pub fn new() -> DBusNetworkManager {
+    DBusNetworkManager::new()
 }
 
 
-pub struct NetworkManager {
+pub struct DBusNetworkManager {
     connection: DBusConnection,
 }
 
-impl NetworkManager {
+impl DBusNetworkManager {
     pub fn new() -> Self {
         let connection = DBusConnection::get_private(BusType::System).unwrap();
 
-        NetworkManager { connection: connection }
+        DBusNetworkManager { connection: connection }
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
@@ -443,8 +443,8 @@ trait Property<T> {
 }
 
 
-impl<T> Property<T> for NetworkManager
-    where NetworkManager: VariantTo<T>
+impl<T> Property<T> for DBusNetworkManager
+    where DBusNetworkManager: VariantTo<T>
 {
     fn property(&self, path: &str, interface: &str, name: &str) -> Result<T, String> {
         let property_error = |details: &str| {
@@ -459,7 +459,7 @@ impl<T> Property<T> for NetworkManager
 
         match path.get(interface, name) {
             Ok(variant) => {
-                match NetworkManager::variant_to(variant) {
+                match DBusNetworkManager::variant_to(variant) {
                     Some(data) => Ok(data),
                     None => property_error("wrong property type"),
                 }
@@ -480,70 +480,70 @@ trait VariantTo<T> {
 }
 
 
-impl VariantTo<String> for NetworkManager {
+impl VariantTo<String> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<String> {
         variant_to_string(value)
     }
 }
 
 
-impl VariantTo<i64> for NetworkManager {
+impl VariantTo<i64> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<i64> {
         variant_to_i64(value)
     }
 }
 
 
-impl VariantTo<u32> for NetworkManager {
+impl VariantTo<u32> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<u32> {
         variant_to_u32(value)
     }
 }
 
 
-impl VariantTo<bool> for NetworkManager {
+impl VariantTo<bool> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<bool> {
         variant_to_bool(value)
     }
 }
 
 
-impl VariantTo<Vec<String>> for NetworkManager {
+impl VariantTo<Vec<String>> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
         variant_to_string_vec(value)
     }
 }
 
 
-impl VariantTo<Vec<u8>> for NetworkManager {
+impl VariantTo<Vec<u8>> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
         variant_to_u8_vec(value)
     }
 }
 
 
-impl VariantTo<DeviceType> for NetworkManager {
+impl VariantTo<DeviceType> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
         variant_to_device_type(value)
     }
 }
 
 
-impl VariantTo<DeviceState> for NetworkManager {
+impl VariantTo<DeviceState> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
         variant_to_device_state(value)
     }
 }
 
 
-impl VariantTo<NM80211ApFlags> for NetworkManager {
+impl VariantTo<NM80211ApFlags> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
         variant_to_ap_flags(value)
     }
 }
 
 
-impl VariantTo<NM80211ApSecurityFlags> for NetworkManager {
+impl VariantTo<NM80211ApSecurityFlags> for DBusNetworkManager {
     fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
         variant_to_ap_security_flags(value)
     }

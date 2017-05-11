@@ -1,4 +1,4 @@
-use manager::NetworkManager;
+use dbus_nm::DBusNetworkManager;
 use device::Device;
 use device;
 
@@ -66,17 +66,17 @@ bitflags! {
 /// # Examples
 ///
 /// ```
-/// use network_manager::manager;
+/// use network_manager::dbus_nm;
 /// use network_manager::wifi;
 /// use network_manager::device;
-/// let manager = manager::new();
+/// let manager = dbus_nm::new();
 /// let mut devices = device::list(&manager).unwrap();
 /// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
 /// let device = &mut devices[i];
 /// let access_points = wifi::scan(&manager, device).unwrap();
 /// println!("{:?}", access_points);
 /// ```
-pub fn scan(manager: &NetworkManager, device: &Device) -> Result<Vec<AccessPoint>, String> {
+pub fn scan(manager: &DBusNetworkManager, device: &Device) -> Result<Vec<AccessPoint>, String> {
     let mut access_points = Vec::new();
 
     if device.device_type == device::DeviceType::WiFi {
@@ -98,7 +98,7 @@ pub fn scan(manager: &NetworkManager, device: &Device) -> Result<Vec<AccessPoint
 }
 
 
-fn get_access_point(manager: &NetworkManager,
+fn get_access_point(manager: &DBusNetworkManager,
                     path: &String)
                     -> Result<Option<AccessPoint>, String> {
     if let Some(ssid) = manager.get_access_point_ssid(path) {
@@ -120,7 +120,9 @@ fn get_access_point(manager: &NetworkManager,
 }
 
 
-fn get_access_point_security(manager: &NetworkManager, path: &String) -> Result<Security, String> {
+fn get_access_point_security(manager: &DBusNetworkManager,
+                             path: &String)
+                             -> Result<Security, String> {
     let flags = try!(manager.get_access_point_flags(path));
 
     let wpa_flags = try!(manager.get_access_point_wpa_flags(path));
