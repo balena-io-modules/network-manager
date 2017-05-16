@@ -5,12 +5,13 @@ use dbus::stdintf::OrgFreedesktopDBusProperties;
 use dbus::Error;
 
 
-pub const TIMEOUT: i32 = 10_000;
-pub const RETRIES_ALLOWED: usize = 50;
+pub const DEFAULT_TIMEOUT: u64 = 10;
+pub const RETRIES_ALLOWED: usize = 10;
 
 
 pub struct DBusApi {
     connection: DBusConnection,
+    method_timeout: u64,
     base: &'static str,
     method_retry_error_names: Vec<&'static str>,
 }
@@ -21,9 +22,18 @@ impl DBusApi {
 
         DBusApi {
             connection: connection,
+            method_timeout: DEFAULT_TIMEOUT,
             base: base,
             method_retry_error_names: method_retry_error_names,
         }
+    }
+
+    pub fn method_timeout(&self) -> u64 {
+        self.method_timeout
+    }
+
+    pub fn set_method_timeout(&mut self, timeout: u64) {
+        self.method_timeout = timeout;
     }
 
     pub fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
@@ -92,7 +102,8 @@ impl DBusApi {
     }
 
     fn send_message_checked(&self, message: Message) -> Result<Result<Message, String>, String> {
-        match self.connection.send_with_reply_and_block(message, TIMEOUT) {
+        match self.connection
+                  .send_with_reply_and_block(message, self.method_timeout as i32 * 1000) {
             Ok(response) => Ok(Ok(response)),
             Err(err) => {
                 let message = get_error_message(&err).to_string();
@@ -162,7 +173,8 @@ impl DBusApi {
     }
 
     fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<'a, &'a DBusConnection> {
-        self.connection.with_path(self.base, path, TIMEOUT)
+        self.connection
+            .with_path(self.base, path, self.method_timeout as i32 * 1000)
     }
 }
 

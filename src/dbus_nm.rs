@@ -7,9 +7,9 @@ use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
 
 use dbus_api::{DBusApi, extract, utf8_vec_u8_to_string, utf8_variant_to_string,
                string_to_utf8_vec_u8, path_to_string, VariantTo};
+use manager::{Connectivity, NetworkManagerState};
 use connection::{ConnectionSettings, ConnectionState};
 use device::{DeviceType, DeviceState};
-use status::{Connectivity, NetworkManagerState};
 use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 
 
@@ -31,10 +31,6 @@ pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkMana
 
 pub const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
 
-pub fn new() -> DBusNetworkManager {
-    DBusNetworkManager::new()
-}
-
 
 pub struct DBusNetworkManager {
     dbus: DBusApi,
@@ -46,6 +42,14 @@ impl DBusNetworkManager {
             dbus: DBusApi::new(NM_SERVICE_MANAGER,
                                vec!["org.freedesktop.NetworkManager.UnknownConnection"]),
         }
+    }
+
+    pub fn method_timeout(&self) -> u64 {
+        self.dbus.method_timeout()
+    }
+
+    pub fn set_method_timeout(&mut self, timeout: u64) {
+        self.dbus.set_method_timeout(timeout);
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
@@ -92,13 +96,13 @@ impl DBusNetworkManager {
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
     }
 
-    pub fn get_active_connection_path(&self, path: &String) -> Option<String> {
+    pub fn get_active_connection_path(&self, path: &str) -> Option<String> {
         self.dbus
             .property(path, NM_ACTIVE_INTERFACE, "Connection")
             .ok()
     }
 
-    pub fn get_connection_state(&self, path: &String) -> Result<ConnectionState, String> {
+    pub fn get_connection_state(&self, path: &str) -> Result<ConnectionState, String> {
         let state_i64 = match self.dbus.property(path, NM_ACTIVE_INTERFACE, "State") {
             Ok(state_i64) => state_i64,
             Err(_) => return Ok(ConnectionState::Unknown),
@@ -108,9 +112,8 @@ impl DBusNetworkManager {
             .ok_or(format!("Undefined connection state for {}", path))
     }
 
-    pub fn get_connection_settings(&self, path: &String) -> Result<ConnectionSettings, String> {
-        let response = try!(self.dbus
-                                .call(&path, NM_CONNECTION_INTERFACE, "GetSettings"));
+    pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings, String> {
+        let response = try!(self.dbus.call(path, NM_CONNECTION_INTERFACE, "GetSettings"));
 
         let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = try!(self.dbus.extract(&response));
 
@@ -142,49 +145,51 @@ impl DBusNetworkManager {
            })
     }
 
-    pub fn get_connection_devices(&self, path: &String) -> Result<Vec<String>, String> {
+    pub fn get_active_connection_devices(&self, path: &str) -> Result<Vec<String>, String> {
         self.dbus.property(path, NM_ACTIVE_INTERFACE, "Devices")
     }
 
-    pub fn delete_connection(&self, path: &String) -> Result<(), String> {
+    pub fn delete_connection(&self, path: &str) -> Result<(), String> {
         try!(self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete"));
 
         Ok(())
     }
 
-    pub fn activate_connection(&self, path: &String) -> Result<(), String> {
+    pub fn activate_connection(&self, path: &str) -> Result<(), String> {
         try!(self.dbus
                  .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
-                                 vec![&try!(Path::new(path.as_str())) as &RefArg,
+                                 vec![&try!(Path::new(path)) as &RefArg,
                                       &try!(Path::new("/")) as &RefArg,
                                       &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
 
-    pub fn deactivate_connection(&self, path: &String) -> Result<(), String> {
+    pub fn deactivate_connection(&self, path: &str) -> Result<(), String> {
         try!(self.dbus
                  .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "DeactivateConnection",
-                                 vec![&try!(Path::new(path.as_str())) as &RefArg]));
+                                 vec![&try!(Path::new(path)) as &RefArg]));
 
         Ok(())
     }
 
     pub fn add_and_activate_connection(&self,
-                                       device_path: &String,
-                                       ap_path: &String,
-                                       ssid: &String,
+                                       device_path: &str,
+                                       ap_path: &str,
+                                       ssid: &str,
                                        security: &Security,
                                        password: &str)
                                        -> Result<(String, String), String> {
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
 
         let mut wireless: SettingsMap = HashMap::new();
-        add_val(&mut wireless, "ssid", string_to_utf8_vec_u8(&ssid.clone()));
+        add_val(&mut wireless,
+                "ssid",
+                string_to_utf8_vec_u8(&ssid.to_string()));
         settings.insert("802-11-wireless".to_string(), wireless);
 
         if *security != NONE {
@@ -203,14 +208,15 @@ impl DBusNetworkManager {
             settings.insert("802-11-wireless-security".to_string(), security_settings);
         }
 
-        let response =
-            try!(self.dbus
-                     .call_with_args(NM_SERVICE_PATH,
-                                     NM_SERVICE_INTERFACE,
-                                     "AddAndActivateConnection",
-                                     vec![&settings as &RefArg,
-                                          &try!(Path::new(device_path.clone())) as &RefArg,
-                                          &try!(Path::new(ap_path.clone())) as &RefArg]));
+        let response = try!(self.dbus
+                                .call_with_args(NM_SERVICE_PATH,
+                                                NM_SERVICE_INTERFACE,
+                                                "AddAndActivateConnection",
+                                                vec![&settings as &RefArg,
+                                                     &try!(Path::new(device_path.to_string())) as
+                                                     &RefArg,
+                                                     &try!(Path::new(ap_path.to_string())) as
+                                                     &RefArg]));
 
 
         let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
@@ -219,10 +225,10 @@ impl DBusNetworkManager {
     }
 
     pub fn create_hotspot(&self,
-                          device_path: &String,
-                          interface: &String,
+                          device_path: &str,
+                          interface: &str,
                           ssid: &str,
-                          password: Option<String>)
+                          password: Option<&str>)
                           -> Result<(String, String), String> {
         let mut wireless: SettingsMap = HashMap::new();
         add_val(&mut wireless,
@@ -277,46 +283,42 @@ impl DBusNetworkManager {
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
     }
 
-    pub fn get_device_interface(&self, path: &String) -> Result<String, String> {
+    pub fn get_device_interface(&self, path: &str) -> Result<String, String> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "Interface")
     }
 
-    pub fn get_device_type(&self, path: &String) -> Result<DeviceType, String> {
+    pub fn get_device_type(&self, path: &str) -> Result<DeviceType, String> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "DeviceType")
     }
 
-    pub fn get_device_state(&self, path: &String) -> Result<DeviceState, String> {
+    pub fn get_device_state(&self, path: &str) -> Result<DeviceState, String> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "State")
     }
 
-    pub fn is_device_real(&self, path: &String) -> Result<bool, String> {
-        self.dbus.property(path, NM_DEVICE_INTERFACE, "Real")
-    }
-
-    pub fn activate_device(&self, path: &String) -> Result<(), String> {
+    pub fn connect_device(&self, path: &str) -> Result<(), String> {
         try!(self.dbus
                  .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
                                  vec![&try!(Path::new("/")) as &RefArg,
-                                      &try!(Path::new(path.as_str())) as &RefArg,
+                                      &try!(Path::new(path)) as &RefArg,
                                       &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
 
-    pub fn disconnect_device(&self, path: &String) -> Result<(), String> {
+    pub fn disconnect_device(&self, path: &str) -> Result<(), String> {
         try!(self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect"));
 
         Ok(())
     }
 
-    pub fn get_device_access_points(&self, path: &String) -> Result<Vec<String>, String> {
+    pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>, String> {
         self.dbus
             .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
     }
 
-    pub fn get_access_point_ssid(&self, path: &String) -> Option<String> {
+    pub fn get_access_point_ssid(&self, path: &str) -> Option<String> {
         if let Ok(ssid_vec) = self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
             utf8_vec_u8_to_string(ssid_vec).ok()
         } else {
@@ -324,25 +326,21 @@ impl DBusNetworkManager {
         }
     }
 
-    pub fn get_access_point_strength(&self, path: &String) -> Result<u32, String> {
+    pub fn get_access_point_strength(&self, path: &str) -> Result<u32, String> {
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
     }
 
-    pub fn get_access_point_flags(&self, path: &String) -> Result<NM80211ApFlags, String> {
+    pub fn get_access_point_flags(&self, path: &str) -> Result<NM80211ApFlags, String> {
         self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Flags")
     }
 
-    pub fn get_access_point_wpa_flags(&self,
-                                      path: &String)
-                                      -> Result<NM80211ApSecurityFlags, String> {
+    pub fn get_access_point_wpa_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
     }
 
-    pub fn get_access_point_rsn_flags(&self,
-                                      path: &String)
-                                      -> Result<NM80211ApSecurityFlags, String> {
+    pub fn get_access_point_rsn_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
     }

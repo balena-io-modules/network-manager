@@ -1,7 +1,7 @@
 [package]
 name = "network_manager"
-version = "0.1.0"
-authors = ["Joseph Roberts <joe@resin.io>"]
+version = "0.2.0"
+authors = ["Joseph Roberts <joe@resin.io>", "Zahari Petkov <zahari@resin.io>"]
 
 [dependencies]
 clippy = {version = "*", optional = true}

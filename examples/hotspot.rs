@@ -3,9 +3,7 @@ extern crate network_manager;
 use std::env;
 use std::process;
 
-use network_manager::dbus_nm;
-use network_manager::device;
-use network_manager::connection;
+use network_manager::{NetworkManager, Device, DeviceType};
 
 
 struct Options {
@@ -54,15 +52,15 @@ fn parse_options() -> Options {
 }
 
 
-fn find_device(devices: &Vec<device::Device>, interface: Option<String>) -> Option<usize> {
+fn find_device(devices: &Vec<Device>, interface: Option<String>) -> Option<usize> {
     if let Some(interface) = interface {
         devices
             .iter()
-            .position(|ref d| d.device_type == device::DeviceType::WiFi && d.interface == interface)
+            .position(|ref d| *d.device_type() == DeviceType::WiFi && *d.interface() == interface)
     } else {
         devices
             .iter()
-            .position(|ref d| d.device_type == device::DeviceType::WiFi)
+            .position(|ref d| *d.device_type() == DeviceType::WiFi)
     }
 }
 
@@ -74,12 +72,17 @@ fn main() {
         password,
     } = parse_options();
 
-    let manager = dbus_nm::new();
+    let pass_str = match password {
+        Some(ref s) => Some(s as &str),
+        None => None,
+    };
 
-    let mut devices = device::list(&manager).unwrap();
+    let manager = NetworkManager::new();
+
+    let devices = manager.get_devices().unwrap();
 
     let device_index = find_device(&devices, interface).unwrap();
-    let device_ref = &mut devices[device_index];
+    let wifi_device = devices[device_index].as_wifi_device().unwrap();
 
-    connection::create_hotspot(&manager, device_ref, &ssid, password, 10).unwrap();
+    wifi_device.create_hotspot(&ssid, pass_str).unwrap();
 }

@@ -14,10 +14,14 @@ extern crate bitflags;
 
 extern crate dbus;
 
-pub mod status;
-pub mod wifi;
-pub mod service;
-pub mod connection;
-pub mod device;
-pub mod dbus_nm;
+mod dbus_nm;
 mod dbus_api;
+mod manager;
+mod service;
+mod connection;
+mod device;
+mod wifi;
+
+pub use manager::NetworkManager;
+pub use connection::{Connection, ConnectionSettings};
+pub use device::{Device, DeviceType};
