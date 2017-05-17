@@ -52,15 +52,27 @@ fn parse_options() -> Options {
 }
 
 
-fn find_device(devices: &Vec<Device>, interface: Option<String>) -> Option<usize> {
+fn find_device(manager: &NetworkManager, interface: Option<String>) -> Option<Device> {
     if let Some(interface) = interface {
-        devices
-            .iter()
-            .position(|ref d| *d.device_type() == DeviceType::WiFi && *d.interface() == interface)
+        let device = manager.get_device_by_interface(&interface).unwrap();
+
+        if *device.device_type() == DeviceType::WiFi {
+            Some(device)
+        } else {
+            None
+        }
     } else {
-        devices
+        let devices = manager.get_devices().unwrap();
+
+        let index = devices
             .iter()
-            .position(|ref d| *d.device_type() == DeviceType::WiFi)
+            .position(|ref d| *d.device_type() == DeviceType::WiFi);
+
+        if let Some(index) = index {
+            Some(devices[index].clone())
+        } else {
+            None
+        }
     }
 }
 
@@ -79,10 +91,8 @@ fn main() {
 
     let manager = NetworkManager::new();
 
-    let devices = manager.get_devices().unwrap();
-
-    let device_index = find_device(&devices, interface).unwrap();
-    let wifi_device = devices[device_index].as_wifi_device().unwrap();
+    let device = find_device(&manager, interface).unwrap();
+    let wifi_device = device.as_wifi_device().unwrap();
 
     wifi_device.create_hotspot(&ssid, pass_str).unwrap();
 }

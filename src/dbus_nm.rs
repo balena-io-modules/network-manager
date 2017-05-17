@@ -283,6 +283,18 @@ impl DBusNetworkManager {
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
     }
 
+    pub fn get_device_by_interface(&self, interface: &str) -> Result<String, String> {
+        let response = try!(self.dbus
+                                .call_with_args(NM_SERVICE_PATH,
+                                                NM_SERVICE_INTERFACE,
+                                                "GetDeviceByIpIface",
+                                                vec![&interface.to_string() as &RefArg]));
+
+        let path: Path = try!(self.dbus.extract(&response));
+
+        path_to_string(&path)
+    }
+
     pub fn get_device_interface(&self, path: &str) -> Result<String, String> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "Interface")
     }

@@ -7,6 +7,7 @@ use dbus_nm::DBusNetworkManager;
 use wifi::{WiFiDevice, new_wifi_device};
 
 
+#[derive(Clone)]
 pub struct Device {
     dbus_manager: Rc<RefCell<DBusNetworkManager>>,
     path: String,
@@ -121,7 +122,7 @@ impl PathGetter for Device {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DeviceType {
     Unknown,
     Generic,
@@ -145,7 +146,7 @@ impl From<i64> for DeviceType {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DeviceState {
     Unknown,
     Unmanaged,
@@ -185,6 +186,14 @@ pub fn get_devices(dbus_manager: &Rc<RefCell<DBusNetworkManager>>) -> Result<Vec
     }
 
     Ok(result)
+}
+
+pub fn get_device_by_interface(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+                               interface: &str)
+                               -> Result<Device, String> {
+    let path = try!(dbus_manager.borrow().get_device_by_interface(interface));
+
+    Device::init(dbus_manager, &path)
 }
 
 pub fn get_active_connection_devices(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,

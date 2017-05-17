@@ -6,7 +6,7 @@ use enum_primitive::FromPrimitive;
 use dbus_nm::DBusNetworkManager;
 
 use connection::{Connection, get_connections, get_active_connections};
-use device::{Device, get_devices};
+use device::{Device, get_devices, get_device_by_interface};
 use service::{start_service, stop_service, get_service_state, ServiceState, Error};
 
 
@@ -92,6 +92,10 @@ impl NetworkManager {
     /// ```
     pub fn get_devices(&self) -> Result<Vec<Device>, String> {
         get_devices(&self.dbus_manager)
+    }
+
+    pub fn get_device_by_interface(&self, interface: &str) -> Result<Device, String> {
+        get_device_by_interface(&self.dbus_manager, interface)
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
