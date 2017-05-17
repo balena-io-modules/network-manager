@@ -46,18 +46,14 @@ impl DBusApi {
                           method: &str,
                           args: &[&RefArg])
                           -> Result<Message, String> {
-        let call_error = |details: &str| {
-            Err(format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
-                        interface,
-                        method,
-                        path,
-                        details))
-        };
-
-        match self.call_with_args_retry(path, interface, method, args) {
-            Ok(response) => Ok(response),
-            Err(error) => call_error(&error),
-        }
+        self.call_with_args_retry(path, interface, method, args)
+            .map_err(|error| {
+                         format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
+                                 interface,
+                                 method,
+                                 path,
+                                 error)
+                     })
     }
 
     fn call_with_args_retry(&self,
