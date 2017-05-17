@@ -31,6 +31,9 @@ pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkMana
 
 pub const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
 
+pub const UNKNOWN_CONNECTION: &'static str = "org.freedesktop.NetworkManager.UnknownConnection";
+pub const METHOD_RETRY_ERROR_NAMES: &'static [&'static str; 1] = &[UNKNOWN_CONNECTION];
+
 
 pub struct DBusNetworkManager {
     dbus: DBusApi,
@@ -38,10 +41,7 @@ pub struct DBusNetworkManager {
 
 impl DBusNetworkManager {
     pub fn new() -> Self {
-        DBusNetworkManager {
-            dbus: DBusApi::new(NM_SERVICE_MANAGER,
-                               vec!["org.freedesktop.NetworkManager.UnknownConnection"]),
-        }
+        DBusNetworkManager { dbus: DBusApi::new(NM_SERVICE_MANAGER, METHOD_RETRY_ERROR_NAMES) }
     }
 
     pub fn method_timeout(&self) -> u64 {

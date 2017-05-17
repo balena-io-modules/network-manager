@@ -13,11 +13,11 @@ pub struct DBusApi {
     connection: DBusConnection,
     method_timeout: u64,
     base: &'static str,
-    method_retry_error_names: Vec<&'static str>,
+    method_retry_error_names: &'static [&'static str],
 }
 
 impl DBusApi {
-    pub fn new(base: &'static str, method_retry_error_names: Vec<&'static str>) -> Self {
+    pub fn new(base: &'static str, method_retry_error_names: &'static [&'static str]) -> Self {
         let connection = DBusConnection::get_private(BusType::System).unwrap();
 
         DBusApi {
@@ -105,7 +105,7 @@ impl DBusApi {
                 let message = get_error_message(&err).to_string();
 
                 let name = err.name();
-                for error_name in &self.method_retry_error_names {
+                for error_name in self.method_retry_error_names {
                     if name == Some(error_name) {
                         return None;
                     }
