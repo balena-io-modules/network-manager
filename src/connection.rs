@@ -212,7 +212,7 @@ pub fn get_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
                        -> Result<Vec<Connection>, String> {
     let paths = try!(dbus_manager.borrow().list_connections());
 
-    let mut connections = Vec::new();
+    let mut connections = Vec::with_capacity(paths.len());
 
     for path in &paths {
         connections.push(try!(Connection::init(dbus_manager, path)))
@@ -228,7 +228,7 @@ pub fn get_active_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
                               -> Result<Vec<Connection>, String> {
     let active_paths = try!(dbus_manager.borrow().get_active_connections());
 
-    let mut connections = Vec::new();
+    let mut connections = Vec::with_capacity(active_paths.len());
 
     for active_path in active_paths {
         if let Some(path) = dbus_manager
