@@ -65,7 +65,7 @@ impl DBusApi {
         let mut retries = 0;
 
         loop {
-            if let Ok(result) = self.create_and_send_message(path, interface, method, args) {
+            if let Some(result) = self.create_and_send_message(path, interface, method, args) {
                 return result;
             }
 
@@ -84,7 +84,7 @@ impl DBusApi {
                                interface: &str,
                                method: &str,
                                args: &[&RefArg])
-                               -> Result<Result<Message, String>, String> {
+                               -> Option<Result<Message, String>> {
         match Message::new_method_call(self.base, path, interface, method) {
             Ok(mut message) => {
                 if args.len() > 0 {
@@ -93,25 +93,25 @@ impl DBusApi {
 
                 self.send_message_checked(message)
             }
-            Err(details) => Ok(Err(details)),
+            Err(details) => Some(Err(details)),
         }
     }
 
-    fn send_message_checked(&self, message: Message) -> Result<Result<Message, String>, String> {
+    fn send_message_checked(&self, message: Message) -> Option<Result<Message, String>> {
         match self.connection
                   .send_with_reply_and_block(message, self.method_timeout as i32 * 1000) {
-            Ok(response) => Ok(Ok(response)),
+            Ok(response) => Some(Ok(response)),
             Err(err) => {
                 let message = get_error_message(&err).to_string();
 
                 let name = err.name();
                 for error_name in &self.method_retry_error_names {
                     if name == Some(error_name) {
-                        return Err(message);
+                        return None;
                     }
                 }
 
-                Ok(Err(message))
+                Some(Err(message))
             }
         }
     }
