@@ -5,8 +5,8 @@ use dbus::stdintf::OrgFreedesktopDBusProperties;
 use dbus::Error;
 
 
-pub const DEFAULT_TIMEOUT: u64 = 10;
-pub const RETRIES_ALLOWED: usize = 10;
+const DEFAULT_TIMEOUT: u64 = 10;
+const RETRIES_ALLOWED: usize = 10;
 
 
 pub struct DBusApi {
