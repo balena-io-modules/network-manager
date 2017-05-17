@@ -160,9 +160,9 @@ impl DBusNetworkManager {
                  .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
-                                 vec![&try!(Path::new(path)) as &RefArg,
-                                      &try!(Path::new("/")) as &RefArg,
-                                      &try!(Path::new("/")) as &RefArg]));
+                                 &[&try!(Path::new(path)) as &RefArg,
+                                   &try!(Path::new("/")) as &RefArg,
+                                   &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }
@@ -172,7 +172,7 @@ impl DBusNetworkManager {
                  .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "DeactivateConnection",
-                                 vec![&try!(Path::new(path)) as &RefArg]));
+                                 &[&try!(Path::new(path)) as &RefArg]));
 
         Ok(())
     }
@@ -208,15 +208,14 @@ impl DBusNetworkManager {
             settings.insert("802-11-wireless-security".to_string(), security_settings);
         }
 
-        let response = try!(self.dbus
-                                .call_with_args(NM_SERVICE_PATH,
-                                                NM_SERVICE_INTERFACE,
-                                                "AddAndActivateConnection",
-                                                vec![&settings as &RefArg,
-                                                     &try!(Path::new(device_path.to_string())) as
-                                                     &RefArg,
-                                                     &try!(Path::new(ap_path.to_string())) as
-                                                     &RefArg]));
+        let response =
+            try!(self.dbus
+                     .call_with_args(NM_SERVICE_PATH,
+                                     NM_SERVICE_INTERFACE,
+                                     "AddAndActivateConnection",
+                                     &[&settings as &RefArg,
+                                       &try!(Path::new(device_path.to_string())) as &RefArg,
+                                       &try!(Path::new(ap_path.to_string())) as &RefArg]));
 
 
         let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
@@ -267,10 +266,10 @@ impl DBusNetworkManager {
                                 .call_with_args(NM_SERVICE_PATH,
                                                 NM_SERVICE_INTERFACE,
                                                 "AddAndActivateConnection",
-                                                vec![&settings as &RefArg,
-                                                     &try!(Path::new(device_path.clone())) as
-                                                     &RefArg,
-                                                     &try!(Path::new("/")) as &RefArg]));
+                                                &[&settings as &RefArg,
+                                                  &try!(Path::new(device_path.clone())) as
+                                                  &RefArg,
+                                                  &try!(Path::new("/")) as &RefArg]));
 
 
         let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
@@ -288,7 +287,7 @@ impl DBusNetworkManager {
                                 .call_with_args(NM_SERVICE_PATH,
                                                 NM_SERVICE_INTERFACE,
                                                 "GetDeviceByIpIface",
-                                                vec![&interface.to_string() as &RefArg]));
+                                                &[&interface.to_string() as &RefArg]));
 
         let path: Path = try!(self.dbus.extract(&response));
 
@@ -312,9 +311,9 @@ impl DBusNetworkManager {
                  .call_with_args(NM_SERVICE_PATH,
                                  NM_SERVICE_INTERFACE,
                                  "ActivateConnection",
-                                 vec![&try!(Path::new("/")) as &RefArg,
-                                      &try!(Path::new(path)) as &RefArg,
-                                      &try!(Path::new("/")) as &RefArg]));
+                                 &[&try!(Path::new("/")) as &RefArg,
+                                   &try!(Path::new(path)) as &RefArg,
+                                   &try!(Path::new("/")) as &RefArg]));
 
         Ok(())
     }

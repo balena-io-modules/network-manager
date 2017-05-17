@@ -37,14 +37,14 @@ impl DBusApi {
     }
 
     pub fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
-        self.call_with_args(path, interface, method, vec![])
+        self.call_with_args(path, interface, method, &[])
     }
 
     pub fn call_with_args(&self,
                           path: &str,
                           interface: &str,
                           method: &str,
-                          args: Vec<&RefArg>)
+                          args: &[&RefArg])
                           -> Result<Message, String> {
         let call_error = |details: &str| {
             Err(format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
@@ -64,12 +64,12 @@ impl DBusApi {
                             path: &str,
                             interface: &str,
                             method: &str,
-                            args: Vec<&RefArg>)
+                            args: &[&RefArg])
                             -> Result<Message, String> {
         let mut retries = 0;
 
         loop {
-            if let Ok(result) = self.create_and_send_message(path, interface, method, &args) {
+            if let Ok(result) = self.create_and_send_message(path, interface, method, args) {
                 return result;
             }
 
@@ -87,7 +87,7 @@ impl DBusApi {
                                path: &str,
                                interface: &str,
                                method: &str,
-                               args: &Vec<&RefArg>)
+                               args: &[&RefArg])
                                -> Result<Result<Message, String>, String> {
         match Message::new_method_call(self.base, path, interface, method) {
             Ok(mut message) => {
