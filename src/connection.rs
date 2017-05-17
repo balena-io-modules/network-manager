@@ -339,7 +339,7 @@ mod tests {
 
         let connections = manager.get_connections().unwrap();
 
-        // set enviorment variable $TEST_WIFI_SSID with the wifi's SSID that you want to test
+        // set environment variable $TEST_WIFI_SSID with the wifi's SSID that you want to test
         // e.g.  export TEST_WIFI_SSID="Resin.io Wifi"
         let wifi_env_var = "TEST_WIFI_SSID";
         let connection = match ::std::env::var(wifi_env_var) {
@@ -352,7 +352,7 @@ mod tests {
                     .clone()
             }
             Err(e) => {
-                panic!("couldn't retrieve enviorment variable {}: {}",
+                panic!("couldn't retrieve environment variable {}: {}",
                        wifi_env_var,
                        e)
             }
