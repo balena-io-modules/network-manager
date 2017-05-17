@@ -15,24 +15,24 @@ use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 
 type SettingsMap = HashMap<String, Variant<Box<RefArg>>>;
 
-pub const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
+const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
 
-pub const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
-pub const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
+const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
+const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
 
-pub const NM_SERVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
-pub const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
-pub const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
+const NM_SERVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
+const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
+const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
                                                    Connection";
-pub const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
-pub const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
-pub const NM_WIRELESS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device.Wireless";
-pub const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkManager.AccessPoint";
+const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
+const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
+const NM_WIRELESS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device.Wireless";
+const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkManager.AccessPoint";
 
-pub const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
+const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
 
-pub const UNKNOWN_CONNECTION: &'static str = "org.freedesktop.NetworkManager.UnknownConnection";
-pub const METHOD_RETRY_ERROR_NAMES: &'static [&'static str; 1] = &[UNKNOWN_CONNECTION];
+const UNKNOWN_CONNECTION: &'static str = "org.freedesktop.NetworkManager.UnknownConnection";
+const METHOD_RETRY_ERROR_NAMES: &'static [&'static str; 1] = &[UNKNOWN_CONNECTION];
 
 
 pub struct DBusNetworkManager {
