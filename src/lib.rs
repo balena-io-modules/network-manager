@@ -11,6 +11,8 @@ extern crate bitflags;
 
 extern crate dbus;
 
+extern crate ascii;
+
 mod dbus_nm;
 mod dbus_api;
 mod manager;

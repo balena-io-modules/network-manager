@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use ascii::AsAsciiStr;
+
 use dbus::Path;
 use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
 
@@ -174,13 +176,15 @@ impl DBusNetworkManager {
         Ok(())
     }
 
-    pub fn add_and_activate_connection(&self,
-                                       device_path: &str,
-                                       ap_path: &str,
-                                       ssid: &str,
-                                       security: &Security,
-                                       password: &str)
-                                       -> Result<(String, String), String> {
+    pub fn add_and_activate_connection<T>(&self,
+                                          device_path: &str,
+                                          ap_path: &str,
+                                          ssid: &str,
+                                          security: &Security,
+                                          password: &T)
+                                          -> Result<(String, String), String>
+        where T: AsAsciiStr + ?Sized
+    {
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
 
         let mut wireless: SettingsMap = HashMap::new();
@@ -196,10 +200,14 @@ impl DBusNetworkManager {
                 add_val(&mut security_settings,
                         "wep-key-type",
                         NM_WEP_KEY_TYPE_PASSPHRASE);
-                add_str(&mut security_settings, "wep-key0", password);
+                add_str(&mut security_settings,
+                        "wep-key0",
+                        try!(verify_password(password)));
             } else {
                 add_str(&mut security_settings, "key-mgmt", "wpa-psk");
-                add_str(&mut security_settings, "psk", password);
+                add_str(&mut security_settings,
+                        "psk",
+                        try!(verify_password(password)));
             };
 
             settings.insert("802-11-wireless-security".to_string(), security_settings);
@@ -220,12 +228,14 @@ impl DBusNetworkManager {
         Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
     }
 
-    pub fn create_hotspot(&self,
-                          device_path: &str,
-                          interface: &str,
-                          ssid: &str,
-                          password: Option<&str>)
-                          -> Result<(String, String), String> {
+    pub fn create_hotspot<T>(&self,
+                             device_path: &str,
+                             interface: &str,
+                             ssid: &str,
+                             password: Option<&T>)
+                             -> Result<(String, String), String>
+        where T: AsAsciiStr + ?Sized
+    {
         let mut wireless: SettingsMap = HashMap::new();
         add_val(&mut wireless,
                 "ssid",
@@ -250,7 +260,7 @@ impl DBusNetworkManager {
 
             let mut security: SettingsMap = HashMap::new();
             add_str(&mut security, "key-mgmt", "wpa-psk");
-            add_str(&mut security, "psk", password);
+            add_str(&mut security, "psk", try!(verify_password(password)));
 
             settings.insert("802-11-wireless-security".to_string(), security);
         }
@@ -421,4 +431,17 @@ pub fn add_str<K, V>(map: &mut SettingsMap, key: K, value: V)
           V: Into<String>
 {
     map.insert(key.into(), Variant(Box::new(value.into())));
+}
+
+fn verify_password<'a, T: AsAsciiStr + ?Sized>(password: &'a T) -> Result<&'a str, String> {
+    match password.as_ascii_str() {
+        Err(_) => Err("Not an Ascii password".to_string()),
+        Ok(p) => {
+            if p.len() > 60 {
+                Err(format!("Password too long: {} chars", p.len()))
+            } else {
+                Ok(p.as_str())
+            }
+        }
+    }
 }

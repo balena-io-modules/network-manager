@@ -2,6 +2,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::fmt;
 
+use ascii::AsAsciiStr;
+
 use dbus_nm::DBusNetworkManager;
 
 use wifi::Security;
@@ -241,13 +243,15 @@ pub fn get_active_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
 }
 
 
-pub fn connect_to_access_point(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
-                               device_path: &str,
-                               access_point_path: &str,
-                               ssid: &str,
-                               security: &Security,
-                               password: &str)
-                               -> Result<(Connection, ConnectionState), String> {
+pub fn connect_to_access_point<T>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+                                  device_path: &str,
+                                  access_point_path: &str,
+                                  ssid: &str,
+                                  security: &Security,
+                                  password: &T)
+                                  -> Result<(Connection, ConnectionState), String>
+    where T: AsAsciiStr + ?Sized
+{
     let (path, _) = try!(dbus_manager
                              .borrow()
                              .add_and_activate_connection(device_path,
@@ -265,12 +269,14 @@ pub fn connect_to_access_point(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
     Ok((connection, state))
 }
 
-pub fn create_hotspot(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
-                      device_path: &str,
-                      interface: &str,
-                      ssid: &str,
-                      password: Option<&str>)
-                      -> Result<(Connection, ConnectionState), String> {
+pub fn create_hotspot<T>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+                         device_path: &str,
+                         interface: &str,
+                         ssid: &str,
+                         password: Option<&T>)
+                         -> Result<(Connection, ConnectionState), String>
+    where T: AsAsciiStr + ?Sized
+{
     let (path, _) = try!(dbus_manager
                              .borrow()
                              .create_hotspot(device_path, interface, ssid, password));

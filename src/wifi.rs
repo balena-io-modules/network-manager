@@ -1,6 +1,8 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use ascii::AsAsciiStr;
+
 use dbus_nm::DBusNetworkManager;
 
 use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot};
@@ -45,10 +47,12 @@ impl<'a> WiFiDevice<'a> {
         Ok(access_points)
     }
 
-    pub fn connect(&self,
-                   access_point: &AccessPoint,
-                   password: &str)
-                   -> Result<(Connection, ConnectionState), String> {
+    pub fn connect<T>(&self,
+                      access_point: &AccessPoint,
+                      password: &T)
+                      -> Result<(Connection, ConnectionState), String>
+        where T: AsAsciiStr + ?Sized
+    {
         connect_to_access_point(&self.dbus_manager,
                                 self.device.path(),
                                 &access_point.path,
@@ -57,10 +61,12 @@ impl<'a> WiFiDevice<'a> {
                                 password)
     }
 
-    pub fn create_hotspot(&self,
-                          ssid: &str,
-                          password: Option<&str>)
-                          -> Result<(Connection, ConnectionState), String> {
+    pub fn create_hotspot<T>(&self,
+                             ssid: &str,
+                             password: Option<&T>)
+                             -> Result<(Connection, ConnectionState), String>
+        where T: AsAsciiStr + ?Sized
+    {
         create_hotspot(&self.dbus_manager,
                        self.device.path(),
                        self.device.interface(),

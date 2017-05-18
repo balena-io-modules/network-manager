@@ -31,6 +31,6 @@ fn main() {
         .unwrap();
 
     wifi_device
-        .connect(&access_points[ap_index], &args[2])
+        .connect(&access_points[ap_index], &args[2] as &str)
         .unwrap();
 }
