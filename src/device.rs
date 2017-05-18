@@ -16,9 +16,9 @@ pub struct Device {
 
 impl Device {
     fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self, String> {
-        let interface = try!(dbus_manager.get_device_interface(path));
+        let interface = dbus_manager.get_device_interface(path)?;
 
-        let device_type = try!(dbus_manager.get_device_type(path));
+        let device_type = dbus_manager.get_device_type(path)?;
 
         Ok(Device {
                dbus_manager: dbus_manager.clone(),
@@ -60,12 +60,12 @@ impl Device {
     /// devices[i].connect().unwrap();
     /// ```
     pub fn connect(&self) -> Result<DeviceState, String> {
-        let state = try!(self.get_state());
+        let state = self.get_state()?;
 
         match state {
             DeviceState::Activated => Ok(DeviceState::Activated),
             _ => {
-                try!(self.dbus_manager.connect_device(&self.path));
+                self.dbus_manager.connect_device(&self.path)?;
 
                 wait(self,
                      DeviceState::Activated,
@@ -86,12 +86,12 @@ impl Device {
     /// devices[i].disconnect().unwrap();
     /// ```
     pub fn disconnect(&self) -> Result<DeviceState, String> {
-        let state = try!(self.get_state());
+        let state = self.get_state()?;
 
         match state {
             DeviceState::Disconnected => Ok(DeviceState::Disconnected),
             _ => {
-                try!(self.dbus_manager.disconnect_device(&self.path));
+                self.dbus_manager.disconnect_device(&self.path)?;
 
                 wait(self,
                      DeviceState::Disconnected,
@@ -174,12 +174,12 @@ impl From<i64> for DeviceState {
 
 
 pub fn get_devices(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Device>, String> {
-    let device_paths = try!(dbus_manager.get_devices());
+    let device_paths = dbus_manager.get_devices()?;
 
     let mut result = Vec::with_capacity(device_paths.len());
 
     for path in device_paths {
-        let device = try!(Device::init(dbus_manager, &path));
+        let device = Device::init(dbus_manager, &path)?;
 
         result.push(device);
     }
@@ -190,7 +190,7 @@ pub fn get_devices(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Device>,
 pub fn get_device_by_interface(dbus_manager: &Rc<DBusNetworkManager>,
                                interface: &str)
                                -> Result<Device, String> {
-    let path = try!(dbus_manager.get_device_by_interface(interface));
+    let path = dbus_manager.get_device_by_interface(interface)?;
 
     Device::init(dbus_manager, &path)
 }
@@ -198,12 +198,12 @@ pub fn get_device_by_interface(dbus_manager: &Rc<DBusNetworkManager>,
 pub fn get_active_connection_devices(dbus_manager: &Rc<DBusNetworkManager>,
                                      active_path: &str)
                                      -> Result<Vec<Device>, String> {
-    let device_paths = try!(dbus_manager.get_active_connection_devices(active_path));
+    let device_paths = dbus_manager.get_active_connection_devices(active_path)?;
 
     let mut result = Vec::with_capacity(device_paths.len());
 
     for path in device_paths {
-        let device = try!(Device::init(dbus_manager, &path));
+        let device = Device::init(dbus_manager, &path)?;
 
         result.push(device);
     }
@@ -221,7 +221,7 @@ fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<Devi
     loop {
         ::std::thread::sleep(::std::time::Duration::from_secs(1));
 
-        let state = try!(device.get_state());
+        let state = device.get_state()?;
 
         total_time += 1;
 

@@ -51,20 +51,19 @@ impl DBusNetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
-        let response = try!(self.dbus
-                                .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state"));
+        let response = self.dbus
+            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
-        let state: i64 = try!(self.dbus.extract(&response));
+        let state: i64 = self.dbus.extract(&response)?;
 
         Ok(NetworkManagerState::from(state))
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity, String> {
-        let response =
-            try!(self.dbus
-                     .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity"));
+        let response = self.dbus
+            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
 
-        let connectivity: i64 = try!(self.dbus.extract(&response));
+        let connectivity: i64 = self.dbus.extract(&response)?;
 
         Ok(Connectivity::from(connectivity))
     }
@@ -80,11 +79,10 @@ impl DBusNetworkManager {
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>, String> {
-        let response =
-            try!(self.dbus
-                     .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections"));
+        let response = self.dbus
+            .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
 
-        let array: Array<Path, _> = try!(self.dbus.extract(&response));
+        let array: Array<Path, _> = self.dbus.extract(&response)?;
 
         Ok(array.map(|e| e.to_string()).collect())
     }
@@ -110,9 +108,10 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings, String> {
-        let response = try!(self.dbus.call(path, NM_CONNECTION_INTERFACE, "GetSettings"));
+        let response = self.dbus
+            .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
-        let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = try!(self.dbus.extract(&response));
+        let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = self.dbus.extract(&response)?;
 
         let mut id = String::new();
         let mut uuid = String::new();
@@ -122,13 +121,13 @@ impl DBusNetworkManager {
             for (k2, v2) in v1 {
                 match k2 {
                     "id" => {
-                        id = try!(extract::<String>(&v2));
+                        id = extract::<String>(&v2)?;
                     }
                     "uuid" => {
-                        uuid = try!(extract::<String>(&v2));
+                        uuid = extract::<String>(&v2)?;
                     }
                     "ssid" => {
-                        ssid = try!(utf8_variant_to_string(&v2));
+                        ssid = utf8_variant_to_string(&v2)?;
                     }
                     _ => {}
                 }
@@ -147,29 +146,29 @@ impl DBusNetworkManager {
     }
 
     pub fn delete_connection(&self, path: &str) -> Result<(), String> {
-        try!(self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete"));
+        self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete")?;
 
         Ok(())
     }
 
     pub fn activate_connection(&self, path: &str) -> Result<(), String> {
-        try!(self.dbus
-                 .call_with_args(NM_SERVICE_PATH,
-                                 NM_SERVICE_INTERFACE,
-                                 "ActivateConnection",
-                                 &[&try!(Path::new(path)) as &RefArg,
-                                   &try!(Path::new("/")) as &RefArg,
-                                   &try!(Path::new("/")) as &RefArg]));
+        self.dbus
+            .call_with_args(NM_SERVICE_PATH,
+                            NM_SERVICE_INTERFACE,
+                            "ActivateConnection",
+                            &[&Path::new(path)? as &RefArg,
+                              &Path::new("/")? as &RefArg,
+                              &Path::new("/")? as &RefArg])?;
 
         Ok(())
     }
 
     pub fn deactivate_connection(&self, path: &str) -> Result<(), String> {
-        try!(self.dbus
-                 .call_with_args(NM_SERVICE_PATH,
-                                 NM_SERVICE_INTERFACE,
-                                 "DeactivateConnection",
-                                 &[&try!(Path::new(path)) as &RefArg]));
+        self.dbus
+            .call_with_args(NM_SERVICE_PATH,
+                            NM_SERVICE_INTERFACE,
+                            "DeactivateConnection",
+                            &[&Path::new(path)? as &RefArg])?;
 
         Ok(())
     }
@@ -200,30 +199,27 @@ impl DBusNetworkManager {
                         NM_WEP_KEY_TYPE_PASSPHRASE);
                 add_str(&mut security_settings,
                         "wep-key0",
-                        try!(verify_password(password)));
+                        verify_password(password)?);
             } else {
                 add_str(&mut security_settings, "key-mgmt", "wpa-psk");
-                add_str(&mut security_settings,
-                        "psk",
-                        try!(verify_password(password)));
+                add_str(&mut security_settings, "psk", verify_password(password)?);
             };
 
             settings.insert("802-11-wireless-security".to_string(), security_settings);
         }
 
-        let response =
-            try!(self.dbus
-                     .call_with_args(NM_SERVICE_PATH,
-                                     NM_SERVICE_INTERFACE,
-                                     "AddAndActivateConnection",
-                                     &[&settings as &RefArg,
-                                       &try!(Path::new(device_path.to_string())) as &RefArg,
-                                       &try!(Path::new(ap_path.to_string())) as &RefArg]));
+        let response = self.dbus
+            .call_with_args(NM_SERVICE_PATH,
+                            NM_SERVICE_INTERFACE,
+                            "AddAndActivateConnection",
+                            &[&settings as &RefArg,
+                              &Path::new(device_path.to_string())? as &RefArg,
+                              &Path::new(ap_path.to_string())? as &RefArg])?;
 
 
-        let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
+        let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
-        Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
+        Ok((path_to_string(&conn_path)?, path_to_string(&active_connection)?))
     }
 
     pub fn create_hotspot<T>(&self,
@@ -258,7 +254,7 @@ impl DBusNetworkManager {
 
             let mut security: SettingsMap = HashMap::new();
             add_str(&mut security, "key-mgmt", "wpa-psk");
-            add_str(&mut security, "psk", try!(verify_password(password)));
+            add_str(&mut security, "psk", verify_password(password)?);
 
             settings.insert("802-11-wireless-security".to_string(), security);
         }
@@ -267,19 +263,18 @@ impl DBusNetworkManager {
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
-        let response = try!(self.dbus
-                                .call_with_args(NM_SERVICE_PATH,
-                                                NM_SERVICE_INTERFACE,
-                                                "AddAndActivateConnection",
-                                                &[&settings as &RefArg,
-                                                  &try!(Path::new(device_path.clone())) as
-                                                  &RefArg,
-                                                  &try!(Path::new("/")) as &RefArg]));
+        let response = self.dbus
+            .call_with_args(NM_SERVICE_PATH,
+                            NM_SERVICE_INTERFACE,
+                            "AddAndActivateConnection",
+                            &[&settings as &RefArg,
+                              &Path::new(device_path.clone())? as &RefArg,
+                              &Path::new("/")? as &RefArg])?;
 
 
-        let (conn_path, active_connection): (Path, Path) = try!(self.dbus.extract_two(&response));
+        let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
-        Ok((try!(path_to_string(&conn_path)), try!(path_to_string(&active_connection))))
+        Ok((path_to_string(&conn_path)?, path_to_string(&active_connection)?))
     }
 
     pub fn get_devices(&self) -> Result<Vec<String>, String> {
@@ -288,13 +283,13 @@ impl DBusNetworkManager {
     }
 
     pub fn get_device_by_interface(&self, interface: &str) -> Result<String, String> {
-        let response = try!(self.dbus
-                                .call_with_args(NM_SERVICE_PATH,
-                                                NM_SERVICE_INTERFACE,
-                                                "GetDeviceByIpIface",
-                                                &[&interface.to_string() as &RefArg]));
+        let response = self.dbus
+            .call_with_args(NM_SERVICE_PATH,
+                            NM_SERVICE_INTERFACE,
+                            "GetDeviceByIpIface",
+                            &[&interface.to_string() as &RefArg])?;
 
-        let path: Path = try!(self.dbus.extract(&response));
+        let path: Path = self.dbus.extract(&response)?;
 
         path_to_string(&path)
     }
@@ -312,19 +307,19 @@ impl DBusNetworkManager {
     }
 
     pub fn connect_device(&self, path: &str) -> Result<(), String> {
-        try!(self.dbus
-                 .call_with_args(NM_SERVICE_PATH,
-                                 NM_SERVICE_INTERFACE,
-                                 "ActivateConnection",
-                                 &[&try!(Path::new("/")) as &RefArg,
-                                   &try!(Path::new(path)) as &RefArg,
-                                   &try!(Path::new("/")) as &RefArg]));
+        self.dbus
+            .call_with_args(NM_SERVICE_PATH,
+                            NM_SERVICE_INTERFACE,
+                            "ActivateConnection",
+                            &[&Path::new("/")? as &RefArg,
+                              &Path::new(path)? as &RefArg,
+                              &Path::new("/")? as &RefArg])?;
 
         Ok(())
     }
 
     pub fn disconnect_device(&self, path: &str) -> Result<(), String> {
-        try!(self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect"));
+        self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect")?;
 
         Ok(())
     }

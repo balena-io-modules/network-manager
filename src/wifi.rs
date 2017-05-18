@@ -30,11 +30,11 @@ impl<'a> WiFiDevice<'a> {
     pub fn get_access_points(&self) -> Result<Vec<AccessPoint>, String> {
         let mut access_points = Vec::new();
 
-        let paths = try!(self.dbus_manager
-                             .get_device_access_points(self.device.path()));
+        let paths = self.dbus_manager
+            .get_device_access_points(self.device.path())?;
 
         for path in paths {
-            if let Some(access_point) = try!(get_access_point(&self.dbus_manager, &path)) {
+            if let Some(access_point) = get_access_point(&self.dbus_manager, &path)? {
                 access_points.push(access_point);
             }
         }
@@ -152,9 +152,9 @@ fn get_access_point(manager: &DBusNetworkManager,
                     path: &String)
                     -> Result<Option<AccessPoint>, String> {
     if let Some(ssid) = manager.get_access_point_ssid(path) {
-        let strength = try!(manager.get_access_point_strength(path));
+        let strength = manager.get_access_point_strength(path)?;
 
-        let security = try!(get_access_point_security(manager, path));
+        let security = get_access_point_security(manager, path)?;
 
         let access_point = AccessPoint {
             path: path.clone(),
@@ -173,11 +173,11 @@ fn get_access_point(manager: &DBusNetworkManager,
 fn get_access_point_security(manager: &DBusNetworkManager,
                              path: &String)
                              -> Result<Security, String> {
-    let flags = try!(manager.get_access_point_flags(path));
+    let flags = manager.get_access_point_flags(path)?;
 
-    let wpa_flags = try!(manager.get_access_point_wpa_flags(path));
+    let wpa_flags = manager.get_access_point_wpa_flags(path)?;
 
-    let rsn_flags = try!(manager.get_access_point_rsn_flags(path));
+    let rsn_flags = manager.get_access_point_rsn_flags(path)?;
 
     let mut security = NONE;
 
