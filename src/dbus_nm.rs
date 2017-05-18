@@ -433,7 +433,7 @@ pub fn add_str<K, V>(map: &mut SettingsMap, key: K, value: V)
 
 fn verify_password<'a, T: AsAsciiStr + ?Sized>(password: &'a T) -> Result<&'a str, String> {
     match password.as_ascii_str() {
-        Err(_) => Err("Not an Ascii password".to_string()),
+        Err(_) => Err("Not an ASCII password".to_string()),
         Ok(p) => {
             if p.len() > 60 {
                 Err(format!("Password too long: {} chars", p.len()))
