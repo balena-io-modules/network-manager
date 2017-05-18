@@ -253,7 +253,7 @@ impl DBusNetworkManager {
 
             let mut security: SettingsMap = HashMap::new();
             add_str(&mut security, "key-mgmt", "wpa-psk");
-            add_str(&mut security, "psk", &password);
+            add_str(&mut security, "psk", password);
 
             settings.insert("802-11-wireless-security".to_string(), security);
         }
@@ -412,12 +412,16 @@ fn variant_to_ap_security_flags(value: Variant<Box<RefArg>>) -> Option<NM80211Ap
 }
 
 
-pub fn add_val<T>(map: &mut SettingsMap, key: &str, value: T)
-    where T: RefArg + 'static
+pub fn add_val<K, V>(map: &mut SettingsMap, key: K, value: V)
+    where K: Into<String>,
+          V: RefArg + 'static
 {
-    map.insert(key.to_string(), Variant(Box::new(value)));
+    map.insert(key.into(), Variant(Box::new(value)));
 }
 
-pub fn add_str(map: &mut SettingsMap, key: &str, value: &str) {
-    map.insert(key.to_string(), Variant(Box::new(value.to_string())));
+pub fn add_str<K, V>(map: &mut SettingsMap, key: K, value: V)
+    where K: Into<String>,
+          V: Into<String>
+{
+    map.insert(key.into(), Variant(Box::new(value.into())));
 }
