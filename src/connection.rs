@@ -2,8 +2,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::fmt;
 
-use enum_primitive::FromPrimitive;
-
 use dbus_nm::DBusNetworkManager;
 
 use wifi::Security;
@@ -184,7 +182,6 @@ pub struct ConnectionSettings {
 }
 
 
-enum_from_primitive!{
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ConnectionState {
     Unknown = 0,
@@ -193,17 +190,17 @@ pub enum ConnectionState {
     Deactivating = 3,
     Deactivated = 4,
 }
-}
 
-impl From<u32> for ConnectionState {
-    fn from(val: u32) -> ConnectionState {
-        ConnectionState::from_u32(val).expect("Invalid ConnectionState enum value")
-    }
-}
-
-impl From<ConnectionState> for u32 {
-    fn from(val: ConnectionState) -> u32 {
-        val as u32
+impl From<i64> for ConnectionState {
+    fn from(state: i64) -> Self {
+        match state {
+            0 => ConnectionState::Unknown,
+            1 => ConnectionState::Activating,
+            2 => ConnectionState::Activated,
+            3 => ConnectionState::Deactivating,
+            4 => ConnectionState::Deactivated,
+            _ => ConnectionState::Unknown,
+        }
     }
 }
 

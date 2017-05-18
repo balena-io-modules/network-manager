@@ -7,9 +7,6 @@
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
 #[macro_use]
-extern crate enum_primitive;
-
-#[macro_use]
 extern crate bitflags;
 
 extern crate dbus;

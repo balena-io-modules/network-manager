@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use enum_primitive::FromPrimitive;
-
 use dbus::Path;
 use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
 
@@ -56,9 +54,9 @@ impl DBusNetworkManager {
         let response = try!(self.dbus
                                 .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state"));
 
-        let state_u32: u32 = try!(self.dbus.extract(&response));
+        let state: i64 = try!(self.dbus.extract(&response));
 
-        Ok(NetworkManagerState::from(state_u32))
+        Ok(NetworkManagerState::from(state))
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity, String> {
@@ -66,9 +64,9 @@ impl DBusNetworkManager {
             try!(self.dbus
                      .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity"));
 
-        let connectivity_u32: u32 = try!(self.dbus.extract(&response));
+        let connectivity: i64 = try!(self.dbus.extract(&response));
 
-        Ok(Connectivity::from(connectivity_u32))
+        Ok(Connectivity::from(connectivity))
     }
 
     pub fn is_wireless_enabled(&self) -> Result<bool, String> {
@@ -103,13 +101,12 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_state(&self, path: &str) -> Result<ConnectionState, String> {
-        let state_i64 = match self.dbus.property(path, NM_ACTIVE_INTERFACE, "State") {
-            Ok(state_i64) => state_i64,
+        let state: i64 = match self.dbus.property(path, NM_ACTIVE_INTERFACE, "State") {
+            Ok(state) => state,
             Err(_) => return Ok(ConnectionState::Unknown),
         };
 
-        ConnectionState::from_i64(state_i64)
-            .ok_or(format!("Undefined connection state for {}", path))
+        Ok(ConnectionState::from(state))
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings, String> {
