@@ -177,7 +177,7 @@ impl From<i64> for DeviceState {
 pub fn get_devices(dbus_manager: &Rc<RefCell<DBusNetworkManager>>) -> Result<Vec<Device>, String> {
     let device_paths = try!(dbus_manager.borrow().get_devices());
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(device_paths.len());
 
     for path in device_paths {
         let device = try!(Device::init(dbus_manager, &path));
@@ -203,7 +203,7 @@ pub fn get_active_connection_devices(dbus_manager: &Rc<RefCell<DBusNetworkManage
                                 .borrow()
                                 .get_active_connection_devices(active_path));
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(device_paths.len());
 
     for path in device_paths {
         let device = try!(Device::init(dbus_manager, &path));
