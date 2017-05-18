@@ -387,12 +387,12 @@ impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
 
 
 fn variant_to_device_type(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
-    value.0.as_i64().and_then(|v| Some(DeviceType::from(v)))
+    value.0.as_i64().map(DeviceType::from)
 }
 
 
 fn variant_to_device_state(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
-    value.0.as_i64().and_then(|v| Some(DeviceState::from(v)))
+    value.0.as_i64().map(DeviceState::from)
 }
 
 
