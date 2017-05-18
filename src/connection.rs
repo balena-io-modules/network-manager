@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::cell::RefCell;
 use std::fmt;
 
 use ascii::AsAsciiStr;
@@ -12,14 +11,14 @@ use device::{Device, get_active_connection_devices};
 
 #[derive(Clone)]
 pub struct Connection {
-    dbus_manager: Rc<RefCell<DBusNetworkManager>>,
+    dbus_manager: Rc<DBusNetworkManager>,
     path: String,
     settings: ConnectionSettings,
 }
 
 impl Connection {
-    fn init(dbus_manager: &Rc<RefCell<DBusNetworkManager>>, path: &str) -> Result<Self, String> {
-        let settings = try!(dbus_manager.borrow().get_connection_settings(path));
+    fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self, String> {
+        let settings = try!(dbus_manager.get_connection_settings(path));
 
         Ok(Connection {
                dbus_manager: dbus_manager.clone(),
@@ -33,13 +32,10 @@ impl Connection {
     }
 
     pub fn get_state(&self) -> Result<ConnectionState, String> {
-        let active_path_option = try!(get_connection_active_path(&self.dbus_manager.borrow(),
-                                                                 &self.path));
+        let active_path_option = try!(get_connection_active_path(&self.dbus_manager, &self.path));
 
         if let Some(active_path) = active_path_option {
-            let state = try!(self.dbus_manager
-                                 .borrow()
-                                 .get_connection_state(&active_path));
+            let state = try!(self.dbus_manager.get_connection_state(&active_path));
 
             Ok(state)
         } else {
@@ -48,7 +44,7 @@ impl Connection {
     }
 
     pub fn delete(&self) -> Result<(), String> {
-        self.dbus_manager.borrow().delete_connection(&self.path)
+        self.dbus_manager.delete_connection(&self.path)
     }
 
     /// Activate a Network Manager connection.
@@ -69,15 +65,15 @@ impl Connection {
             ConnectionState::Activating => {
                 wait(self,
                      ConnectionState::Activated,
-                     self.dbus_manager.borrow().method_timeout())
+                     self.dbus_manager.method_timeout())
             }
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
-                try!(self.dbus_manager.borrow().activate_connection(&self.path));
+                try!(self.dbus_manager.activate_connection(&self.path));
 
                 wait(self,
                      ConnectionState::Activated,
-                     self.dbus_manager.borrow().method_timeout())
+                     self.dbus_manager.method_timeout())
             }
         }
     }
@@ -100,21 +96,19 @@ impl Connection {
             ConnectionState::Deactivating => {
                 wait(self,
                      ConnectionState::Deactivated,
-                     self.dbus_manager.borrow().method_timeout())
+                     self.dbus_manager.method_timeout())
             }
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
-                let active_path_option =
-                    try!(get_connection_active_path(&self.dbus_manager.borrow(), &self.path));
+                let active_path_option = try!(get_connection_active_path(&self.dbus_manager,
+                                                                         &self.path));
 
                 if let Some(active_path) = active_path_option {
-                    try!(self.dbus_manager
-                             .borrow()
-                             .deactivate_connection(&active_path));
+                    try!(self.dbus_manager.deactivate_connection(&active_path));
 
                     wait(self,
                          ConnectionState::Deactivated,
-                         self.dbus_manager.borrow().method_timeout())
+                         self.dbus_manager.method_timeout())
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
@@ -123,8 +117,7 @@ impl Connection {
     }
 
     pub fn get_devices(&self) -> Result<Vec<Device>, String> {
-        let active_path_option = try!(get_connection_active_path(&self.dbus_manager.borrow(),
-                                                                 &self.path));
+        let active_path_option = try!(get_connection_active_path(&self.dbus_manager, &self.path));
 
         if let Some(active_path) = active_path_option {
             get_active_connection_devices(&self.dbus_manager, &active_path)
@@ -207,9 +200,8 @@ impl From<i64> for ConnectionState {
 }
 
 
-pub fn get_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
-                       -> Result<Vec<Connection>, String> {
-    let paths = try!(dbus_manager.borrow().list_connections());
+pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Connection>, String> {
+    let paths = try!(dbus_manager.list_connections());
 
     let mut connections = Vec::with_capacity(paths.len());
 
@@ -223,16 +215,14 @@ pub fn get_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
 }
 
 
-pub fn get_active_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
+pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>)
                               -> Result<Vec<Connection>, String> {
-    let active_paths = try!(dbus_manager.borrow().get_active_connections());
+    let active_paths = try!(dbus_manager.get_active_connections());
 
     let mut connections = Vec::with_capacity(active_paths.len());
 
     for active_path in active_paths {
-        if let Some(path) = dbus_manager
-               .borrow()
-               .get_active_connection_path(&active_path) {
+        if let Some(path) = dbus_manager.get_active_connection_path(&active_path) {
             connections.push(try!(Connection::init(dbus_manager, &path)))
         }
     }
@@ -243,7 +233,7 @@ pub fn get_active_connections(dbus_manager: &Rc<RefCell<DBusNetworkManager>>)
 }
 
 
-pub fn connect_to_access_point<T>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+pub fn connect_to_access_point<T>(dbus_manager: &Rc<DBusNetworkManager>,
                                   device_path: &str,
                                   access_point_path: &str,
                                   ssid: &str,
@@ -252,24 +242,22 @@ pub fn connect_to_access_point<T>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>
                                   -> Result<(Connection, ConnectionState), String>
     where T: AsAsciiStr + ?Sized
 {
-    let (path, _) = try!(dbus_manager
-                             .borrow()
-                             .add_and_activate_connection(device_path,
-                                                          access_point_path,
-                                                          ssid,
-                                                          security,
-                                                          password));
+    let (path, _) = try!(dbus_manager.add_and_activate_connection(device_path,
+                                                                  access_point_path,
+                                                                  ssid,
+                                                                  security,
+                                                                  password));
 
     let connection = try!(Connection::init(dbus_manager, &path));
 
     let state = try!(wait(&connection,
                           ConnectionState::Activated,
-                          dbus_manager.borrow().method_timeout()));
+                          dbus_manager.method_timeout()));
 
     Ok((connection, state))
 }
 
-pub fn create_hotspot<T>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+pub fn create_hotspot<T>(dbus_manager: &Rc<DBusNetworkManager>,
                          device_path: &str,
                          interface: &str,
                          ssid: &str,
@@ -277,15 +265,13 @@ pub fn create_hotspot<T>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
                          -> Result<(Connection, ConnectionState), String>
     where T: AsAsciiStr + ?Sized
 {
-    let (path, _) = try!(dbus_manager
-                             .borrow()
-                             .create_hotspot(device_path, interface, ssid, password));
+    let (path, _) = try!(dbus_manager.create_hotspot(device_path, interface, ssid, password));
 
     let connection = try!(Connection::init(dbus_manager, &path));
 
     let state = try!(wait(&connection,
                           ConnectionState::Activated,
-                          dbus_manager.borrow().method_timeout()));
+                          dbus_manager.method_timeout()));
 
     Ok((connection, state))
 }

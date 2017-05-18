@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::cell::RefCell;
 use std::fmt;
 
 use dbus_nm::DBusNetworkManager;
@@ -9,17 +8,17 @@ use wifi::{WiFiDevice, new_wifi_device};
 
 #[derive(Clone)]
 pub struct Device {
-    dbus_manager: Rc<RefCell<DBusNetworkManager>>,
+    dbus_manager: Rc<DBusNetworkManager>,
     path: String,
     interface: String,
     device_type: DeviceType,
 }
 
 impl Device {
-    fn init(dbus_manager: &Rc<RefCell<DBusNetworkManager>>, path: &str) -> Result<Self, String> {
-        let interface = try!(dbus_manager.borrow().get_device_interface(path));
+    fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self, String> {
+        let interface = try!(dbus_manager.get_device_interface(path));
 
-        let device_type = try!(dbus_manager.borrow().get_device_type(path));
+        let device_type = try!(dbus_manager.get_device_type(path));
 
         Ok(Device {
                dbus_manager: dbus_manager.clone(),
@@ -38,7 +37,7 @@ impl Device {
     }
 
     pub fn get_state(&self) -> Result<DeviceState, String> {
-        self.dbus_manager.borrow().get_device_state(&self.path)
+        self.dbus_manager.get_device_state(&self.path)
     }
 
     pub fn as_wifi_device<'a>(&'a self) -> Option<WiFiDevice<'a>> {
@@ -66,11 +65,11 @@ impl Device {
         match state {
             DeviceState::Activated => Ok(DeviceState::Activated),
             _ => {
-                try!(self.dbus_manager.borrow().connect_device(&self.path));
+                try!(self.dbus_manager.connect_device(&self.path));
 
                 wait(self,
                      DeviceState::Activated,
-                     self.dbus_manager.borrow().method_timeout())
+                     self.dbus_manager.method_timeout())
             }
         }
     }
@@ -92,11 +91,11 @@ impl Device {
         match state {
             DeviceState::Disconnected => Ok(DeviceState::Disconnected),
             _ => {
-                try!(self.dbus_manager.borrow().disconnect_device(&self.path));
+                try!(self.dbus_manager.disconnect_device(&self.path));
 
                 wait(self,
                      DeviceState::Disconnected,
-                     self.dbus_manager.borrow().method_timeout())
+                     self.dbus_manager.method_timeout())
             }
         }
     }
@@ -174,8 +173,8 @@ impl From<i64> for DeviceState {
 }
 
 
-pub fn get_devices(dbus_manager: &Rc<RefCell<DBusNetworkManager>>) -> Result<Vec<Device>, String> {
-    let device_paths = try!(dbus_manager.borrow().get_devices());
+pub fn get_devices(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Device>, String> {
+    let device_paths = try!(dbus_manager.get_devices());
 
     let mut result = Vec::with_capacity(device_paths.len());
 
@@ -188,20 +187,18 @@ pub fn get_devices(dbus_manager: &Rc<RefCell<DBusNetworkManager>>) -> Result<Vec
     Ok(result)
 }
 
-pub fn get_device_by_interface(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+pub fn get_device_by_interface(dbus_manager: &Rc<DBusNetworkManager>,
                                interface: &str)
                                -> Result<Device, String> {
-    let path = try!(dbus_manager.borrow().get_device_by_interface(interface));
+    let path = try!(dbus_manager.get_device_by_interface(interface));
 
     Device::init(dbus_manager, &path)
 }
 
-pub fn get_active_connection_devices(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+pub fn get_active_connection_devices(dbus_manager: &Rc<DBusNetworkManager>,
                                      active_path: &str)
                                      -> Result<Vec<Device>, String> {
-    let device_paths = try!(dbus_manager
-                                .borrow()
-                                .get_active_connection_devices(active_path));
+    let device_paths = try!(dbus_manager.get_active_connection_devices(active_path));
 
     let mut result = Vec::with_capacity(device_paths.len());
 

@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use ascii::AsAsciiStr;
 
@@ -10,7 +9,7 @@ use device::{Device, PathGetter};
 
 
 pub struct WiFiDevice<'a> {
-    dbus_manager: Rc<RefCell<DBusNetworkManager>>,
+    dbus_manager: Rc<DBusNetworkManager>,
     device: &'a Device,
 }
 
@@ -32,11 +31,10 @@ impl<'a> WiFiDevice<'a> {
         let mut access_points = Vec::new();
 
         let paths = try!(self.dbus_manager
-                             .borrow()
                              .get_device_access_points(self.device.path()));
 
         for path in paths {
-            if let Some(access_point) = try!(get_access_point(&self.dbus_manager.borrow(), &path)) {
+            if let Some(access_point) = try!(get_access_point(&self.dbus_manager, &path)) {
                 access_points.push(access_point);
             }
         }
@@ -140,7 +138,7 @@ bitflags! {
 }
 
 
-pub fn new_wifi_device<'a>(dbus_manager: &Rc<RefCell<DBusNetworkManager>>,
+pub fn new_wifi_device<'a>(dbus_manager: &Rc<DBusNetworkManager>,
                            device: &'a Device)
                            -> WiFiDevice<'a> {
     WiFiDevice {

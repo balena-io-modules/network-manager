@@ -40,16 +40,14 @@ pub struct DBusNetworkManager {
 }
 
 impl DBusNetworkManager {
-    pub fn new() -> Self {
-        DBusNetworkManager { dbus: DBusApi::new(NM_SERVICE_MANAGER, METHOD_RETRY_ERROR_NAMES) }
+    pub fn new(method_timeout: Option<u64>) -> Self {
+        DBusNetworkManager {
+            dbus: DBusApi::new(NM_SERVICE_MANAGER, METHOD_RETRY_ERROR_NAMES, method_timeout),
+        }
     }
 
     pub fn method_timeout(&self) -> u64 {
         self.dbus.method_timeout()
-    }
-
-    pub fn set_method_timeout(&mut self, timeout: u64) {
-        self.dbus.set_method_timeout(timeout);
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {

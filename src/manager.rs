@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use dbus_nm::DBusNetworkManager;
 
@@ -9,12 +8,16 @@ use service::{start_service, stop_service, get_service_state, ServiceState, Erro
 
 
 pub struct NetworkManager {
-    dbus_manager: Rc<RefCell<DBusNetworkManager>>,
+    dbus_manager: Rc<DBusNetworkManager>,
 }
 
 impl NetworkManager {
     pub fn new() -> Self {
-        NetworkManager { dbus_manager: Rc::new(RefCell::new(DBusNetworkManager::new())) }
+        NetworkManager { dbus_manager: Rc::new(DBusNetworkManager::new(None)) }
+    }
+
+    pub fn with_method_timeout(timeout: u64) -> Self {
+        NetworkManager { dbus_manager: Rc::new(DBusNetworkManager::new(Some(timeout))) }
     }
 
     /// Starts the Network Manager service.
@@ -56,10 +59,6 @@ impl NetworkManager {
         get_service_state()
     }
 
-    pub fn set_method_timeout(&mut self, timeout: u64) {
-        self.dbus_manager.borrow_mut().set_method_timeout(timeout);
-    }
-
     /// Get a list of Network Manager connections sorted by path.
     ///
     /// # Examples
@@ -97,19 +96,19 @@ impl NetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
-        self.dbus_manager.borrow().get_state()
+        self.dbus_manager.get_state()
     }
 
     pub fn get_connectivity(&self) -> Result<Connectivity, String> {
-        self.dbus_manager.borrow().check_connectivity()
+        self.dbus_manager.check_connectivity()
     }
 
     pub fn is_networking_enabled(&self) -> Result<bool, String> {
-        self.dbus_manager.borrow().is_networking_enabled()
+        self.dbus_manager.is_networking_enabled()
     }
 
     pub fn is_wireless_enabled(&self) -> Result<bool, String> {
-        self.dbus_manager.borrow().is_wireless_enabled()
+        self.dbus_manager.is_wireless_enabled()
     }
 }
 

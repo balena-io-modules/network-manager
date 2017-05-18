@@ -17,12 +17,17 @@ pub struct DBusApi {
 }
 
 impl DBusApi {
-    pub fn new(base: &'static str, method_retry_error_names: &'static [&'static str]) -> Self {
+    pub fn new(base: &'static str,
+               method_retry_error_names: &'static [&'static str],
+               method_timeout: Option<u64>)
+               -> Self {
         let connection = DBusConnection::get_private(BusType::System).unwrap();
+
+        let method_timeout = method_timeout.unwrap_or(DEFAULT_TIMEOUT);
 
         DBusApi {
             connection: connection,
-            method_timeout: DEFAULT_TIMEOUT,
+            method_timeout: method_timeout,
             base: base,
             method_retry_error_names: method_retry_error_names,
         }
@@ -30,10 +35,6 @@ impl DBusApi {
 
     pub fn method_timeout(&self) -> u64 {
         self.method_timeout
-    }
-
-    pub fn set_method_timeout(&mut self, timeout: u64) {
-        self.method_timeout = timeout;
     }
 
     pub fn call(&self, path: &str, interface: &str, method: &str) -> Result<Message, String> {
