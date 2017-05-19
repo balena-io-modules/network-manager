@@ -4,7 +4,8 @@ use ascii::AsAsciiStr;
 
 use dbus_nm::DBusNetworkManager;
 
-use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot};
+use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot,
+                 AsSsidSlice, Ssid, SsidSlice};
 use device::{Device, PathGetter};
 
 
@@ -45,25 +46,26 @@ impl<'a> WiFiDevice<'a> {
         Ok(access_points)
     }
 
-    pub fn connect<T>(&self,
+    pub fn connect<P>(&self,
                       access_point: &AccessPoint,
-                      password: &T)
+                      password: &P)
                       -> Result<(Connection, ConnectionState), String>
-        where T: AsAsciiStr + ?Sized
+        where P: AsAsciiStr + ?Sized
     {
         connect_to_access_point(&self.dbus_manager,
                                 self.device.path(),
                                 &access_point.path,
-                                &access_point.ssid,
+                                access_point.ssid(),
                                 &access_point.security,
                                 password)
     }
 
-    pub fn create_hotspot<T>(&self,
-                             ssid: &str,
-                             password: Option<&T>)
-                             -> Result<(Connection, ConnectionState), String>
-        where T: AsAsciiStr + ?Sized
+    pub fn create_hotspot<T, U>(&self,
+                                ssid: &T,
+                                password: Option<&U>)
+                                -> Result<(Connection, ConnectionState), String>
+        where T: AsSsidSlice + ?Sized,
+              U: AsAsciiStr + ?Sized
     {
         create_hotspot(&self.dbus_manager,
                        self.device.path(),
@@ -77,13 +79,13 @@ impl<'a> WiFiDevice<'a> {
 #[derive(Debug)]
 pub struct AccessPoint {
     path: String,
-    ssid: String,
+    ssid: Ssid,
     strength: u32,
     security: Security,
 }
 
 impl AccessPoint {
-    pub fn ssid(&self) -> &str {
+    pub fn ssid(&self) -> &SsidSlice {
         &self.ssid
     }
 }

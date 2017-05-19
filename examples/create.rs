@@ -27,7 +27,7 @@ fn main() {
 
     let ap_index = access_points
         .iter()
-        .position(|ref ap| ap.ssid() == args[1])
+        .position(|ref ap| ap.ssid().as_str().unwrap() == &args[1])
         .unwrap();
 
     wifi_device

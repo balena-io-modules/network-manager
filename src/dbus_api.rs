@@ -290,23 +290,14 @@ pub fn extract<'a, T>(var: &'a Variant<Iter>) -> Result<T, String>
         .ok_or(format!("D-Bus variant type does not match: {:?}", var))
 }
 
-
-pub fn utf8_vec_u8_to_string(var: Vec<u8>) -> Result<String, String> {
-    String::from_utf8(var).or(Err(format!("D-Bus variant not a UTF-8 string")))
-}
-
-pub fn utf8_variant_to_string(var: &Variant<Iter>) -> Result<String, String> {
+pub fn variant_iter_to_vec_u8(var: &Variant<Iter>) -> Result<Vec<u8>, String> {
     let array_option = &var.0.clone().get::<Array<u8, _>>();
 
     if let Some(array) = *array_option {
-        utf8_vec_u8_to_string(array.collect())
+        Ok(array.collect())
     } else {
         Err(format!("D-Bus variant not an array: {:?}", var))
     }
-}
-
-pub fn string_to_utf8_vec_u8(var: &String) -> Vec<u8> {
-    var.as_bytes().to_vec()
 }
 
 pub fn path_to_string(path: &Path) -> Result<String, String> {

@@ -5,10 +5,9 @@ use ascii::AsAsciiStr;
 use dbus::Path;
 use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
 
-use dbus_api::{DBusApi, extract, utf8_vec_u8_to_string, utf8_variant_to_string,
-               string_to_utf8_vec_u8, path_to_string, VariantTo};
+use dbus_api::{DBusApi, extract, path_to_string, VariantTo, variant_iter_to_vec_u8};
 use manager::{Connectivity, NetworkManagerState};
-use connection::{ConnectionSettings, ConnectionState};
+use connection::{ConnectionSettings, ConnectionState, AsSsidSlice, Ssid, SsidSlice};
 use device::{DeviceType, DeviceState};
 use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 
@@ -115,7 +114,7 @@ impl DBusNetworkManager {
 
         let mut id = String::new();
         let mut uuid = String::new();
-        let mut ssid = String::new();
+        let mut ssid = Ssid::new();
 
         for (_, v1) in dict {
             for (k2, v2) in v1 {
@@ -127,7 +126,7 @@ impl DBusNetworkManager {
                         uuid = extract::<String>(&v2)?;
                     }
                     "ssid" => {
-                        ssid = utf8_variant_to_string(&v2)?;
+                        ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&v2)?)?;
                     }
                     _ => {}
                 }
@@ -173,21 +172,19 @@ impl DBusNetworkManager {
         Ok(())
     }
 
-    pub fn add_and_activate_connection<T>(&self,
-                                          device_path: &str,
-                                          ap_path: &str,
-                                          ssid: &str,
-                                          security: &Security,
-                                          password: &T)
-                                          -> Result<(String, String), String>
-        where T: AsAsciiStr + ?Sized
+    pub fn connect_to_access_point<P>(&self,
+                                      device_path: &str,
+                                      ap_path: &str,
+                                      ssid: &SsidSlice,
+                                      security: &Security,
+                                      password: &P)
+                                      -> Result<(String, String), String>
+        where P: AsAsciiStr + ?Sized
     {
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
 
         let mut wireless: SettingsMap = HashMap::new();
-        add_val(&mut wireless,
-                "ssid",
-                string_to_utf8_vec_u8(&ssid.to_string()));
+        add_val(&mut wireless, "ssid", ssid.as_bytes().to_vec());
         settings.insert("802-11-wireless".to_string(), wireless);
 
         if *security != NONE {
@@ -222,25 +219,29 @@ impl DBusNetworkManager {
         Ok((path_to_string(&conn_path)?, path_to_string(&active_connection)?))
     }
 
-    pub fn create_hotspot<T>(&self,
-                             device_path: &str,
-                             interface: &str,
-                             ssid: &str,
-                             password: Option<&T>)
-                             -> Result<(String, String), String>
-        where T: AsAsciiStr + ?Sized
+    pub fn create_hotspot<T, U>(&self,
+                                device_path: &str,
+                                interface: &str,
+                                ssid: &T,
+                                password: Option<&U>)
+                                -> Result<(String, String), String>
+        where T: AsSsidSlice + ?Sized,
+              U: AsAsciiStr + ?Sized
     {
+        let ssid = ssid.as_ssid_slice()?;
+        let ssid_vec = ssid.as_bytes().to_vec();
+
         let mut wireless: SettingsMap = HashMap::new();
-        add_val(&mut wireless,
-                "ssid",
-                string_to_utf8_vec_u8(&ssid.to_string()));
+        add_val(&mut wireless, "ssid", ssid_vec);
         add_str(&mut wireless, "band", "bg");
         add_val(&mut wireless, "hidden", false);
         add_str(&mut wireless, "mode", "ap");
 
         let mut connection: SettingsMap = HashMap::new();
         add_val(&mut connection, "autoconnect", false);
-        add_str(&mut connection, "id", ssid);
+        if let Ok(ssid_str) = ssid.as_str() {
+            add_str(&mut connection, "id", ssid_str);
+        }
         add_str(&mut connection, "interface-name", interface);
         add_str(&mut connection, "type", "802-11-wireless");
 
@@ -329,9 +330,10 @@ impl DBusNetworkManager {
             .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
     }
 
-    pub fn get_access_point_ssid(&self, path: &str) -> Option<String> {
-        if let Ok(ssid_vec) = self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
-            utf8_vec_u8_to_string(ssid_vec).ok()
+    pub fn get_access_point_ssid(&self, path: &str) -> Option<Ssid> {
+        if let Ok(ssid_vec) = self.dbus
+               .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
+            Ssid::from_bytes(ssid_vec).ok()
         } else {
             None
         }
