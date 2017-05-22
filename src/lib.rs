@@ -25,3 +25,4 @@ mod ssid;
 pub use manager::NetworkManager;
 pub use connection::{Connection, ConnectionSettings};
 pub use device::{Device, DeviceType};
+pub use wifi::AccessPoint;
