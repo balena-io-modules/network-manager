@@ -4,9 +4,9 @@ use ascii::AsAsciiStr;
 
 use dbus_nm::DBusNetworkManager;
 
-use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot,
-                 AsSsidSlice, Ssid, SsidSlice};
+use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot};
 use device::{Device, PathGetter};
+use ssid::{AsSsidSlice, Ssid, SsidSlice};
 
 
 pub struct WiFiDevice<'a> {

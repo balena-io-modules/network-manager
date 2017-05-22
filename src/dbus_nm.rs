@@ -7,7 +7,8 @@ use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
 
 use dbus_api::{DBusApi, extract, path_to_string, VariantTo, variant_iter_to_vec_u8};
 use manager::{Connectivity, NetworkManagerState};
-use connection::{ConnectionSettings, ConnectionState, AsSsidSlice, Ssid, SsidSlice};
+use connection::{ConnectionSettings, ConnectionState};
+use ssid::{Ssid, SsidSlice, AsSsidSlice};
 use device::{DeviceType, DeviceState};
 use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 

@@ -20,6 +20,7 @@ mod service;
 mod connection;
 mod device;
 mod wifi;
+mod ssid;
 
 pub use manager::NetworkManager;
 pub use connection::{Connection, ConnectionSettings};
