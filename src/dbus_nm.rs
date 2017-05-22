@@ -433,8 +433,8 @@ fn verify_password<'a, T: AsAsciiStr + ?Sized>(password: &'a T) -> Result<&'a st
     match password.as_ascii_str() {
         Err(_) => Err("Not an ASCII password".to_string()),
         Ok(p) => {
-            if p.len() > 60 {
-                Err(format!("Password too long: {} chars", p.len()))
+            if p.len() > 64 {
+                Err(format!("Password length should not exceed 64: {} len", p.len()))
             } else {
                 Ok(p.as_str())
             }
