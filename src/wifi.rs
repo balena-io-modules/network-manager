@@ -1,14 +1,93 @@
-use manager::NetworkManager;
-use device::Device;
-use device;
+use std::rc::Rc;
+
+use ascii::AsAsciiStr;
+
+use dbus_nm::DBusNetworkManager;
+
+use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot};
+use device::{Device, PathGetter};
+use ssid::{AsSsidSlice, Ssid, SsidSlice};
+
+
+pub struct WiFiDevice<'a> {
+    dbus_manager: Rc<DBusNetworkManager>,
+    device: &'a Device,
+}
+
+impl<'a> WiFiDevice<'a> {
+    /// Get the list of access points visible to this device.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use network_manager::{NetworkManager, DeviceType};
+    /// let manager = NetworkManager::new();
+    /// let devices = manager.get_devices().unwrap();
+    /// let i = devices.iter().position(|ref d| *d.device_type() == DeviceType::WiFi).unwrap();
+    /// let device = devices[i].as_wifi_device().unwrap();
+    /// let access_points = device.get_access_points().unwrap();
+    /// println!("{:?}", access_points);
+    /// ```
+    pub fn get_access_points(&self) -> Result<Vec<AccessPoint>, String> {
+        let mut access_points = Vec::new();
+
+        let paths = self.dbus_manager
+            .get_device_access_points(self.device.path())?;
+
+        for path in paths {
+            if let Some(access_point) = get_access_point(&self.dbus_manager, &path)? {
+                access_points.push(access_point);
+            }
+        }
+
+        access_points.sort_by_key(|ap| ap.strength);
+        access_points.reverse();
+
+        Ok(access_points)
+    }
+
+    pub fn connect<P>(&self,
+                      access_point: &AccessPoint,
+                      password: &P)
+                      -> Result<(Connection, ConnectionState), String>
+        where P: AsAsciiStr + ?Sized
+    {
+        connect_to_access_point(&self.dbus_manager,
+                                self.device.path(),
+                                &access_point.path,
+                                access_point.ssid(),
+                                &access_point.security,
+                                password)
+    }
+
+    pub fn create_hotspot<T, U>(&self,
+                                ssid: &T,
+                                password: Option<&U>)
+                                -> Result<(Connection, ConnectionState), String>
+        where T: AsSsidSlice + ?Sized,
+              U: AsAsciiStr + ?Sized
+    {
+        create_hotspot(&self.dbus_manager,
+                       self.device.path(),
+                       self.device.interface(),
+                       ssid,
+                       password)
+    }
+}
 
 
 #[derive(Debug)]
 pub struct AccessPoint {
-    pub path: String,
-    pub ssid: String,
-    pub strength: u32,
-    pub security: Security,
+    path: String,
+    ssid: Ssid,
+    strength: u32,
+    security: Security,
+}
+
+impl AccessPoint {
+    pub fn ssid(&self) -> &SsidSlice {
+        &self.ssid
+    }
 }
 
 
@@ -61,50 +140,23 @@ bitflags! {
 }
 
 
-/// Scans for Wi-Fi access points.
-///
-/// # Examples
-///
-/// ```
-/// use network_manager::manager;
-/// use network_manager::wifi;
-/// use network_manager::device;
-/// let manager = manager::new();
-/// let mut devices = device::list(&manager).unwrap();
-/// let i = devices.iter().position(|ref d| d.device_type == device::DeviceType::WiFi).unwrap();
-/// let device = &mut devices[i];
-/// let access_points = wifi::scan(&manager, device).unwrap();
-/// println!("{:?}", access_points);
-/// ```
-pub fn scan(manager: &NetworkManager, device: &Device) -> Result<Vec<AccessPoint>, String> {
-    let mut access_points = Vec::new();
-
-    if device.device_type == device::DeviceType::WiFi {
-        let paths = try!(manager.get_device_access_points(&device.path));
-
-        for path in paths {
-            if let Some(access_point) = try!(get_access_point(manager, &path)) {
-                access_points.push(access_point);
-            }
-        }
-    } else {
-        return Err("Not a WiFi device".to_string());
+pub fn new_wifi_device<'a>(dbus_manager: &Rc<DBusNetworkManager>,
+                           device: &'a Device)
+                           -> WiFiDevice<'a> {
+    WiFiDevice {
+        dbus_manager: dbus_manager.clone(),
+        device: device,
     }
-
-    access_points.sort_by_key(|ap| ap.strength);
-    access_points.reverse();
-
-    Ok(access_points)
 }
 
 
-fn get_access_point(manager: &NetworkManager,
+fn get_access_point(manager: &DBusNetworkManager,
                     path: &String)
                     -> Result<Option<AccessPoint>, String> {
     if let Some(ssid) = manager.get_access_point_ssid(path) {
-        let strength = try!(manager.get_access_point_strength(path));
+        let strength = manager.get_access_point_strength(path)?;
 
-        let security = try!(get_access_point_security(manager, path));
+        let security = get_access_point_security(manager, path)?;
 
         let access_point = AccessPoint {
             path: path.clone(),
@@ -120,12 +172,14 @@ fn get_access_point(manager: &NetworkManager,
 }
 
 
-fn get_access_point_security(manager: &NetworkManager, path: &String) -> Result<Security, String> {
-    let flags = try!(manager.get_access_point_flags(path));
+fn get_access_point_security(manager: &DBusNetworkManager,
+                             path: &String)
+                             -> Result<Security, String> {
+    let flags = manager.get_access_point_flags(path)?;
 
-    let wpa_flags = try!(manager.get_access_point_wpa_flags(path));
+    let wpa_flags = manager.get_access_point_wpa_flags(path)?;
 
-    let rsn_flags = try!(manager.get_access_point_rsn_flags(path));
+    let rsn_flags = manager.get_access_point_rsn_flags(path)?;
 
     let mut security = NONE;
 

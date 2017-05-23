@@ -3,10 +3,7 @@ extern crate network_manager;
 use std::env;
 use std::process;
 
-use network_manager::manager;
-use network_manager::wifi;
-use network_manager::device;
-use network_manager::connection;
+use network_manager::{NetworkManager, DeviceType};
 
 
 fn main() {
@@ -17,21 +14,23 @@ fn main() {
         process::exit(1);
     }
 
-    let manager = manager::new();
+    let manager = NetworkManager::new();
 
-    let mut devices = device::list(&manager).unwrap();
+    let devices = manager.get_devices().unwrap();
     let device_index = devices
         .iter()
-        .position(|ref d| d.device_type == device::DeviceType::WiFi)
+        .position(|ref d| *d.device_type() == DeviceType::WiFi)
         .unwrap();
-    let device_ref = &mut devices[device_index];
+    let wifi_device = devices[device_index].as_wifi_device().unwrap();
 
-    let access_points = wifi::scan(&manager, device_ref).unwrap();
+    let access_points = wifi_device.get_access_points().unwrap();
 
     let ap_index = access_points
         .iter()
-        .position(|ref ap| ap.ssid == args[1])
+        .position(|ref ap| ap.ssid().as_str().unwrap() == &args[1])
         .unwrap();
 
-    connection::create(&manager, device_ref, &access_points[ap_index], &args[2], 10).unwrap();
+    wifi_device
+        .connect(&access_points[ap_index], &args[2] as &str)
+        .unwrap();
 }

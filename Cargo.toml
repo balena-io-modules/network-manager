@@ -1,16 +1,16 @@
 [package]
 name = "network_manager"
-version = "0.1.0"
-authors = ["Joseph Roberts <joe@resin.io>"]
+version = "0.2.0"
+authors = ["Joseph Roberts <joe@resin.io>", "Zahari Petkov <zahari@resin.io>"]
 
 [dependencies]
 clippy = {version = "*", optional = true}
 dbus = "0.5.2"
-enum_primitive = "0.1.0"
 futures = "0.1.9"
 futures-cpupool = "0.1.2"
 tokio-timer = "0.1.0"
 bitflags = "0.8.0"
+ascii = "0.8"
 
 [features]
 default = []
