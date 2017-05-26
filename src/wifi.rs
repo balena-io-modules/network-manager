@@ -46,32 +46,38 @@ impl<'a> WiFiDevice<'a> {
         Ok(access_points)
     }
 
-    pub fn connect<P>(&self,
-                      access_point: &AccessPoint,
-                      password: &P)
-                      -> Result<(Connection, ConnectionState), String>
+    pub fn connect<P>(
+        &self,
+        access_point: &AccessPoint,
+        password: &P,
+    ) -> Result<(Connection, ConnectionState), String>
         where P: AsAsciiStr + ?Sized
     {
-        connect_to_access_point(&self.dbus_manager,
-                                self.device.path(),
-                                &access_point.path,
-                                access_point.ssid(),
-                                &access_point.security,
-                                password)
+        connect_to_access_point(
+            &self.dbus_manager,
+            self.device.path(),
+            &access_point.path,
+            access_point.ssid(),
+            &access_point.security,
+            password,
+        )
     }
 
-    pub fn create_hotspot<T, U>(&self,
-                                ssid: &T,
-                                password: Option<&U>)
-                                -> Result<(Connection, ConnectionState), String>
+    pub fn create_hotspot<T, U>(
+        &self,
+        ssid: &T,
+        password: Option<&U>,
+    ) -> Result<(Connection, ConnectionState), String>
         where T: AsSsidSlice + ?Sized,
               U: AsAsciiStr + ?Sized
     {
-        create_hotspot(&self.dbus_manager,
-                       self.device.path(),
-                       self.device.interface(),
-                       ssid,
-                       password)
+        create_hotspot(
+            &self.dbus_manager,
+            self.device.path(),
+            self.device.interface(),
+            ssid,
+            password,
+        )
     }
 }
 
@@ -140,9 +146,10 @@ bitflags! {
 }
 
 
-pub fn new_wifi_device<'a>(dbus_manager: &Rc<DBusNetworkManager>,
-                           device: &'a Device)
-                           -> WiFiDevice<'a> {
+pub fn new_wifi_device<'a>(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    device: &'a Device,
+) -> WiFiDevice<'a> {
     WiFiDevice {
         dbus_manager: dbus_manager.clone(),
         device: device,
@@ -150,9 +157,10 @@ pub fn new_wifi_device<'a>(dbus_manager: &Rc<DBusNetworkManager>,
 }
 
 
-fn get_access_point(manager: &DBusNetworkManager,
-                    path: &String)
-                    -> Result<Option<AccessPoint>, String> {
+fn get_access_point(
+    manager: &DBusNetworkManager,
+    path: &String,
+) -> Result<Option<AccessPoint>, String> {
     if let Some(ssid) = manager.get_access_point_ssid(path) {
         let strength = manager.get_access_point_strength(path)?;
 
@@ -172,9 +180,10 @@ fn get_access_point(manager: &DBusNetworkManager,
 }
 
 
-fn get_access_point_security(manager: &DBusNetworkManager,
-                             path: &String)
-                             -> Result<Security, String> {
+fn get_access_point_security(
+    manager: &DBusNetworkManager,
+    path: &String,
+) -> Result<Security, String> {
     let flags = manager.get_access_point_flags(path)?;
 
     let wpa_flags = manager.get_access_point_wpa_flags(path)?;

@@ -21,11 +21,13 @@ impl Connection {
     fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self, String> {
         let settings = dbus_manager.get_connection_settings(path)?;
 
-        Ok(Connection {
-               dbus_manager: dbus_manager.clone(),
-               path: path.to_string(),
-               settings: settings,
-           })
+        Ok(
+            Connection {
+                dbus_manager: dbus_manager.clone(),
+                path: path.to_string(),
+                settings: settings,
+            }
+        )
     }
 
     pub fn settings(&self) -> &ConnectionSettings {
@@ -64,18 +66,14 @@ impl Connection {
         match state {
             ConnectionState::Activated => Ok(ConnectionState::Activated),
             ConnectionState::Activating => {
-                wait(self,
-                     ConnectionState::Activated,
-                     self.dbus_manager.method_timeout())
-            }
+                wait(self, ConnectionState::Activated, self.dbus_manager.method_timeout())
+            },
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
                 self.dbus_manager.activate_connection(&self.path)?;
 
-                wait(self,
-                     ConnectionState::Activated,
-                     self.dbus_manager.method_timeout())
-            }
+                wait(self, ConnectionState::Activated, self.dbus_manager.method_timeout())
+            },
         }
     }
 
@@ -95,25 +93,21 @@ impl Connection {
         match state {
             ConnectionState::Deactivated => Ok(ConnectionState::Deactivated),
             ConnectionState::Deactivating => {
-                wait(self,
-                     ConnectionState::Deactivated,
-                     self.dbus_manager.method_timeout())
-            }
+                wait(self, ConnectionState::Deactivated, self.dbus_manager.method_timeout())
+            },
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
-                let active_path_option = get_connection_active_path(&self.dbus_manager,
-                                                                    &self.path)?;
+                let active_path_option =
+                    get_connection_active_path(&self.dbus_manager, &self.path)?;
 
                 if let Some(active_path) = active_path_option {
                     self.dbus_manager.deactivate_connection(&active_path)?;
 
-                    wait(self,
-                         ConnectionState::Deactivated,
-                         self.dbus_manager.method_timeout())
+                    wait(self, ConnectionState::Deactivated, self.dbus_manager.method_timeout())
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
-            }
+            },
         }
     }
 
@@ -150,10 +144,7 @@ impl Eq for Connection {}
 
 impl fmt::Debug for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "Connection {{ path: {:?}, settings: {:?} }}",
-               self.path,
-               self.settings)
+        write!(f, "Connection {{ path: {:?}, settings: {:?} }}", self.path, self.settings)
     }
 }
 
@@ -216,7 +207,7 @@ pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Conn
 
 
 pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>)
-                              -> Result<Vec<Connection>, String> {
+    -> Result<Vec<Connection>, String> {
     let active_paths = dbus_manager.get_active_connections()?;
 
     let mut connections = Vec::with_capacity(active_paths.len());
@@ -233,13 +224,14 @@ pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>)
 }
 
 
-pub fn connect_to_access_point<P>(dbus_manager: &Rc<DBusNetworkManager>,
-                                  device_path: &str,
-                                  access_point_path: &str,
-                                  ssid: &SsidSlice,
-                                  security: &Security,
-                                  password: &P)
-                                  -> Result<(Connection, ConnectionState), String>
+pub fn connect_to_access_point<P>(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    device_path: &str,
+    access_point_path: &str,
+    ssid: &SsidSlice,
+    security: &Security,
+    password: &P,
+) -> Result<(Connection, ConnectionState), String>
     where P: AsAsciiStr + ?Sized
 {
     let (path, _) =
@@ -248,19 +240,18 @@ pub fn connect_to_access_point<P>(dbus_manager: &Rc<DBusNetworkManager>,
 
     let connection = Connection::init(dbus_manager, &path)?;
 
-    let state = wait(&connection,
-                     ConnectionState::Activated,
-                     dbus_manager.method_timeout())?;
+    let state = wait(&connection, ConnectionState::Activated, dbus_manager.method_timeout())?;
 
     Ok((connection, state))
 }
 
-pub fn create_hotspot<S, P>(dbus_manager: &Rc<DBusNetworkManager>,
-                            device_path: &str,
-                            interface: &str,
-                            ssid: &S,
-                            password: Option<&P>)
-                            -> Result<(Connection, ConnectionState), String>
+pub fn create_hotspot<S, P>(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    device_path: &str,
+    interface: &str,
+    ssid: &S,
+    password: Option<&P>,
+) -> Result<(Connection, ConnectionState), String>
     where S: AsSsidSlice + ?Sized,
           P: AsAsciiStr + ?Sized
 {
@@ -269,16 +260,15 @@ pub fn create_hotspot<S, P>(dbus_manager: &Rc<DBusNetworkManager>,
 
     let connection = Connection::init(dbus_manager, &path)?;
 
-    let state = wait(&connection,
-                     ConnectionState::Activated,
-                     dbus_manager.method_timeout())?;
+    let state = wait(&connection, ConnectionState::Activated, dbus_manager.method_timeout())?;
 
     Ok((connection, state))
 }
 
-fn get_connection_active_path(dbus_manager: &DBusNetworkManager,
-                              connection_path: &str)
-                              -> Result<Option<String>, String> {
+fn get_connection_active_path(
+    dbus_manager: &DBusNetworkManager,
+    connection_path: &str,
+) -> Result<Option<String>, String> {
     let active_paths = dbus_manager.get_active_connections()?;
 
     for active_path in active_paths {
@@ -292,10 +282,11 @@ fn get_connection_active_path(dbus_manager: &DBusNetworkManager,
     Ok(None)
 }
 
-fn wait(connection: &Connection,
-        target_state: ConnectionState,
-        timeout: u64)
-        -> Result<ConnectionState, String> {
+fn wait(
+    connection: &Connection,
+    target_state: ConnectionState,
+    timeout: u64,
+) -> Result<ConnectionState, String> {
     if timeout == 0 {
         return connection.get_state();
     }
@@ -337,12 +328,8 @@ mod tests {
                     .nth(0)
                     .unwrap()
                     .clone()
-            }
-            Err(e) => {
-                panic!("couldn't retrieve environment variable {}: {}",
-                       wifi_env_var,
-                       e)
-            }
+            },
+            Err(e) => panic!("couldn't retrieve environment variable {}: {}", wifi_env_var, e),
         };
 
         let state = connection.get_state().unwrap();

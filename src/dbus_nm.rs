@@ -122,23 +122,25 @@ impl DBusNetworkManager {
                 match k2 {
                     "id" => {
                         id = extract::<String>(&v2)?;
-                    }
+                    },
                     "uuid" => {
                         uuid = extract::<String>(&v2)?;
-                    }
+                    },
                     "ssid" => {
                         ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&v2)?)?;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
 
-        Ok(ConnectionSettings {
-               id: id,
-               uuid: uuid,
-               ssid: ssid,
-           })
+        Ok(
+            ConnectionSettings {
+                id: id,
+                uuid: uuid,
+                ssid: ssid,
+            }
+        )
     }
 
     pub fn get_active_connection_devices(&self, path: &str) -> Result<Vec<String>, String> {
@@ -153,33 +155,40 @@ impl DBusNetworkManager {
 
     pub fn activate_connection(&self, path: &str) -> Result<(), String> {
         self.dbus
-            .call_with_args(NM_SERVICE_PATH,
-                            NM_SERVICE_INTERFACE,
-                            "ActivateConnection",
-                            &[&Path::new(path)? as &RefArg,
-                              &Path::new("/")? as &RefArg,
-                              &Path::new("/")? as &RefArg])?;
+            .call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "ActivateConnection",
+                &[
+                    &Path::new(path)? as &RefArg,
+                    &Path::new("/")? as &RefArg,
+                    &Path::new("/")? as &RefArg,
+                ],
+            )?;
 
         Ok(())
     }
 
     pub fn deactivate_connection(&self, path: &str) -> Result<(), String> {
         self.dbus
-            .call_with_args(NM_SERVICE_PATH,
-                            NM_SERVICE_INTERFACE,
-                            "DeactivateConnection",
-                            &[&Path::new(path)? as &RefArg])?;
+            .call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "DeactivateConnection",
+                &[&Path::new(path)? as &RefArg],
+            )?;
 
         Ok(())
     }
 
-    pub fn connect_to_access_point<P>(&self,
-                                      device_path: &str,
-                                      ap_path: &str,
-                                      ssid: &SsidSlice,
-                                      security: &Security,
-                                      password: &P)
-                                      -> Result<(String, String), String>
+    pub fn connect_to_access_point<P>(
+        &self,
+        device_path: &str,
+        ap_path: &str,
+        ssid: &SsidSlice,
+        security: &Security,
+        password: &P,
+    ) -> Result<(String, String), String>
         where P: AsAsciiStr + ?Sized
     {
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
@@ -192,12 +201,8 @@ impl DBusNetworkManager {
             let mut security_settings: SettingsMap = HashMap::new();
 
             if security.contains(WEP) {
-                add_val(&mut security_settings,
-                        "wep-key-type",
-                        NM_WEP_KEY_TYPE_PASSPHRASE);
-                add_str(&mut security_settings,
-                        "wep-key0",
-                        verify_password(password)?);
+                add_val(&mut security_settings, "wep-key-type", NM_WEP_KEY_TYPE_PASSPHRASE);
+                add_str(&mut security_settings, "wep-key0", verify_password(password)?);
             } else {
                 add_str(&mut security_settings, "key-mgmt", "wpa-psk");
                 add_str(&mut security_settings, "psk", verify_password(password)?);
@@ -207,12 +212,16 @@ impl DBusNetworkManager {
         }
 
         let response = self.dbus
-            .call_with_args(NM_SERVICE_PATH,
-                            NM_SERVICE_INTERFACE,
-                            "AddAndActivateConnection",
-                            &[&settings as &RefArg,
-                              &Path::new(device_path.to_string())? as &RefArg,
-                              &Path::new(ap_path.to_string())? as &RefArg])?;
+            .call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "AddAndActivateConnection",
+                &[
+                    &settings as &RefArg,
+                    &Path::new(device_path.to_string())? as &RefArg,
+                    &Path::new(ap_path.to_string())? as &RefArg,
+                ],
+            )?;
 
 
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
@@ -220,12 +229,13 @@ impl DBusNetworkManager {
         Ok((path_to_string(&conn_path)?, path_to_string(&active_connection)?))
     }
 
-    pub fn create_hotspot<T, U>(&self,
-                                device_path: &str,
-                                interface: &str,
-                                ssid: &T,
-                                password: Option<&U>)
-                                -> Result<(String, String), String>
+    pub fn create_hotspot<T, U>(
+        &self,
+        device_path: &str,
+        interface: &str,
+        ssid: &T,
+        password: Option<&U>,
+    ) -> Result<(String, String), String>
         where T: AsSsidSlice + ?Sized,
               U: AsAsciiStr + ?Sized
     {
@@ -266,12 +276,16 @@ impl DBusNetworkManager {
         settings.insert("ipv4".to_string(), ipv4);
 
         let response = self.dbus
-            .call_with_args(NM_SERVICE_PATH,
-                            NM_SERVICE_INTERFACE,
-                            "AddAndActivateConnection",
-                            &[&settings as &RefArg,
-                              &Path::new(device_path.clone())? as &RefArg,
-                              &Path::new("/")? as &RefArg])?;
+            .call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "AddAndActivateConnection",
+                &[
+                    &settings as &RefArg,
+                    &Path::new(device_path.clone())? as &RefArg,
+                    &Path::new("/")? as &RefArg,
+                ],
+            )?;
 
 
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
@@ -286,10 +300,12 @@ impl DBusNetworkManager {
 
     pub fn get_device_by_interface(&self, interface: &str) -> Result<String, String> {
         let response = self.dbus
-            .call_with_args(NM_SERVICE_PATH,
-                            NM_SERVICE_INTERFACE,
-                            "GetDeviceByIpIface",
-                            &[&interface.to_string() as &RefArg])?;
+            .call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "GetDeviceByIpIface",
+                &[&interface.to_string() as &RefArg],
+            )?;
 
         let path: Path = self.dbus.extract(&response)?;
 
@@ -310,12 +326,16 @@ impl DBusNetworkManager {
 
     pub fn connect_device(&self, path: &str) -> Result<(), String> {
         self.dbus
-            .call_with_args(NM_SERVICE_PATH,
-                            NM_SERVICE_INTERFACE,
-                            "ActivateConnection",
-                            &[&Path::new("/")? as &RefArg,
-                              &Path::new(path)? as &RefArg,
-                              &Path::new("/")? as &RefArg])?;
+            .call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "ActivateConnection",
+                &[
+                    &Path::new("/")? as &RefArg,
+                    &Path::new(path)? as &RefArg,
+                    &Path::new("/")? as &RefArg,
+                ],
+            )?;
 
         Ok(())
     }
@@ -333,7 +353,8 @@ impl DBusNetworkManager {
 
     pub fn get_access_point_ssid(&self, path: &str) -> Option<Ssid> {
         if let Ok(ssid_vec) = self.dbus
-               .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid") {
+            .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid")
+        {
             Ssid::from_bytes(ssid_vec).ok()
         } else {
             None
@@ -438,6 +459,6 @@ fn verify_password<'a, T: AsAsciiStr + ?Sized>(password: &'a T) -> Result<&'a st
             } else {
                 Ok(p.as_str())
             }
-        }
+        },
     }
 }
