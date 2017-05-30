@@ -14,7 +14,6 @@ before_install:
     - sudo apt-get install -yq --no-install-recommends libdbus-1-dev
 install:
     - cargo install rustfmt || true
-    - PATH=$PATH:/home/travis/.cargo/bin
 script:
     - cargo clean
     - cargo fmt -- --write-mode=diff
