@@ -20,12 +20,14 @@ impl Device {
 
         let device_type = dbus_manager.get_device_type(path)?;
 
-        Ok(Device {
-               dbus_manager: dbus_manager.clone(),
-               path: path.to_string(),
-               interface: interface,
-               device_type: device_type,
-           })
+        Ok(
+            Device {
+                dbus_manager: dbus_manager.clone(),
+                path: path.to_string(),
+                interface: interface,
+                device_type: device_type,
+            }
+        )
     }
 
     pub fn device_type(&self) -> &DeviceType {
@@ -67,10 +69,8 @@ impl Device {
             _ => {
                 self.dbus_manager.connect_device(&self.path)?;
 
-                wait(self,
-                     DeviceState::Activated,
-                     self.dbus_manager.method_timeout())
-            }
+                wait(self, DeviceState::Activated, self.dbus_manager.method_timeout())
+            },
         }
     }
 
@@ -93,21 +93,21 @@ impl Device {
             _ => {
                 self.dbus_manager.disconnect_device(&self.path)?;
 
-                wait(self,
-                     DeviceState::Disconnected,
-                     self.dbus_manager.method_timeout())
-            }
+                wait(self, DeviceState::Disconnected, self.dbus_manager.method_timeout())
+            },
         }
     }
 }
 
 impl fmt::Debug for Device {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "Device {{ path: {:?}, interface: {:?}, device_type: {:?} }}",
-               self.path,
-               self.interface,
-               self.device_type)
+        write!(
+            f,
+            "Device {{ path: {:?}, interface: {:?}, device_type: {:?} }}",
+            self.path,
+            self.interface,
+            self.device_type
+        )
     }
 }
 
@@ -187,17 +187,19 @@ pub fn get_devices(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Device>,
     Ok(result)
 }
 
-pub fn get_device_by_interface(dbus_manager: &Rc<DBusNetworkManager>,
-                               interface: &str)
-                               -> Result<Device, String> {
+pub fn get_device_by_interface(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    interface: &str,
+) -> Result<Device, String> {
     let path = dbus_manager.get_device_by_interface(interface)?;
 
     Device::init(dbus_manager, &path)
 }
 
-pub fn get_active_connection_devices(dbus_manager: &Rc<DBusNetworkManager>,
-                                     active_path: &str)
-                                     -> Result<Vec<Device>, String> {
+pub fn get_active_connection_devices(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    active_path: &str,
+) -> Result<Vec<Device>, String> {
     let device_paths = dbus_manager.get_active_connection_devices(active_path)?;
 
     let mut result = Vec::with_capacity(device_paths.len());

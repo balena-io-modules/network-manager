@@ -10,7 +10,9 @@ pub struct Ssid {
 
 impl Ssid {
     pub fn new() -> Self {
-        Ssid { vec: Vec::new() }
+        Ssid {
+            vec: Vec::new(),
+        }
     }
 
     pub fn from_bytes<B>(bytes: B) -> Result<Self, String>
@@ -25,7 +27,9 @@ impl Ssid {
     unsafe fn from_bytes_unchecked<B>(bytes: B) -> Self
         where B: Into<Vec<u8>>
     {
-        Ssid { vec: mem::transmute(bytes.into()) }
+        Ssid {
+            vec: mem::transmute(bytes.into()),
+        }
     }
 }
 

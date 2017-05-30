@@ -17,10 +17,11 @@ pub struct DBusApi {
 }
 
 impl DBusApi {
-    pub fn new(base: &'static str,
-               method_retry_error_names: &'static [&'static str],
-               method_timeout: Option<u64>)
-               -> Self {
+    pub fn new(
+        base: &'static str,
+        method_retry_error_names: &'static [&'static str],
+        method_timeout: Option<u64>,
+    ) -> Self {
         let connection = DBusConnection::get_private(BusType::System).unwrap();
 
         let method_timeout = method_timeout.unwrap_or(DEFAULT_TIMEOUT);
@@ -41,28 +42,34 @@ impl DBusApi {
         self.call_with_args(path, interface, method, &[])
     }
 
-    pub fn call_with_args(&self,
-                          path: &str,
-                          interface: &str,
-                          method: &str,
-                          args: &[&RefArg])
-                          -> Result<Message, String> {
+    pub fn call_with_args(
+        &self,
+        path: &str,
+        interface: &str,
+        method: &str,
+        args: &[&RefArg],
+    ) -> Result<Message, String> {
         self.call_with_args_retry(path, interface, method, args)
-            .map_err(|error| {
-                         format!("D-Bus '{}'::'{}' method call failed on '{}': {}",
-                                 interface,
-                                 method,
-                                 path,
-                                 error)
-                     })
+            .map_err(
+                |error| {
+                    format!(
+                        "D-Bus '{}'::'{}' method call failed on '{}': {}",
+                        interface,
+                        method,
+                        path,
+                        error
+                    )
+                }
+            )
     }
 
-    fn call_with_args_retry(&self,
-                            path: &str,
-                            interface: &str,
-                            method: &str,
-                            args: &[&RefArg])
-                            -> Result<Message, String> {
+    fn call_with_args_retry(
+        &self,
+        path: &str,
+        interface: &str,
+        method: &str,
+        args: &[&RefArg],
+    ) -> Result<Message, String> {
         let mut retries = 0;
 
         loop {
@@ -80,12 +87,13 @@ impl DBusApi {
         }
     }
 
-    fn create_and_send_message(&self,
-                               path: &str,
-                               interface: &str,
-                               method: &str,
-                               args: &[&RefArg])
-                               -> Option<Result<Message, String>> {
+    fn create_and_send_message(
+        &self,
+        path: &str,
+        interface: &str,
+        method: &str,
+        args: &[&RefArg],
+    ) -> Option<Result<Message, String>> {
         match Message::new_method_call(self.base, path, interface, method) {
             Ok(mut message) => {
                 if args.len() > 0 {
@@ -93,7 +101,7 @@ impl DBusApi {
                 }
 
                 self.send_message_checked(message)
-            }
+            },
             Err(details) => Some(Err(details)),
         }
     }
@@ -113,7 +121,7 @@ impl DBusApi {
                 }
 
                 Some(Err(message))
-            }
+            },
         }
     }
 
@@ -121,11 +129,15 @@ impl DBusApi {
         where DBusApi: VariantTo<T>
     {
         let property_error = |details: &str| {
-            Err(format!("D-Bus get '{}'::'{}' property failed on '{}': {}",
-                        interface,
-                        name,
-                        path,
-                        details))
+            Err(
+                format!(
+                    "D-Bus get '{}'::'{}' property failed on '{}': {}",
+                    interface,
+                    name,
+                    path,
+                    details
+                )
+            )
         };
 
         let path = self.with_path(path);
@@ -136,13 +148,13 @@ impl DBusApi {
                     Some(data) => Ok(data),
                     None => property_error("wrong property type"),
                 }
-            }
+            },
             Err(err) => {
                 match err.message() {
                     Some(details) => property_error(details),
                     None => property_error("no details"),
                 }
-            }
+            },
         }
     }
 

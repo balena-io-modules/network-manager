@@ -13,11 +13,15 @@ pub struct NetworkManager {
 
 impl NetworkManager {
     pub fn new() -> Self {
-        NetworkManager { dbus_manager: Rc::new(DBusNetworkManager::new(None)) }
+        NetworkManager {
+            dbus_manager: Rc::new(DBusNetworkManager::new(None)),
+        }
     }
 
     pub fn with_method_timeout(timeout: u64) -> Self {
-        NetworkManager { dbus_manager: Rc::new(DBusNetworkManager::new(Some(timeout))) }
+        NetworkManager {
+            dbus_manager: Rc::new(DBusNetworkManager::new(Some(timeout))),
+        }
     }
 
     /// Starts the Network Manager service.
@@ -194,22 +198,18 @@ mod tests {
         match s {
             ServiceState::Active => {
                 NetworkManager::stop_service(10).unwrap();
-                assert_eq!(ServiceState::Inactive,
-                           NetworkManager::get_service_state().unwrap());
+                assert_eq!(ServiceState::Inactive, NetworkManager::get_service_state().unwrap());
 
                 NetworkManager::start_service(10).unwrap();
-                assert_eq!(ServiceState::Active,
-                           NetworkManager::get_service_state().unwrap());
-            }
+                assert_eq!(ServiceState::Active, NetworkManager::get_service_state().unwrap());
+            },
             ServiceState::Inactive => {
                 NetworkManager::start_service(10).unwrap();
-                assert_eq!(ServiceState::Active,
-                           NetworkManager::get_service_state().unwrap());
+                assert_eq!(ServiceState::Active, NetworkManager::get_service_state().unwrap());
 
                 NetworkManager::stop_service(10).unwrap();
-                assert_eq!(ServiceState::Inactive,
-                           NetworkManager::get_service_state().unwrap());
-            }
+                assert_eq!(ServiceState::Inactive, NetworkManager::get_service_state().unwrap());
+            },
             _ => (),
         }
     }
