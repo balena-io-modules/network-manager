@@ -218,6 +218,8 @@ fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<Devi
         return device.get_state();
     }
 
+    debug!("Waiting for device state: {:?}", target_state);
+
     let mut total_time = 0;
 
     loop {
@@ -227,9 +229,27 @@ fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<Devi
 
         total_time += 1;
 
-        if state == target_state || total_time >= timeout {
+        if state == target_state {
+            debug!("Device target state reached: {:?} / {}s elapsed", state, total_time);
+
+            return Ok(state);
+        } else if total_time >= timeout {
+            debug!(
+                "Timeout reached in waiting for device state ({:?}): {:?} / {}s elapsed",
+                target_state,
+                state,
+                total_time
+            );
+
             return Ok(state);
         }
+
+        debug!(
+            "Still waiting for device state ({:?}): {:?} / {}s elapsed",
+            target_state,
+            state,
+            total_time
+        );
     }
 }
 

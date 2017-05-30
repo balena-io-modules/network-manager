@@ -5,7 +5,7 @@ use dbus::stdintf::OrgFreedesktopDBusProperties;
 use dbus::Error;
 
 
-const DEFAULT_TIMEOUT: u64 = 10;
+const DEFAULT_TIMEOUT: u64 = 15;
 const RETRIES_ALLOWED: usize = 10;
 
 
@@ -52,13 +52,15 @@ impl DBusApi {
         self.call_with_args_retry(path, interface, method, args)
             .map_err(
                 |error| {
-                    format!(
+                    let message = format!(
                         "D-Bus '{}'::'{}' method call failed on '{}': {}",
                         interface,
                         method,
                         path,
                         error
-                    )
+                    );
+                    error!("{}", message);
+                    message
                 }
             )
     }
@@ -80,8 +82,15 @@ impl DBusApi {
             retries += 1;
 
             if retries == RETRIES_ALLOWED {
-                return Err(format!("method failed after {} retries", RETRIES_ALLOWED));
+                return Err(format!("method call failed after {} retries", RETRIES_ALLOWED));
             }
+
+            debug!(
+                "Retrying '{}'::'{}' method call: retry #{}",
+                interface,
+                method,
+                retries,
+            );
 
             ::std::thread::sleep(::std::time::Duration::from_secs(1));
         }
@@ -116,6 +125,8 @@ impl DBusApi {
                 let name = err.name();
                 for error_name in self.method_retry_error_names {
                     if name == Some(error_name) {
+                        debug!("Should retry D-Bus method call: {}", error_name);
+
                         return None;
                     }
                 }
@@ -129,15 +140,15 @@ impl DBusApi {
         where DBusApi: VariantTo<T>
     {
         let property_error = |details: &str| {
-            Err(
-                format!(
-                    "D-Bus get '{}'::'{}' property failed on '{}': {}",
-                    interface,
-                    name,
-                    path,
-                    details
-                )
-            )
+            let message = format!(
+                "D-Bus get '{}'::'{}' property failed on '{}': {}",
+                interface,
+                name,
+                path,
+                details
+            );
+            error!("{}", message);
+            Err(message)
         };
 
         let path = self.with_path(path);
