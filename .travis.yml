@@ -14,8 +14,9 @@ before_install:
     - sudo apt-get install -yq --no-install-recommends libdbus-1-dev
 install:
     - cargo install rustfmt || true
+    - if [[ $TRAVIS_RUST_VERSION == "nightly" ]]; then cargo install clippy || true; fi
 script:
     - cargo clean
     - cargo fmt -- --write-mode=diff
-    - ((test $TRAVIS_RUST_VERSION == "nightly" && cargo build --features "clippy") || true)
+    - if [[ $TRAVIS_RUST_VERSION == "nightly" ]]; then cargo clippy; fi
     - cargo build --verbose
