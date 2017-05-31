@@ -7,6 +7,9 @@
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
 #[macro_use]
+extern crate log;
+
+#[macro_use]
 extern crate bitflags;
 
 extern crate dbus;

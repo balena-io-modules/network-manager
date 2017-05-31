@@ -1,6 +1,6 @@
 [package]
 name = "network_manager"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Joseph Roberts <joe@resin.io>", "Zahari Petkov <zahari@resin.io>"]
 
 [dependencies]
@@ -11,6 +11,7 @@ futures-cpupool = "0.1.2"
 tokio-timer = "0.1.0"
 bitflags = "0.8.0"
 ascii = "0.8"
+log = "0.3"
 
 [features]
 default = []

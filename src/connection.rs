@@ -291,6 +291,8 @@ fn wait(
         return connection.get_state();
     }
 
+    debug!("Waiting for connection state: {:?}", target_state);
+
     let mut total_time = 0;
 
     loop {
@@ -300,9 +302,27 @@ fn wait(
 
         total_time += 1;
 
-        if state == target_state || total_time >= timeout {
+        if state == target_state {
+            debug!("Connection target state reached: {:?} / {}s elapsed", state, total_time);
+
+            return Ok(state);
+        } else if total_time >= timeout {
+            debug!(
+                "Timeout reached in waiting for connection state ({:?}): {:?} / {}s elapsed",
+                target_state,
+                state,
+                total_time
+            );
+
             return Ok(state);
         }
+
+        debug!(
+            "Still waiting for connection state ({:?}): {:?} / {}s elapsed",
+            target_state,
+            state,
+            total_time
+        );
     }
 }
 
