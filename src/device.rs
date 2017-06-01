@@ -42,7 +42,7 @@ impl Device {
         self.dbus_manager.get_device_state(&self.path)
     }
 
-    pub fn as_wifi_device<'a>(&'a self) -> Option<WiFiDevice<'a>> {
+    pub fn as_wifi_device(&self) -> Option<WiFiDevice> {
         if self.device_type == DeviceType::WiFi {
             Some(new_wifi_device(&self.dbus_manager, self))
         } else {
@@ -69,7 +69,7 @@ impl Device {
             _ => {
                 self.dbus_manager.connect_device(&self.path)?;
 
-                wait(self, DeviceState::Activated, self.dbus_manager.method_timeout())
+                wait(self, &DeviceState::Activated, self.dbus_manager.method_timeout())
             },
         }
     }
@@ -93,7 +93,7 @@ impl Device {
             _ => {
                 self.dbus_manager.disconnect_device(&self.path)?;
 
-                wait(self, DeviceState::Disconnected, self.dbus_manager.method_timeout())
+                wait(self, &DeviceState::Disconnected, self.dbus_manager.method_timeout())
             },
         }
     }
@@ -124,22 +124,60 @@ impl PathGetter for Device {
 #[derive(Clone, Debug, PartialEq)]
 pub enum DeviceType {
     Unknown,
-    Generic,
     Ethernet,
     WiFi,
+    Unused1,
+    Unused2,
+    Bt,
+    OlpcMesh,
+    Wimax,
+    Modem,
+    Infiniband,
+    Bond,
+    Vlan,
+    Adsl,
     Bridge,
+    Generic,
+    Team,
+    Tun,
+    IpTunnel,
+    Macvlan,
+    Vxlan,
+    Veth,
+    Macsec,
+    Dummy,
 }
 
 impl From<i64> for DeviceType {
-    fn from(state: i64) -> Self {
-        match state {
+    fn from(device_type: i64) -> Self {
+        match device_type {
             0 => DeviceType::Unknown,
-            14 => DeviceType::Generic,
             1 => DeviceType::Ethernet,
             2 => DeviceType::WiFi,
+            3 => DeviceType::Unused1,
+            4 => DeviceType::Unused2,
+            5 => DeviceType::Bt,
+            6 => DeviceType::OlpcMesh,
+            7 => DeviceType::Wimax,
+            8 => DeviceType::Modem,
+            9 => DeviceType::Infiniband,
+            10 => DeviceType::Bond,
+            11 => DeviceType::Vlan,
+            12 => DeviceType::Adsl,
             13 => DeviceType::Bridge,
-            _ => DeviceType::Unknown,
-
+            14 => DeviceType::Generic,
+            15 => DeviceType::Team,
+            16 => DeviceType::Tun,
+            17 => DeviceType::IpTunnel,
+            18 => DeviceType::Macvlan,
+            19 => DeviceType::Vxlan,
+            20 => DeviceType::Veth,
+            21 => DeviceType::Macsec,
+            22 => DeviceType::Dummy,
+            _ => {
+                warn!("Undefined device type: {}", device_type);
+                DeviceType::Unknown
+            },
         }
     }
 }
@@ -151,6 +189,12 @@ pub enum DeviceState {
     Unmanaged,
     Unavailable,
     Disconnected,
+    Prepare,
+    Config,
+    NeedAuth,
+    IpConfig,
+    IpCheck,
+    Secondaries,
     Activated,
     Deactivating,
     Failed,
@@ -163,11 +207,19 @@ impl From<i64> for DeviceState {
             10 => DeviceState::Unmanaged,
             20 => DeviceState::Unavailable,
             30 => DeviceState::Disconnected,
+            40 => DeviceState::Prepare,
+            50 => DeviceState::Config,
+            60 => DeviceState::NeedAuth,
+            70 => DeviceState::IpConfig,
+            80 => DeviceState::IpCheck,
+            90 => DeviceState::Secondaries,
             100 => DeviceState::Activated,
             110 => DeviceState::Deactivating,
             120 => DeviceState::Failed,
-            _ => DeviceState::Unknown,
-
+            _ => {
+                warn!("Undefined device state: {}", state);
+                DeviceState::Unknown
+            },
         }
     }
 }
@@ -213,7 +265,7 @@ pub fn get_active_connection_devices(
     Ok(result)
 }
 
-fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<DeviceState, String> {
+fn wait(device: &Device, target_state: &DeviceState, timeout: u64) -> Result<DeviceState, String> {
     if timeout == 0 {
         return device.get_state();
     }
@@ -229,7 +281,7 @@ fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<Devi
 
         total_time += 1;
 
-        if state == target_state {
+        if state == *target_state {
             debug!("Device target state reached: {:?} / {}s elapsed", state, total_time);
 
             return Ok(state);

@@ -159,7 +159,7 @@ pub fn new_wifi_device<'a>(
 
 fn get_access_point(
     manager: &DBusNetworkManager,
-    path: &String,
+    path: &str,
 ) -> Result<Option<AccessPoint>, String> {
     if let Some(ssid) = manager.get_access_point_ssid(path) {
         let strength = manager.get_access_point_strength(path)?;
@@ -167,7 +167,7 @@ fn get_access_point(
         let security = get_access_point_security(manager, path)?;
 
         let access_point = AccessPoint {
-            path: path.clone(),
+            path: path.to_string(),
             ssid: ssid,
             strength: strength,
             security: security,
@@ -180,10 +180,7 @@ fn get_access_point(
 }
 
 
-fn get_access_point_security(
-    manager: &DBusNetworkManager,
-    path: &String,
-) -> Result<Security, String> {
+fn get_access_point_security(manager: &DBusNetworkManager, path: &str) -> Result<Security, String> {
     let flags = manager.get_access_point_flags(path)?;
 
     let wpa_flags = manager.get_access_point_wpa_flags(path)?;

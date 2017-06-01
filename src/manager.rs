@@ -116,6 +116,11 @@ impl NetworkManager {
     }
 }
 
+impl Default for NetworkManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum NetworkManagerState {
@@ -140,7 +145,10 @@ impl From<i64> for NetworkManagerState {
             50 => NetworkManagerState::ConnectedLocal,
             60 => NetworkManagerState::ConnectedSite,
             70 => NetworkManagerState::ConnectedGlobal,
-            _ => NetworkManagerState::Unknown,
+            _ => {
+                warn!("Undefined Network Manager state: {}", state);
+                NetworkManagerState::Unknown
+            },
 
         }
     }
@@ -164,7 +172,10 @@ impl From<i64> for Connectivity {
             2 => Connectivity::Portal,
             3 => Connectivity::Limited,
             4 => Connectivity::Full,
-            _ => Connectivity::Unknown,
+            _ => {
+                warn!("Undefined connectivity state: {}", state);
+                Connectivity::Unknown
+            },
 
         }
     }

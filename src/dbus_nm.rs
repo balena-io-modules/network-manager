@@ -118,16 +118,16 @@ impl DBusNetworkManager {
         let mut ssid = Ssid::new();
 
         for (_, v1) in dict {
-            for (k2, v2) in v1 {
+            for (k2, mut v2) in v1 {
                 match k2 {
                     "id" => {
-                        id = extract::<String>(&v2)?;
+                        id = extract::<String>(&mut v2)?;
                     },
                     "uuid" => {
-                        uuid = extract::<String>(&v2)?;
+                        uuid = extract::<String>(&mut v2)?;
                     },
                     "ssid" => {
-                        ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&v2)?)?;
+                        ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&mut v2)?)?;
                     },
                     _ => {},
                 }
@@ -282,7 +282,7 @@ impl DBusNetworkManager {
                 "AddAndActivateConnection",
                 &[
                     &settings as &RefArg,
-                    &Path::new(device_path.clone())? as &RefArg,
+                    &Path::new(device_path)? as &RefArg,
                     &Path::new("/")? as &RefArg,
                 ],
             )?;
@@ -383,56 +383,36 @@ impl DBusNetworkManager {
 
 
 impl VariantTo<DeviceType> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
-        variant_to_device_type(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<DeviceType> {
+        value.0.as_i64().map(DeviceType::from)
     }
 }
 
 
 impl VariantTo<DeviceState> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
-        variant_to_device_state(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<DeviceState> {
+        value.0.as_i64().map(DeviceState::from)
     }
 }
 
 
 impl VariantTo<NM80211ApFlags> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
-        variant_to_ap_flags(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
+        value
+            .0
+            .as_i64()
+            .and_then(|v| NM80211ApFlags::from_bits(v as u32))
     }
 }
 
 
 impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
-        variant_to_ap_security_flags(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
+        value
+            .0
+            .as_i64()
+            .and_then(|v| NM80211ApSecurityFlags::from_bits(v as u32))
     }
-}
-
-
-fn variant_to_device_type(value: Variant<Box<RefArg>>) -> Option<DeviceType> {
-    value.0.as_i64().map(DeviceType::from)
-}
-
-
-fn variant_to_device_state(value: Variant<Box<RefArg>>) -> Option<DeviceState> {
-    value.0.as_i64().map(DeviceState::from)
-}
-
-
-fn variant_to_ap_flags(value: Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
-    value
-        .0
-        .as_i64()
-        .and_then(|v| NM80211ApFlags::from_bits(v as u32))
-}
-
-
-fn variant_to_ap_security_flags(value: Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
-    value
-        .0
-        .as_i64()
-        .and_then(|v| NM80211ApSecurityFlags::from_bits(v as u32))
 }
 
 
@@ -450,7 +430,7 @@ pub fn add_str<K, V>(map: &mut SettingsMap, key: K, value: V)
     map.insert(key.into(), Variant(Box::new(value.into())));
 }
 
-fn verify_password<'a, T: AsAsciiStr + ?Sized>(password: &'a T) -> Result<&'a str, String> {
+fn verify_password<T: AsAsciiStr + ?Sized>(password: &T) -> Result<&str, String> {
     match password.as_ascii_str() {
         Err(_) => Err("Not an ASCII password".to_string()),
         Ok(p) => {

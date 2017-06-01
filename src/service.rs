@@ -151,9 +151,9 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
                     continue;
                 }
 
-                for (k, v) in dictionary.ok_or(Error::NotFound)? {
+                for (k, mut v) in dictionary.ok_or(Error::NotFound)? {
                     if k == "ActiveState" {
-                        let response = v.0.clone().get::<&str>().ok_or(Error::NotFound)?;
+                        let response = v.0.get::<&str>().ok_or(Error::NotFound)?;
                         let state: ServiceState = response.parse()?;
                         if state == target_state {
                             return Ok(target_state);
