@@ -1,6 +1,6 @@
 [package]
 name = "network_manager"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Joseph Roberts <joe@resin.io>", "Zahari Petkov <zahari@resin.io>"]
 
 [dependencies]
