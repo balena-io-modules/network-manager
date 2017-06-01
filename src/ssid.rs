@@ -28,7 +28,7 @@ impl Ssid {
         where B: Into<Vec<u8>>
     {
         Ssid {
-            vec: mem::transmute(bytes.into()),
+            vec: bytes.into(),
         }
     }
 }

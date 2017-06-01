@@ -66,13 +66,13 @@ impl Connection {
         match state {
             ConnectionState::Activated => Ok(ConnectionState::Activated),
             ConnectionState::Activating => {
-                wait(self, ConnectionState::Activated, self.dbus_manager.method_timeout())
+                wait(self, &ConnectionState::Activated, self.dbus_manager.method_timeout())
             },
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
                 self.dbus_manager.activate_connection(&self.path)?;
 
-                wait(self, ConnectionState::Activated, self.dbus_manager.method_timeout())
+                wait(self, &ConnectionState::Activated, self.dbus_manager.method_timeout())
             },
         }
     }
@@ -93,7 +93,7 @@ impl Connection {
         match state {
             ConnectionState::Deactivated => Ok(ConnectionState::Deactivated),
             ConnectionState::Deactivating => {
-                wait(self, ConnectionState::Deactivated, self.dbus_manager.method_timeout())
+                wait(self, &ConnectionState::Deactivated, self.dbus_manager.method_timeout())
             },
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
@@ -103,7 +103,7 @@ impl Connection {
                 if let Some(active_path) = active_path_option {
                     self.dbus_manager.deactivate_connection(&active_path)?;
 
-                    wait(self, ConnectionState::Deactivated, self.dbus_manager.method_timeout())
+                    wait(self, &ConnectionState::Deactivated, self.dbus_manager.method_timeout())
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
@@ -180,7 +180,6 @@ pub enum ConnectionState {
 impl From<i64> for ConnectionState {
     fn from(state: i64) -> Self {
         match state {
-            0 => ConnectionState::Unknown,
             1 => ConnectionState::Activating,
             2 => ConnectionState::Activated,
             3 => ConnectionState::Deactivating,
@@ -240,7 +239,7 @@ pub fn connect_to_access_point<P>(
 
     let connection = Connection::init(dbus_manager, &path)?;
 
-    let state = wait(&connection, ConnectionState::Activated, dbus_manager.method_timeout())?;
+    let state = wait(&connection, &ConnectionState::Activated, dbus_manager.method_timeout())?;
 
     Ok((connection, state))
 }
@@ -260,7 +259,7 @@ pub fn create_hotspot<S, P>(
 
     let connection = Connection::init(dbus_manager, &path)?;
 
-    let state = wait(&connection, ConnectionState::Activated, dbus_manager.method_timeout())?;
+    let state = wait(&connection, &ConnectionState::Activated, dbus_manager.method_timeout())?;
 
     Ok((connection, state))
 }
@@ -284,7 +283,7 @@ fn get_connection_active_path(
 
 fn wait(
     connection: &Connection,
-    target_state: ConnectionState,
+    target_state: &ConnectionState,
     timeout: u64,
 ) -> Result<ConnectionState, String> {
     if timeout == 0 {
@@ -302,7 +301,7 @@ fn wait(
 
         total_time += 1;
 
-        if state == target_state {
+        if state == *target_state {
             debug!("Connection target state reached: {:?} / {}s elapsed", state, total_time);
 
             return Ok(state);

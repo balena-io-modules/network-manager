@@ -19,7 +19,7 @@ fn main() {
     let devices = manager.get_devices().unwrap();
     let device_index = devices
         .iter()
-        .position(|ref d| *d.device_type() == DeviceType::WiFi)
+        .position(|d| *d.device_type() == DeviceType::WiFi)
         .unwrap();
     let wifi_device = devices[device_index].as_wifi_device().unwrap();
 
@@ -27,7 +27,7 @@ fn main() {
 
     let ap_index = access_points
         .iter()
-        .position(|ref ap| ap.ssid().as_str().unwrap() == &args[1])
+        .position(|ap| ap.ssid().as_str().unwrap() == args[1])
         .unwrap();
 
     wifi_device

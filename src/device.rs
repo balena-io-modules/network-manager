@@ -42,7 +42,7 @@ impl Device {
         self.dbus_manager.get_device_state(&self.path)
     }
 
-    pub fn as_wifi_device<'a>(&'a self) -> Option<WiFiDevice<'a>> {
+    pub fn as_wifi_device(&self) -> Option<WiFiDevice> {
         if self.device_type == DeviceType::WiFi {
             Some(new_wifi_device(&self.dbus_manager, self))
         } else {
@@ -69,7 +69,7 @@ impl Device {
             _ => {
                 self.dbus_manager.connect_device(&self.path)?;
 
-                wait(self, DeviceState::Activated, self.dbus_manager.method_timeout())
+                wait(self, &DeviceState::Activated, self.dbus_manager.method_timeout())
             },
         }
     }
@@ -93,7 +93,7 @@ impl Device {
             _ => {
                 self.dbus_manager.disconnect_device(&self.path)?;
 
-                wait(self, DeviceState::Disconnected, self.dbus_manager.method_timeout())
+                wait(self, &DeviceState::Disconnected, self.dbus_manager.method_timeout())
             },
         }
     }
@@ -133,7 +133,6 @@ pub enum DeviceType {
 impl From<i64> for DeviceType {
     fn from(state: i64) -> Self {
         match state {
-            0 => DeviceType::Unknown,
             14 => DeviceType::Generic,
             1 => DeviceType::Ethernet,
             2 => DeviceType::WiFi,
@@ -159,7 +158,6 @@ pub enum DeviceState {
 impl From<i64> for DeviceState {
     fn from(state: i64) -> Self {
         match state {
-            0 => DeviceState::Unknown,
             10 => DeviceState::Unmanaged,
             20 => DeviceState::Unavailable,
             30 => DeviceState::Disconnected,
@@ -213,7 +211,7 @@ pub fn get_active_connection_devices(
     Ok(result)
 }
 
-fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<DeviceState, String> {
+fn wait(device: &Device, target_state: &DeviceState, timeout: u64) -> Result<DeviceState, String> {
     if timeout == 0 {
         return device.get_state();
     }
@@ -229,7 +227,7 @@ fn wait(device: &Device, target_state: DeviceState, timeout: u64) -> Result<Devi
 
         total_time += 1;
 
-        if state == target_state {
+        if state == *target_state {
             debug!("Device target state reached: {:?} / {}s elapsed", state, total_time);
 
             return Ok(state);

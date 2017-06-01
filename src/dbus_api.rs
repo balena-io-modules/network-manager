@@ -105,7 +105,7 @@ impl DBusApi {
     ) -> Option<Result<Message, String>> {
         match Message::new_method_call(self.base, path, interface, method) {
             Ok(mut message) => {
-                if args.len() > 0 {
+                if !args.is_empty() {
                     message = message.append_ref(args);
                 }
 
@@ -155,7 +155,7 @@ impl DBusApi {
 
         match path.get(interface, name) {
             Ok(variant) => {
-                match DBusApi::variant_to(variant) {
+                match DBusApi::variant_to(&variant) {
                     Some(data) => Ok(data),
                     None => property_error("wrong property type"),
                 }
@@ -174,7 +174,7 @@ impl DBusApi {
     {
         response
             .get1()
-            .ok_or("D-Bus wrong response type".to_string())
+            .ok_or_else(|| "D-Bus wrong response type".to_string())
     }
 
     pub fn extract_two<'a, T1, T2>(&self, response: &'a Message) -> Result<(T1, T2), String>
@@ -192,7 +192,7 @@ impl DBusApi {
         Err("D-Bus wrong response type".to_string())
     }
 
-    fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<'a, &'a DBusConnection> {
+    fn with_path<'a, P: Into<Path<'a>>>(&'a self, path: P) -> ConnPath<&'a DBusConnection> {
         self.connection
             .with_path(self.base, path, self.method_timeout as i32 * 1000)
     }
@@ -200,121 +200,90 @@ impl DBusApi {
 
 
 pub trait VariantTo<T> {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<T>;
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<T>;
 }
 
 
 impl VariantTo<String> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<String> {
-        variant_to_string(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<String> {
+        value.0.as_str().and_then(|v| Some(v.to_string()))
     }
 }
 
 
 impl VariantTo<i64> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<i64> {
-        variant_to_i64(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<i64> {
+        value.0.as_i64()
     }
 }
 
 
 impl VariantTo<u32> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<u32> {
-        variant_to_u32(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<u32> {
+        value.0.as_i64().and_then(|v| Some(v as u32))
     }
 }
 
 
 impl VariantTo<bool> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<bool> {
-        variant_to_bool(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<bool> {
+        value.0.as_i64().and_then(|v| Some(v == 0))
     }
 }
 
 
 impl VariantTo<Vec<String>> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
-        variant_to_string_vec(value)
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+
+        if let Some(list) = value.0.as_iter() {
+            for element in list {
+                if let Some(string) = element.as_str() {
+                    result.push(string.to_string());
+                } else {
+                    return None;
+                }
+            }
+
+            Some(result)
+        } else {
+            None
+        }
     }
 }
 
 
 impl VariantTo<Vec<u8>> for DBusApi {
-    fn variant_to(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
-        variant_to_u8_vec(value)
-    }
-}
+    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<Vec<u8>> {
+        let mut result = Vec::new();
 
-
-fn variant_to_string_vec(value: Variant<Box<RefArg>>) -> Option<Vec<String>> {
-    let mut result = Vec::new();
-
-    if let Some(list) = value.0.as_iter() {
-        for element in list {
-            if let Some(string) = element.as_str() {
-                result.push(string.to_string());
-            } else {
-                return None;
+        if let Some(list) = value.0.as_iter() {
+            for element in list {
+                if let Some(value) = element.as_i64() {
+                    result.push(value as u8);
+                } else {
+                    return None;
+                }
             }
-        }
 
-        Some(result)
-    } else {
-        None
+            Some(result)
+        } else {
+            None
+        }
     }
 }
 
 
-fn variant_to_u8_vec(value: Variant<Box<RefArg>>) -> Option<Vec<u8>> {
-    let mut result = Vec::new();
-
-    if let Some(list) = value.0.as_iter() {
-        for element in list {
-            if let Some(value) = element.as_i64() {
-                result.push(value as u8);
-            } else {
-                return None;
-            }
-        }
-
-        Some(result)
-    } else {
-        None
-    }
-}
-
-
-fn variant_to_string(value: Variant<Box<RefArg>>) -> Option<String> {
-    value.0.as_str().and_then(|v| Some(v.to_string()))
-}
-
-
-fn variant_to_i64(value: Variant<Box<RefArg>>) -> Option<i64> {
-    value.0.as_i64()
-}
-
-
-fn variant_to_u32(value: Variant<Box<RefArg>>) -> Option<u32> {
-    value.0.as_i64().and_then(|v| Some(v as u32))
-}
-
-
-fn variant_to_bool(value: Variant<Box<RefArg>>) -> Option<bool> {
-    value.0.as_i64().and_then(|v| Some(v == 0))
-}
-
-
-pub fn extract<'a, T>(var: &'a Variant<Iter>) -> Result<T, String>
+pub fn extract<'a, T>(var: &mut Variant<Iter<'a>>) -> Result<T, String>
     where T: Get<'a>
 {
     var.0
-        .clone()
         .get::<T>()
-        .ok_or(format!("D-Bus variant type does not match: {:?}", var))
+        .ok_or_else(|| format!("D-Bus variant type does not match: {:?}", var))
 }
 
-pub fn variant_iter_to_vec_u8(var: &Variant<Iter>) -> Result<Vec<u8>, String> {
-    let array_option = &var.0.clone().get::<Array<u8, _>>();
+pub fn variant_iter_to_vec_u8(var: &mut Variant<Iter>) -> Result<Vec<u8>, String> {
+    let array_option = &var.0.get::<Array<u8, _>>();
 
     if let Some(array) = *array_option {
         Ok(array.collect())
