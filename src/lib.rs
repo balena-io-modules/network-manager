@@ -26,6 +26,6 @@ mod wifi;
 mod ssid;
 
 pub use manager::NetworkManager;
-pub use connection::{Connection, ConnectionSettings};
-pub use device::{Device, DeviceType};
+pub use connection::{Connection, ConnectionSettings, ConnectionState};
+pub use device::{Device, DeviceType, DeviceState};
 pub use wifi::AccessPoint;
