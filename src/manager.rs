@@ -137,6 +137,7 @@ pub enum NetworkManagerState {
 impl From<i64> for NetworkManagerState {
     fn from(state: i64) -> Self {
         match state {
+            0 => NetworkManagerState::Unknown,
             10 => NetworkManagerState::Asleep,
             20 => NetworkManagerState::Disconnected,
             30 => NetworkManagerState::Disconnecting,
@@ -144,7 +145,10 @@ impl From<i64> for NetworkManagerState {
             50 => NetworkManagerState::ConnectedLocal,
             60 => NetworkManagerState::ConnectedSite,
             70 => NetworkManagerState::ConnectedGlobal,
-            _ => NetworkManagerState::Unknown,
+            _ => {
+                warn!("Undefined Network Manager state: {}", state);
+                NetworkManagerState::Unknown
+            },
 
         }
     }
@@ -163,11 +167,15 @@ pub enum Connectivity {
 impl From<i64> for Connectivity {
     fn from(state: i64) -> Self {
         match state {
+            0 => Connectivity::Unknown,
             1 => Connectivity::None,
             2 => Connectivity::Portal,
             3 => Connectivity::Limited,
             4 => Connectivity::Full,
-            _ => Connectivity::Unknown,
+            _ => {
+                warn!("Undefined connectivity state: {}", state);
+                Connectivity::Unknown
+            },
 
         }
     }

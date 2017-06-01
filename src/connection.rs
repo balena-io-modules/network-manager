@@ -180,11 +180,15 @@ pub enum ConnectionState {
 impl From<i64> for ConnectionState {
     fn from(state: i64) -> Self {
         match state {
+            0 => ConnectionState::Unknown,
             1 => ConnectionState::Activating,
             2 => ConnectionState::Activated,
             3 => ConnectionState::Deactivating,
             4 => ConnectionState::Deactivated,
-            _ => ConnectionState::Unknown,
+            _ => {
+                warn!("Undefined connection state: {}", state);
+                ConnectionState::Unknown
+            },
         }
     }
 }
