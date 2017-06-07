@@ -4,14 +4,14 @@ version = "0.3.2"
 authors = ["Joseph Roberts <joe@resin.io>", "Zahari Petkov <zahari@resin.io>"]
 
 [dependencies]
-clippy = {version = "*", optional = true}
-dbus = "0.5.2"
-futures = "0.1.9"
-futures-cpupool = "0.1.2"
-tokio-timer = "0.1.0"
-bitflags = "0.8.0"
+dbus = "0.5"
+futures = "0.1"
+futures-cpupool = "0.1"
+tokio-timer = "0.1"
+bitflags = "0.9"
 ascii = "0.8"
 log = "0.3"
 
-[features]
-default = []
+[dependencies.clippy]
+version = "*"
+optional = true

@@ -101,50 +101,50 @@ impl AccessPoint {
 
 
 bitflags! {
-    pub flags Security: u32 {
-        const NONE         = 0b0000000,
-        const WEP          = 0b0000001,
-        const WPA          = 0b0000010,
-        const WPA2         = 0b0000100,
-        const ENTERPRISE   = 0b0001000,
+    pub struct Security: u32 {
+        const NONE         = 0b0000000;
+        const WEP          = 0b0000001;
+        const WPA          = 0b0000010;
+        const WPA2         = 0b0000100;
+        const ENTERPRISE   = 0b0001000;
     }
 }
 
 
 bitflags! {
-    pub flags NM80211ApFlags: u32 {
+    pub struct NM80211ApFlags: u32 {
         // access point has no special capabilities
-        const AP_FLAGS_NONE           = 0x00000000,
+        const AP_FLAGS_NONE           = 0x00000000;
         // access point requires authentication and
-        const AP_FLAGS_PRIVACY        = 0x00000001,
+        const AP_FLAGS_PRIVACY        = 0x00000001;
     }
 }
 
 
 bitflags! {
-    pub flags NM80211ApSecurityFlags: u32 {
+    pub struct NM80211ApSecurityFlags: u32 {
          // the access point has no special security requirements
-        const AP_SEC_NONE                    = 0x00000000,
+        const AP_SEC_NONE                    = 0x00000000;
         // 40/64-bit WEP is supported for pairwise/unicast encryption
-        const AP_SEC_PAIR_WEP40              = 0x00000001,
+        const AP_SEC_PAIR_WEP40              = 0x00000001;
         // 104/128-bit WEP is supported for pairwise/unicast encryption
-        const AP_SEC_PAIR_WEP104             = 0x00000002,
+        const AP_SEC_PAIR_WEP104             = 0x00000002;
         // TKIP is supported for pairwise/unicast encryption
-        const AP_SEC_PAIR_TKIP               = 0x00000004,
+        const AP_SEC_PAIR_TKIP               = 0x00000004;
         // AES/CCMP is supported for pairwise/unicast encryption
-        const AP_SEC_PAIR_CCMP               = 0x00000008,
+        const AP_SEC_PAIR_CCMP               = 0x00000008;
         // 40/64-bit WEP is supported for group/broadcast encryption
-        const AP_SEC_GROUP_WEP40             = 0x00000010,
+        const AP_SEC_GROUP_WEP40             = 0x00000010;
         // 104/128-bit WEP is supported for group/broadcast encryption
-        const AP_SEC_GROUP_WEP104            = 0x00000020,
+        const AP_SEC_GROUP_WEP104            = 0x00000020;
         // TKIP is supported for group/broadcast encryption
-        const AP_SEC_GROUP_TKIP              = 0x00000040,
+        const AP_SEC_GROUP_TKIP              = 0x00000040;
         // AES/CCMP is supported for group/broadcast encryption
-        const AP_SEC_GROUP_CCMP              = 0x00000080,
+        const AP_SEC_GROUP_CCMP              = 0x00000080;
         // WPA/RSN Pre-Shared Key encryption is supported
-        const AP_SEC_KEY_MGMT_PSK            = 0x00000100,
+        const AP_SEC_KEY_MGMT_PSK            = 0x00000100;
         // 802.1x authentication and key management is supported
-        const AP_SEC_KEY_MGMT_802_1X         = 0x00000200,
+        const AP_SEC_KEY_MGMT_802_1X         = 0x00000200;
     }
 }
 
