@@ -161,6 +161,7 @@ impl<'a> From<&'a Connection> for i32 {
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct ConnectionSettings {
+    pub kind: String, // `type` is a reserved word, so we are using `kind` instead
     pub id: String,
     pub uuid: String,
     pub ssid: Ssid,

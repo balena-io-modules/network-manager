@@ -130,6 +130,7 @@ impl DBusNetworkManager {
 
         let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = self.dbus.extract(&response)?;
 
+        let mut kind = String::new();
         let mut id = String::new();
         let mut uuid = String::new();
         let mut ssid = Ssid::new();
@@ -143,6 +144,9 @@ impl DBusNetworkManager {
                     "uuid" => {
                         uuid = extract::<String>(&mut v2)?;
                     },
+                    "type" => {
+                        kind = extract::<String>(&mut v2)?;
+                    },
                     "ssid" => {
                         ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&mut v2)?)?;
                     },
@@ -152,6 +156,7 @@ impl DBusNetworkManager {
         }
 
         Ok(ConnectionSettings {
+            kind: kind,
             id: id,
             uuid: uuid,
             ssid: ssid,
