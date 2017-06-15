@@ -64,9 +64,9 @@ fn find_device(manager: &NetworkManager, interface: Option<String>) -> Option<De
     } else {
         let devices = manager.get_devices().unwrap();
 
-        let index = devices
-            .iter()
-            .position(|d| *d.device_type() == DeviceType::WiFi);
+        let index = devices.iter().position(
+            |d| *d.device_type() == DeviceType::WiFi,
+        );
 
         if let Some(index) = index {
             Some(devices[index].clone())

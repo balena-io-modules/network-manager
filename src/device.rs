@@ -20,14 +20,12 @@ impl Device {
 
         let device_type = dbus_manager.get_device_type(path)?;
 
-        Ok(
-            Device {
-                dbus_manager: dbus_manager.clone(),
-                path: path.to_string(),
-                interface: interface,
-                device_type: device_type,
-            }
-        )
+        Ok(Device {
+            dbus_manager: dbus_manager.clone(),
+            path: path.to_string(),
+            interface: interface,
+            device_type: device_type,
+        })
     }
 
     pub fn device_type(&self) -> &DeviceType {

@@ -16,7 +16,8 @@ impl Ssid {
     }
 
     pub fn from_bytes<B>(bytes: B) -> Result<Self, String>
-        where B: Into<Vec<u8>> + AsRef<[u8]>
+    where
+        B: Into<Vec<u8>> + AsRef<[u8]>,
     {
         match bytes.as_ref().as_ssid_slice() {
             Ok(_) => Ok(unsafe { Ssid::from_bytes_unchecked(bytes) }),
@@ -25,7 +26,8 @@ impl Ssid {
     }
 
     unsafe fn from_bytes_unchecked<B>(bytes: B) -> Self
-        where B: Into<Vec<u8>>
+    where
+        B: Into<Vec<u8>>,
     {
         Ssid {
             vec: bytes.into(),

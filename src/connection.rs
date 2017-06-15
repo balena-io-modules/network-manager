@@ -21,13 +21,11 @@ impl Connection {
     fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self, String> {
         let settings = dbus_manager.get_connection_settings(path)?;
 
-        Ok(
-            Connection {
-                dbus_manager: dbus_manager.clone(),
-                path: path.to_string(),
-                settings: settings,
-            }
-        )
+        Ok(Connection {
+            dbus_manager: dbus_manager.clone(),
+            path: path.to_string(),
+            settings: settings,
+        })
     }
 
     pub fn settings(&self) -> &ConnectionSettings {
@@ -209,8 +207,9 @@ pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Conn
 }
 
 
-pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>)
-    -> Result<Vec<Connection>, String> {
+pub fn get_active_connections(
+    dbus_manager: &Rc<DBusNetworkManager>,
+) -> Result<Vec<Connection>, String> {
     let active_paths = dbus_manager.get_active_connections()?;
 
     let mut connections = Vec::with_capacity(active_paths.len());
@@ -235,11 +234,16 @@ pub fn connect_to_access_point<P>(
     security: &Security,
     password: &P,
 ) -> Result<(Connection, ConnectionState), String>
-    where P: AsAsciiStr + ?Sized
+where
+    P: AsAsciiStr + ?Sized,
 {
-    let (path, _) =
-        dbus_manager
-            .connect_to_access_point(device_path, access_point_path, ssid, security, password)?;
+    let (path, _) = dbus_manager.connect_to_access_point(
+        device_path,
+        access_point_path,
+        ssid,
+        security,
+        password,
+    )?;
 
     let connection = Connection::init(dbus_manager, &path)?;
 
@@ -255,11 +259,16 @@ pub fn create_hotspot<S, P>(
     ssid: &S,
     password: Option<&P>,
 ) -> Result<(Connection, ConnectionState), String>
-    where S: AsSsidSlice + ?Sized,
-          P: AsAsciiStr + ?Sized
+where
+    S: AsSsidSlice + ?Sized,
+    P: AsAsciiStr + ?Sized,
 {
-    let (path, _) = dbus_manager
-        .create_hotspot(device_path, interface, ssid, password)?;
+    let (path, _) = dbus_manager.create_hotspot(
+        device_path,
+        interface,
+        ssid,
+        password,
+    )?;
 
     let connection = Connection::init(dbus_manager, &path)?;
 
