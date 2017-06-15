@@ -31,8 +31,9 @@ impl<'a> WiFiDevice<'a> {
     pub fn get_access_points(&self) -> Result<Vec<AccessPoint>, String> {
         let mut access_points = Vec::new();
 
-        let paths = self.dbus_manager
-            .get_device_access_points(self.device.path())?;
+        let paths = self.dbus_manager.get_device_access_points(
+            self.device.path(),
+        )?;
 
         for path in paths {
             if let Some(access_point) = get_access_point(&self.dbus_manager, &path)? {
@@ -51,7 +52,8 @@ impl<'a> WiFiDevice<'a> {
         access_point: &AccessPoint,
         password: &P,
     ) -> Result<(Connection, ConnectionState), String>
-        where P: AsAsciiStr + ?Sized
+    where
+        P: AsAsciiStr + ?Sized,
     {
         connect_to_access_point(
             &self.dbus_manager,
@@ -68,8 +70,9 @@ impl<'a> WiFiDevice<'a> {
         ssid: &T,
         password: Option<&U>,
     ) -> Result<(Connection, ConnectionState), String>
-        where T: AsSsidSlice + ?Sized,
-              U: AsAsciiStr + ?Sized
+    where
+        T: AsSsidSlice + ?Sized,
+        U: AsAsciiStr + ?Sized,
     {
         create_hotspot(
             &self.dbus_manager,

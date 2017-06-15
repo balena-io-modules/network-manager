@@ -28,12 +28,12 @@ pub fn start_service(timeout: u64) -> Result<ServiceState, Error> {
                 SD_SERVICE_PATH,
                 SD_MANAGER_INTERFACE,
                 "StartUnit",
-            )
-                    .map_err(Error::Message)?
-                    .append2("NetworkManager.service", "fail");
+            ).map_err(Error::Message)?
+                .append2("NetworkManager.service", "fail");
 
-            let connection = Connection::get_private(BusType::System)
-                .map_err(Error::Connection)?;
+            let connection = Connection::get_private(BusType::System).map_err(
+                Error::Connection,
+            )?;
 
             connection
                 .send_with_reply_and_block(message, 2000)
@@ -56,12 +56,12 @@ pub fn stop_service(timeout: u64) -> Result<ServiceState, Error> {
                 SD_SERVICE_PATH,
                 SD_MANAGER_INTERFACE,
                 "StopUnit",
-            )
-                    .map_err(Error::Message)?
-                    .append2("NetworkManager.service", "fail");
+            ).map_err(Error::Message)?
+                .append2("NetworkManager.service", "fail");
 
-            let connection = Connection::get_private(BusType::System)
-                .map_err(Error::Connection)?;
+            let connection = Connection::get_private(BusType::System).map_err(
+                Error::Connection,
+            )?;
 
             connection
                 .send_with_reply_and_block(message, 2000)
@@ -78,12 +78,12 @@ pub fn get_service_state() -> Result<ServiceState, Error> {
         SD_SERVICE_PATH,
         SD_MANAGER_INTERFACE,
         "GetUnit",
-    )
-            .map_err(Error::Message)?
-            .append1("NetworkManager.service");
+    ).map_err(Error::Message)?
+        .append1("NetworkManager.service");
 
-    let connection = Connection::get_private(BusType::System)
-        .map_err(Error::Connection)?;
+    let connection = Connection::get_private(BusType::System).map_err(
+        Error::Connection,
+    )?;
 
     let response = connection
         .send_with_reply_and_block(message, 2000)
@@ -107,63 +107,63 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
         return get_service_state();
     }
 
-    let timer = Timer::default()
-        .sleep(Duration::from_secs(timeout))
-        .then(|_| Err(Error::TimedOut));
+    let timer = Timer::default().sleep(Duration::from_secs(timeout)).then(
+        |_| {
+            Err(Error::TimedOut)
+        },
+    );
 
-    let process = CpuPool::new_num_cpus().spawn_fn(
-        || {
-            let connection = Connection::get_private(BusType::System)
-                .map_err(Error::Connection)?;
-            connection
-                .add_match(
-                    "type='signal', sender='org.freedesktop.systemd1', \
+    let process = CpuPool::new_num_cpus().spawn_fn(|| {
+        let connection = Connection::get_private(BusType::System).map_err(
+            Error::Connection,
+        )?;
+        connection
+            .add_match(
+                "type='signal', sender='org.freedesktop.systemd1', \
                         interface='org.freedesktop.DBus.Properties', \
                         member='PropertiesChanged', \
-                        path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'"
-                )
-                .map_err(Error::Connection)?;
+                        path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'",
+            )
+            .map_err(Error::Connection)?;
 
-            if get_service_state()? == target_state {
-                return Ok(target_state);
+        if get_service_state()? == target_state {
+            return Ok(target_state);
+        }
+
+        for item in connection.iter(0) {
+            let response = if let ConnectionItem::Signal(ref signal) = item {
+                signal
+            } else {
+                continue;
+            };
+
+            if response.interface().ok_or(Error::NotFound)? !=
+                Interface::from("org.freedesktop.DBus.Properties") ||
+                response.member().ok_or(Error::NotFound)? != Member::from("PropertiesChanged") ||
+                response.path().ok_or(Error::NotFound)? !=
+                    Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice")
+            {
+                continue;
             }
 
-            for item in connection.iter(0) {
-                let response = if let ConnectionItem::Signal(ref signal) = item {
-                    signal
-                } else {
-                    continue;
-                };
+            let (interface, dictionary) = response.get2::<&str, Dict<&str, Variant<Iter>, _>>();
 
-                if response.interface().ok_or(Error::NotFound)? !=
-                    Interface::from("org.freedesktop.DBus.Properties") ||
-                    response.member().ok_or(Error::NotFound)? !=
-                        Member::from("PropertiesChanged") ||
-                    response.path().ok_or(Error::NotFound)? !=
-                        Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice")
-                {
-                    continue;
-                }
+            if interface.ok_or(Error::NotFound)? != "org.freedesktop.systemd1.Unit" {
+                continue;
+            }
 
-                let (interface, dictionary) = response.get2::<&str, Dict<&str, Variant<Iter>, _>>();
-
-                if interface.ok_or(Error::NotFound)? != "org.freedesktop.systemd1.Unit" {
-                    continue;
-                }
-
-                for (k, mut v) in dictionary.ok_or(Error::NotFound)? {
-                    if k == "ActiveState" {
-                        let response = v.0.get::<&str>().ok_or(Error::NotFound)?;
-                        let state: ServiceState = response.parse()?;
-                        if state == target_state {
-                            return Ok(target_state);
-                        }
+            for (k, mut v) in dictionary.ok_or(Error::NotFound)? {
+                if k == "ActiveState" {
+                    let response = v.0.get::<&str>().ok_or(Error::NotFound)?;
+                    let state: ServiceState = response.parse()?;
+                    if state == target_state {
+                        return Ok(target_state);
                     }
                 }
             }
-            Err(Error::NotFound)
         }
-    );
+        Err(Error::NotFound)
+    });
 
     match timer.select(process).map(|(result, _)| result).wait() {
         Ok(val) => Ok(val),

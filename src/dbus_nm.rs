@@ -51,8 +51,11 @@ impl DBusNetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
-        let response = self.dbus
-            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
+        let response = self.dbus.call(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "state",
+        )?;
 
         let state: i64 = self.dbus.extract(&response)?;
 
@@ -60,8 +63,11 @@ impl DBusNetworkManager {
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity, String> {
-        let response = self.dbus
-            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
+        let response = self.dbus.call(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "CheckConnectivity",
+        )?;
 
         let connectivity: i64 = self.dbus.extract(&response)?;
 
@@ -69,18 +75,27 @@ impl DBusNetworkManager {
     }
 
     pub fn is_wireless_enabled(&self) -> Result<bool, String> {
-        self.dbus
-            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
+        self.dbus.property(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "WirelessEnabled",
+        )
     }
 
     pub fn is_networking_enabled(&self) -> Result<bool, String> {
-        self.dbus
-            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
+        self.dbus.property(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "NetworkingEnabled",
+        )
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>, String> {
-        let response = self.dbus
-            .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
+        let response = self.dbus.call(
+            NM_SETTINGS_PATH,
+            NM_SETTINGS_INTERFACE,
+            "ListConnections",
+        )?;
 
         let array: Array<Path, _> = self.dbus.extract(&response)?;
 
@@ -88,8 +103,11 @@ impl DBusNetworkManager {
     }
 
     pub fn get_active_connections(&self) -> Result<Vec<String>, String> {
-        self.dbus
-            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
+        self.dbus.property(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "ActiveConnections",
+        )
     }
 
     pub fn get_active_connection_path(&self, path: &str) -> Option<String> {
@@ -108,8 +126,7 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings, String> {
-        let response = self.dbus
-            .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
+        let response = self.dbus.call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
         let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = self.dbus.extract(&response)?;
 
@@ -134,13 +151,11 @@ impl DBusNetworkManager {
             }
         }
 
-        Ok(
-            ConnectionSettings {
-                id: id,
-                uuid: uuid,
-                ssid: ssid,
-            }
-        )
+        Ok(ConnectionSettings {
+            id: id,
+            uuid: uuid,
+            ssid: ssid,
+        })
     }
 
     pub fn get_active_connection_devices(&self, path: &str) -> Result<Vec<String>, String> {
@@ -154,29 +169,27 @@ impl DBusNetworkManager {
     }
 
     pub fn activate_connection(&self, path: &str) -> Result<(), String> {
-        self.dbus
-            .call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "ActivateConnection",
-                &[
-                    &Path::new(path)? as &RefArg,
-                    &Path::new("/")? as &RefArg,
-                    &Path::new("/")? as &RefArg,
-                ],
-            )?;
+        self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "ActivateConnection",
+            &[
+                &Path::new(path)? as &RefArg,
+                &Path::new("/")? as &RefArg,
+                &Path::new("/")? as &RefArg,
+            ],
+        )?;
 
         Ok(())
     }
 
     pub fn deactivate_connection(&self, path: &str) -> Result<(), String> {
-        self.dbus
-            .call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "DeactivateConnection",
-                &[&Path::new(path)? as &RefArg],
-            )?;
+        self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "DeactivateConnection",
+            &[&Path::new(path)? as &RefArg],
+        )?;
 
         Ok(())
     }
@@ -189,7 +202,8 @@ impl DBusNetworkManager {
         security: &Security,
         password: &P,
     ) -> Result<(String, String), String>
-        where P: AsAsciiStr + ?Sized
+    where
+        P: AsAsciiStr + ?Sized,
     {
         let mut settings: HashMap<String, SettingsMap> = HashMap::new();
 
@@ -211,17 +225,16 @@ impl DBusNetworkManager {
             settings.insert("802-11-wireless-security".to_string(), security_settings);
         }
 
-        let response = self.dbus
-            .call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "AddAndActivateConnection",
-                &[
-                    &settings as &RefArg,
-                    &Path::new(device_path.to_string())? as &RefArg,
-                    &Path::new(ap_path.to_string())? as &RefArg,
-                ],
-            )?;
+        let response = self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "AddAndActivateConnection",
+            &[
+                &settings as &RefArg,
+                &Path::new(device_path.to_string())? as &RefArg,
+                &Path::new(ap_path.to_string())? as &RefArg,
+            ],
+        )?;
 
 
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
@@ -236,8 +249,9 @@ impl DBusNetworkManager {
         ssid: &T,
         password: Option<&U>,
     ) -> Result<(String, String), String>
-        where T: AsSsidSlice + ?Sized,
-              U: AsAsciiStr + ?Sized
+    where
+        T: AsSsidSlice + ?Sized,
+        U: AsAsciiStr + ?Sized,
     {
         let ssid = ssid.as_ssid_slice()?;
         let ssid_vec = ssid.as_bytes().to_vec();
@@ -275,17 +289,16 @@ impl DBusNetworkManager {
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
-        let response = self.dbus
-            .call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "AddAndActivateConnection",
-                &[
-                    &settings as &RefArg,
-                    &Path::new(device_path)? as &RefArg,
-                    &Path::new("/")? as &RefArg,
-                ],
-            )?;
+        let response = self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "AddAndActivateConnection",
+            &[
+                &settings as &RefArg,
+                &Path::new(device_path)? as &RefArg,
+                &Path::new("/")? as &RefArg,
+            ],
+        )?;
 
 
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
@@ -294,18 +307,20 @@ impl DBusNetworkManager {
     }
 
     pub fn get_devices(&self) -> Result<Vec<String>, String> {
-        self.dbus
-            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
+        self.dbus.property(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "Devices",
+        )
     }
 
     pub fn get_device_by_interface(&self, interface: &str) -> Result<String, String> {
-        let response = self.dbus
-            .call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "GetDeviceByIpIface",
-                &[&interface.to_string() as &RefArg],
-            )?;
+        let response = self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "GetDeviceByIpIface",
+            &[&interface.to_string() as &RefArg],
+        )?;
 
         let path: Path = self.dbus.extract(&response)?;
 
@@ -325,17 +340,16 @@ impl DBusNetworkManager {
     }
 
     pub fn connect_device(&self, path: &str) -> Result<(), String> {
-        self.dbus
-            .call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "ActivateConnection",
-                &[
-                    &Path::new("/")? as &RefArg,
-                    &Path::new(path)? as &RefArg,
-                    &Path::new("/")? as &RefArg,
-                ],
-            )?;
+        self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "ActivateConnection",
+            &[
+                &Path::new("/")? as &RefArg,
+                &Path::new(path)? as &RefArg,
+                &Path::new("/")? as &RefArg,
+            ],
+        )?;
 
         Ok(())
     }
@@ -347,13 +361,19 @@ impl DBusNetworkManager {
     }
 
     pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>, String> {
-        self.dbus
-            .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
+        self.dbus.property(
+            path,
+            NM_WIRELESS_INTERFACE,
+            "AccessPoints",
+        )
     }
 
     pub fn get_access_point_ssid(&self, path: &str) -> Option<Ssid> {
-        if let Ok(ssid_vec) = self.dbus
-            .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid")
+        if let Ok(ssid_vec) = self.dbus.property::<Vec<u8>>(
+            path,
+            NM_ACCESS_POINT_INTERFACE,
+            "Ssid",
+        )
         {
             Ssid::from_bytes(ssid_vec).ok()
         } else {
@@ -362,8 +382,11 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_strength(&self, path: &str) -> Result<u32, String> {
-        self.dbus
-            .property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
+        self.dbus.property(
+            path,
+            NM_ACCESS_POINT_INTERFACE,
+            "Strength",
+        )
     }
 
     pub fn get_access_point_flags(&self, path: &str) -> Result<NM80211ApFlags, String> {
@@ -371,13 +394,19 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_wpa_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
-        self.dbus
-            .property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
+        self.dbus.property(
+            path,
+            NM_ACCESS_POINT_INTERFACE,
+            "WpaFlags",
+        )
     }
 
     pub fn get_access_point_rsn_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
-        self.dbus
-            .property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
+        self.dbus.property(
+            path,
+            NM_ACCESS_POINT_INTERFACE,
+            "RsnFlags",
+        )
     }
 }
 
@@ -398,34 +427,34 @@ impl VariantTo<DeviceState> for DBusApi {
 
 impl VariantTo<NM80211ApFlags> for DBusApi {
     fn variant_to(value: &Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
-        value
-            .0
-            .as_i64()
-            .and_then(|v| NM80211ApFlags::from_bits(v as u32))
+        value.0.as_i64().and_then(
+            |v| NM80211ApFlags::from_bits(v as u32),
+        )
     }
 }
 
 
 impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
     fn variant_to(value: &Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
-        value
-            .0
-            .as_i64()
-            .and_then(|v| NM80211ApSecurityFlags::from_bits(v as u32))
+        value.0.as_i64().and_then(|v| {
+            NM80211ApSecurityFlags::from_bits(v as u32)
+        })
     }
 }
 
 
 pub fn add_val<K, V>(map: &mut SettingsMap, key: K, value: V)
-    where K: Into<String>,
-          V: RefArg + 'static
+where
+    K: Into<String>,
+    V: RefArg + 'static,
 {
     map.insert(key.into(), Variant(Box::new(value)));
 }
 
 pub fn add_str<K, V>(map: &mut SettingsMap, key: K, value: V)
-    where K: Into<String>,
-          V: Into<String>
+where
+    K: Into<String>,
+    V: Into<String>,
 {
     map.insert(key.into(), Variant(Box::new(value.into())));
 }
