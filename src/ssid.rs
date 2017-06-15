@@ -1,9 +1,12 @@
 use std::ops::Deref;
 use std::mem;
 use std::str;
+use std::fmt;
+use std::fmt::Write;
+use std::ascii;
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ssid {
     vec: Vec<u8>,
 }
@@ -48,7 +51,13 @@ impl Deref for Ssid {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl fmt::Debug for Ssid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self as &SsidSlice, f)
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SsidSlice {
     slice: [u8],
 }
@@ -64,6 +73,18 @@ impl SsidSlice {
 
     pub fn as_bytes(&self) -> &[u8] {
         unsafe { mem::transmute(&self.slice) }
+    }
+}
+
+impl fmt::Debug for SsidSlice {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_char('"')?;
+        for byte in self.as_bytes() {
+            for c in ascii::escape_default(*byte) {
+                f.write_char(c as char)?;
+            }
+        }
+        f.write_char('"')
     }
 }
 
@@ -119,5 +140,20 @@ mod tests {
         let ssid_u8 = [0x68_u8, 0x65_u8, 0x6c_u8, 0x6c_u8, 0x6f_u8];
         let slice_from_u8 = (&ssid_u8 as &[u8]).as_ssid_slice().unwrap();
         assert_eq!(slice_from_str, slice_from_u8);
+    }
+
+    #[test]
+    fn test_ssid_debug() {
+        let ssid = Ssid::from_bytes(b"hello\0\x7F".to_vec()).unwrap();
+        let debug = format!("{:?}", ssid);
+        assert_eq!(debug, "\"hello\\x00\\x7f\"");
+    }
+
+    #[test]
+    fn test_ssid_slice_debug() {
+        let ssid = Ssid::from_bytes(b"hello\0\x7F".to_vec()).unwrap();
+        let slice = &ssid as &SsidSlice;
+        let debug = format!("{:?}", slice);
+        assert_eq!(debug, "\"hello\\x00\\x7f\"");
     }
 }
