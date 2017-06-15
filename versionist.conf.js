@@ -12,7 +12,7 @@ module.exports = {
   parseFooterTags: true,
   getGitReferenceFromVersion: 'v-prefix',
   incrementVersion: 'semver',
-  updateVersion: (cwd, version, cb) => { cb(); },
+  updateVersion: 'cargo',
 
   // Always add the entry to the top of the Changelog, below the header.
   addEntryToChangelog: {
