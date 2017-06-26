@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::fmt;
+use std::net::Ipv4Addr;
 
 use ascii::AsAsciiStr;
 
@@ -259,6 +260,7 @@ pub fn create_hotspot<S, P>(
     interface: &str,
     ssid: &S,
     password: Option<&P>,
+    address: Option<Ipv4Addr>,
 ) -> Result<(Connection, ConnectionState), String>
 where
     S: AsSsidSlice + ?Sized,
@@ -269,6 +271,7 @@ where
         interface,
         ssid,
         password,
+        address,
     )?;
 
     let connection = Connection::init(dbus_manager, &path)?;

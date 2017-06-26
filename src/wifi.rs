@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::net::Ipv4Addr;
 
 use ascii::AsAsciiStr;
 
@@ -69,6 +70,7 @@ impl<'a> WiFiDevice<'a> {
         &self,
         ssid: &T,
         password: Option<&U>,
+        address: Option<Ipv4Addr>,
     ) -> Result<(Connection, ConnectionState), String>
     where
         T: AsSsidSlice + ?Sized,
@@ -80,6 +82,7 @@ impl<'a> WiFiDevice<'a> {
             self.device.interface(),
             ssid,
             password,
+            address,
         )
     }
 }

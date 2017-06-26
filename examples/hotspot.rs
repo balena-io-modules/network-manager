@@ -94,5 +94,7 @@ fn main() {
     let device = find_device(&manager, interface).unwrap();
     let wifi_device = device.as_wifi_device().unwrap();
 
-    wifi_device.create_hotspot(&ssid as &str, pass_str).unwrap();
+    wifi_device
+        .create_hotspot(&ssid as &str, pass_str, None)
+        .unwrap();
 }
