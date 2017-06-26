@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::net::Ipv4Addr;
 
 use ascii::AsAsciiStr;
 
@@ -13,7 +14,7 @@ use device::{DeviceType, DeviceState};
 use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
 
 
-type SettingsMap = HashMap<String, Variant<Box<RefArg>>>;
+type VariantMap = HashMap<String, Variant<Box<RefArg>>>;
 
 const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
 
@@ -210,14 +211,14 @@ impl DBusNetworkManager {
     where
         P: AsAsciiStr + ?Sized,
     {
-        let mut settings: HashMap<String, SettingsMap> = HashMap::new();
+        let mut settings: HashMap<String, VariantMap> = HashMap::new();
 
-        let mut wireless: SettingsMap = HashMap::new();
+        let mut wireless: VariantMap = HashMap::new();
         add_val(&mut wireless, "ssid", ssid.as_bytes().to_vec());
         settings.insert("802-11-wireless".to_string(), wireless);
 
         if *security != NONE {
-            let mut security_settings: SettingsMap = HashMap::new();
+            let mut security_settings: VariantMap = HashMap::new();
 
             if security.contains(WEP) {
                 add_val(&mut security_settings, "wep-key-type", NM_WEP_KEY_TYPE_PASSPHRASE);
@@ -253,6 +254,7 @@ impl DBusNetworkManager {
         interface: &str,
         ssid: &T,
         password: Option<&U>,
+        address: Option<Ipv4Addr>,
     ) -> Result<(String, String), String>
     where
         T: AsSsidSlice + ?Sized,
@@ -261,13 +263,13 @@ impl DBusNetworkManager {
         let ssid = ssid.as_ssid_slice()?;
         let ssid_vec = ssid.as_bytes().to_vec();
 
-        let mut wireless: SettingsMap = HashMap::new();
+        let mut wireless: VariantMap = HashMap::new();
         add_val(&mut wireless, "ssid", ssid_vec);
         add_str(&mut wireless, "band", "bg");
         add_val(&mut wireless, "hidden", false);
         add_str(&mut wireless, "mode", "ap");
 
-        let mut connection: SettingsMap = HashMap::new();
+        let mut connection: VariantMap = HashMap::new();
         add_val(&mut connection, "autoconnect", false);
         if let Ok(ssid_str) = ssid.as_str() {
             add_str(&mut connection, "id", ssid_str);
@@ -275,15 +277,25 @@ impl DBusNetworkManager {
         add_str(&mut connection, "interface-name", interface);
         add_str(&mut connection, "type", "802-11-wireless");
 
-        let mut ipv4: SettingsMap = HashMap::new();
-        add_str(&mut ipv4, "method", "shared");
+        let mut ipv4: VariantMap = HashMap::new();
+        if let Some(address) = address {
+            add_str(&mut ipv4, "method", "manual");
 
-        let mut settings: HashMap<String, SettingsMap> = HashMap::new();
+            let mut addr_map: VariantMap = HashMap::new();
+            add_str(&mut addr_map, "address", format!("{}", address));
+            add_val(&mut addr_map, "prefix", 24_u32);
+
+            add_val(&mut ipv4, "address-data", vec![addr_map]);
+        } else {
+            add_str(&mut ipv4, "method", "shared");
+        }
+
+        let mut settings: HashMap<String, VariantMap> = HashMap::new();
 
         if let Some(password) = password {
             add_str(&mut wireless, "security", "802-11-wireless-security");
 
-            let mut security: SettingsMap = HashMap::new();
+            let mut security: VariantMap = HashMap::new();
             add_str(&mut security, "key-mgmt", "wpa-psk");
             add_str(&mut security, "psk", verify_password(password)?);
 
@@ -448,7 +460,7 @@ impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
 }
 
 
-pub fn add_val<K, V>(map: &mut SettingsMap, key: K, value: V)
+pub fn add_val<K, V>(map: &mut VariantMap, key: K, value: V)
 where
     K: Into<String>,
     V: RefArg + 'static,
@@ -456,7 +468,7 @@ where
     map.insert(key.into(), Variant(Box::new(value)));
 }
 
-pub fn add_str<K, V>(map: &mut SettingsMap, key: K, value: V)
+pub fn add_str<K, V>(map: &mut VariantMap, key: K, value: V)
 where
     K: Into<String>,
     V: Into<String>,
