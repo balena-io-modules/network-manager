@@ -70,7 +70,7 @@ impl DBusNetworkManager {
             "CheckConnectivity",
         )?;
 
-        let connectivity: i64 = self.dbus.extract(&response)?;
+        let connectivity: u32 = self.dbus.extract(&response)?;
 
         Ok(Connectivity::from(connectivity))
     }
