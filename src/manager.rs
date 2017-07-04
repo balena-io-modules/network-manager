@@ -164,8 +164,8 @@ pub enum Connectivity {
     Full,
 }
 
-impl From<i64> for Connectivity {
-    fn from(state: i64) -> Self {
+impl From<u32> for Connectivity {
+    fn from(state: u32) -> Self {
         match state {
             0 => Connectivity::Unknown,
             1 => Connectivity::None,
@@ -198,6 +198,13 @@ mod tests {
         let manager = NetworkManager::new();
         let devices = manager.get_devices().unwrap();
         assert!(devices.len() > 0);
+    }
+
+    #[test]
+    fn test_get_connectivity() {
+        let manager = NetworkManager::new();
+        let connectivity = manager.get_connectivity().unwrap();
+        assert_eq!(connectivity, Connectivity::Full);
     }
 
     #[test]
