@@ -166,6 +166,7 @@ pub struct ConnectionSettings {
     pub id: String,
     pub uuid: String,
     pub ssid: Ssid,
+    pub mode: String,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
