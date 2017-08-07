@@ -135,6 +135,7 @@ impl DBusNetworkManager {
         let mut id = String::new();
         let mut uuid = String::new();
         let mut ssid = Ssid::new();
+        let mut mode = String::new();
 
         for (_, v1) in dict {
             for (k2, mut v2) in v1 {
@@ -151,6 +152,9 @@ impl DBusNetworkManager {
                     "ssid" => {
                         ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&mut v2)?)?;
                     },
+                    "mode" => {
+                        mode = extract::<String>(&mut v2)?;
+                    },
                     _ => {},
                 }
             }
@@ -161,6 +165,7 @@ impl DBusNetworkManager {
             id: id,
             uuid: uuid,
             ssid: ssid,
+            mode: mode,
         })
     }
 
