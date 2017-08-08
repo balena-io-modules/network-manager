@@ -140,7 +140,7 @@ impl DBusApi {
     where
         DBusApi: VariantTo<T>,
     {
-        let property_error = |details: &str| {
+        let property_error = |details: &str, err: bool| {
             let message = format!(
                 "D-Bus get '{}'::'{}' property failed on '{}': {}",
                 interface,
@@ -148,7 +148,11 @@ impl DBusApi {
                 path,
                 details
             );
-            error!("{}", message);
+            if err {
+                error!("{}", message);
+            } else {
+                warn!("{}", message);
+            }
             Err(message)
         };
 
@@ -158,13 +162,13 @@ impl DBusApi {
             Ok(variant) => {
                 match DBusApi::variant_to(&variant) {
                     Some(data) => Ok(data),
-                    None => property_error("wrong property type"),
+                    None => property_error("wrong property type", true),
                 }
             },
             Err(err) => {
                 match err.message() {
-                    Some(details) => property_error(details),
-                    None => property_error("no details"),
+                    Some(details) => property_error(details, false),
+                    None => property_error("no details", false),
                 }
             },
         }
