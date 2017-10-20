@@ -23,7 +23,7 @@ impl Connection {
         let settings = dbus_manager.get_connection_settings(path)?;
 
         Ok(Connection {
-            dbus_manager: dbus_manager.clone(),
+            dbus_manager: Rc::clone(dbus_manager),
             path: path.to_string(),
             settings: settings,
         })

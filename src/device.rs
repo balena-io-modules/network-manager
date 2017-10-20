@@ -21,7 +21,7 @@ impl Device {
         let device_type = dbus_manager.get_device_type(path)?;
 
         Ok(Device {
-            dbus_manager: dbus_manager.clone(),
+            dbus_manager: Rc::clone(dbus_manager),
             path: path.to_string(),
             interface: interface,
             device_type: device_type,
