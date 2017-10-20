@@ -1,7 +1,13 @@
 [package]
-name = "network_manager"
+name = "network-manager"
 version = "0.7.2"
 authors = ["Joseph Roberts <joe@resin.io>", "Zahari Petkov <zahari@resin.io>"]
+description = "Rust NetworkManager bindings"
+homepage = "https://github.com/resin-io-modules/network-manager"
+repository = "https://github.com/resin-io-modules/network-manager"
+keywords = ["NetworkManager", "network manager", "networking", "Wi-Fi", "wifi"]
+categories = ["api-bindings", "network-programming", "os::unix-apis"]
+license = "Apache-2.0"
 
 [dependencies]
 dbus = "0.5"
