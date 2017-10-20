@@ -3,9 +3,6 @@
 //! The Network Manager Library provides the essential
 //! functionality for configuring Network Manager from Rust.
 
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-
 #[macro_use]
 extern crate log;
 
