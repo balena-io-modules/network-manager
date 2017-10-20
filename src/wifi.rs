@@ -157,7 +157,7 @@ pub fn new_wifi_device<'a>(
     device: &'a Device,
 ) -> WiFiDevice<'a> {
     WiFiDevice {
-        dbus_manager: dbus_manager.clone(),
+        dbus_manager: Rc::clone(dbus_manager),
         device: device,
     }
 }
