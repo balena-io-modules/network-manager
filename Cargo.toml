@@ -1,6 +1,6 @@
 [package]
 name = "network-manager"
-version = "0.8.5"
+version = "0.8.6"
 authors = ["Zahari Petkov <zahari@resin.io>", "Aaron Brodersen <aaron@resin.io>"]
 description = "Rust NetworkManager bindings"
 homepage = "https://github.com/resin-io-modules/network-manager"
