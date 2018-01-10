@@ -112,9 +112,15 @@ bitflags! {
 bitflags! {
     pub struct NM80211ApFlags: u32 {
         // access point has no special capabilities
-        const AP_FLAGS_NONE           = 0x0000_0000;
-        // access point requires authentication and
-        const AP_FLAGS_PRIVACY        = 0x0000_0001;
+        const AP_FLAGS_NONE                  = 0x0000_0000;
+        // access point requires authentication and encryption (usually means WEP)
+        const AP_FLAGS_PRIVACY               = 0x0000_0001;
+        // access point supports some WPS method
+        const AP_FLAGS_WPS                   = 0x0000_0002;
+        // access point supports push-button WPS
+        const AP_FLAGS_WPS_PBC               = 0x0000_0004;
+        // access point supports PIN-based WPS
+        const AP_FLAGS_WPS_PIN               = 0x0000_0008;
     }
 }
 
