@@ -3,8 +3,7 @@ extern crate network_manager;
 use std::env;
 use std::process;
 
-use network_manager::{NetworkManager, Device, DeviceType};
-
+use network_manager::{Device, DeviceType, NetworkManager};
 
 struct Options {
     interface: Option<String>,
@@ -12,12 +11,10 @@ struct Options {
     password: Option<String>,
 }
 
-
 fn print_usage_and_exit() {
     println!("USAGE: hotspot [-i INTERFACE] SSID [PASSWORD]");
     process::exit(1);
 }
-
 
 fn parse_options() -> Options {
     let args: Vec<String> = env::args().collect();
@@ -51,7 +48,6 @@ fn parse_options() -> Options {
     }
 }
 
-
 fn find_device(manager: &NetworkManager, interface: Option<String>) -> Option<Device> {
     if let Some(interface) = interface {
         let device = manager.get_device_by_interface(&interface).unwrap();
@@ -64,9 +60,9 @@ fn find_device(manager: &NetworkManager, interface: Option<String>) -> Option<De
     } else {
         let devices = manager.get_devices().unwrap();
 
-        let index = devices.iter().position(
-            |d| *d.device_type() == DeviceType::WiFi,
-        );
+        let index = devices
+            .iter()
+            .position(|d| *d.device_type() == DeviceType::WiFi);
 
         if let Some(index) = index {
             Some(devices[index].clone())
@@ -75,7 +71,6 @@ fn find_device(manager: &NetworkManager, interface: Option<String>) -> Option<De
         }
     }
 }
-
 
 fn main() {
     let Options {

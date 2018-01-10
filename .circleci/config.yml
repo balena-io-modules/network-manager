@@ -1,0 +1,41 @@
+
+build: &build
+  docker:
+    - image: majorz/rust-$CIRCLE_JOB:rust-1.23.0
+  steps:
+    - checkout
+    - run: cargo build
+
+version: 2
+
+jobs:
+  aarch64:
+    <<: *build
+  rpi:
+    <<: *build
+  armv7hf:
+    <<: *build
+  i386:
+    <<: *build
+  amd64:
+    <<: *build
+  test:
+    docker:
+      - image: majorz/rust-test-deploy:rust-nightly-2018-01-08
+    steps:
+      - checkout
+      - run: cargo fmt -- --write-mode=diff
+      - run: cargo clippy -- -D warnings
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
+  build:
+    jobs:
+      - aarch64
+      - rpi
+      - armv7hf
+      - i386
+      - amd64
