@@ -2,10 +2,9 @@ use std::rc::Rc;
 
 use dbus_nm::DBusNetworkManager;
 
-use connection::{Connection, get_connections, get_active_connections};
-use device::{Device, get_devices, get_device_by_interface};
-use service::{start_service, stop_service, get_service_state, ServiceState, Error};
-
+use connection::{get_active_connections, get_connections, Connection};
+use device::{get_device_by_interface, get_devices, Device};
+use service::{get_service_state, start_service, stop_service, Error, ServiceState};
 
 pub struct NetworkManager {
     dbus_manager: Rc<DBusNetworkManager>,
@@ -149,11 +148,9 @@ impl From<i64> for NetworkManagerState {
                 warn!("Undefined Network Manager state: {}", state);
                 NetworkManagerState::Unknown
             },
-
         }
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Connectivity {
@@ -176,11 +173,9 @@ impl From<u32> for Connectivity {
                 warn!("Undefined connectivity state: {}", state);
                 Connectivity::Unknown
             },
-
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -216,17 +211,29 @@ mod tests {
         match s {
             ServiceState::Active => {
                 NetworkManager::stop_service(10).unwrap();
-                assert_eq!(ServiceState::Inactive, NetworkManager::get_service_state().unwrap());
+                assert_eq!(
+                    ServiceState::Inactive,
+                    NetworkManager::get_service_state().unwrap()
+                );
 
                 NetworkManager::start_service(10).unwrap();
-                assert_eq!(ServiceState::Active, NetworkManager::get_service_state().unwrap());
+                assert_eq!(
+                    ServiceState::Active,
+                    NetworkManager::get_service_state().unwrap()
+                );
             },
             ServiceState::Inactive => {
                 NetworkManager::start_service(10).unwrap();
-                assert_eq!(ServiceState::Active, NetworkManager::get_service_state().unwrap());
+                assert_eq!(
+                    ServiceState::Active,
+                    NetworkManager::get_service_state().unwrap()
+                );
 
                 NetworkManager::stop_service(10).unwrap();
-                assert_eq!(ServiceState::Inactive, NetworkManager::get_service_state().unwrap());
+                assert_eq!(
+                    ServiceState::Inactive,
+                    NetworkManager::get_service_state().unwrap()
+                );
             },
             _ => (),
         }

@@ -7,9 +7,8 @@ use ascii::AsAsciiStr;
 use dbus_nm::DBusNetworkManager;
 
 use wifi::Security;
-use device::{Device, get_active_connection_devices};
-use ssid::{Ssid, SsidSlice, AsSsidSlice};
-
+use device::{get_active_connection_devices, Device};
+use ssid::{AsSsidSlice, Ssid, SsidSlice};
 
 #[derive(Clone)]
 pub struct Connection {
@@ -64,14 +63,20 @@ impl Connection {
 
         match state {
             ConnectionState::Activated => Ok(ConnectionState::Activated),
-            ConnectionState::Activating => {
-                wait(self, &ConnectionState::Activated, self.dbus_manager.method_timeout())
-            },
+            ConnectionState::Activating => wait(
+                self,
+                &ConnectionState::Activated,
+                self.dbus_manager.method_timeout(),
+            ),
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
                 self.dbus_manager.activate_connection(&self.path)?;
 
-                wait(self, &ConnectionState::Activated, self.dbus_manager.method_timeout())
+                wait(
+                    self,
+                    &ConnectionState::Activated,
+                    self.dbus_manager.method_timeout(),
+                )
             },
         }
     }
@@ -91,9 +96,11 @@ impl Connection {
 
         match state {
             ConnectionState::Deactivated => Ok(ConnectionState::Deactivated),
-            ConnectionState::Deactivating => {
-                wait(self, &ConnectionState::Deactivated, self.dbus_manager.method_timeout())
-            },
+            ConnectionState::Deactivating => wait(
+                self,
+                &ConnectionState::Deactivated,
+                self.dbus_manager.method_timeout(),
+            ),
             ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
             _ => {
                 let active_path_option =
@@ -102,7 +109,11 @@ impl Connection {
                 if let Some(active_path) = active_path_option {
                     self.dbus_manager.deactivate_connection(&active_path)?;
 
-                    wait(self, &ConnectionState::Deactivated, self.dbus_manager.method_timeout())
+                    wait(
+                        self,
+                        &ConnectionState::Deactivated,
+                        self.dbus_manager.method_timeout(),
+                    )
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
@@ -143,7 +154,11 @@ impl Eq for Connection {}
 
 impl fmt::Debug for Connection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Connection {{ path: {:?}, settings: {:?} }}", self.path, self.settings)
+        write!(
+            f,
+            "Connection {{ path: {:?}, settings: {:?} }}",
+            self.path, self.settings
+        )
     }
 }
 
@@ -158,7 +173,6 @@ impl<'a> From<&'a Connection> for i32 {
             .unwrap()
     }
 }
-
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct ConnectionSettings {
@@ -194,7 +208,6 @@ impl From<i64> for ConnectionState {
     }
 }
 
-
 pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Connection>, String> {
     let paths = dbus_manager.list_connections()?;
 
@@ -208,7 +221,6 @@ pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Conn
 
     Ok(connections)
 }
-
 
 pub fn get_active_connections(
     dbus_manager: &Rc<DBusNetworkManager>,
@@ -227,7 +239,6 @@ pub fn get_active_connections(
 
     Ok(connections)
 }
-
 
 pub fn connect_to_access_point<P>(
     dbus_manager: &Rc<DBusNetworkManager>,
@@ -250,7 +261,11 @@ where
 
     let connection = Connection::init(dbus_manager, &path)?;
 
-    let state = wait(&connection, &ConnectionState::Activated, dbus_manager.method_timeout())?;
+    let state = wait(
+        &connection,
+        &ConnectionState::Activated,
+        dbus_manager.method_timeout(),
+    )?;
 
     Ok((connection, state))
 }
@@ -267,17 +282,15 @@ where
     S: AsSsidSlice + ?Sized,
     P: AsAsciiStr + ?Sized,
 {
-    let (path, _) = dbus_manager.create_hotspot(
-        device_path,
-        interface,
-        ssid,
-        password,
-        address,
-    )?;
+    let (path, _) = dbus_manager.create_hotspot(device_path, interface, ssid, password, address)?;
 
     let connection = Connection::init(dbus_manager, &path)?;
 
-    let state = wait(&connection, &ConnectionState::Activated, dbus_manager.method_timeout())?;
+    let state = wait(
+        &connection,
+        &ConnectionState::Activated,
+        dbus_manager.method_timeout(),
+    )?;
 
     Ok((connection, state))
 }
@@ -320,15 +333,16 @@ fn wait(
         total_time += 1;
 
         if state == *target_state {
-            debug!("Connection target state reached: {:?} / {}s elapsed", state, total_time);
+            debug!(
+                "Connection target state reached: {:?} / {}s elapsed",
+                state, total_time
+            );
 
             return Ok(state);
         } else if total_time >= timeout {
             debug!(
                 "Timeout reached in waiting for connection state ({:?}): {:?} / {}s elapsed",
-                target_state,
-                state,
-                total_time
+                target_state, state, total_time
             );
 
             return Ok(state);
@@ -336,9 +350,7 @@ fn wait(
 
         debug!(
             "Still waiting for connection state ({:?}): {:?} / {}s elapsed",
-            target_state,
-            state,
-            total_time
+            target_state, state, total_time
         );
     }
 }
@@ -358,15 +370,16 @@ mod tests {
         // e.g.  export TEST_WIFI_SSID="Resin.io Wifi"
         let wifi_env_var = "TEST_WIFI_SSID";
         let connection = match ::std::env::var(wifi_env_var) {
-            Ok(ssid) => {
-                connections
-                    .iter()
-                    .filter(|c| c.settings().ssid.as_str().unwrap() == ssid)
-                    .nth(0)
-                    .unwrap()
-                    .clone()
-            },
-            Err(e) => panic!("couldn't retrieve environment variable {}: {}", wifi_env_var, e),
+            Ok(ssid) => connections
+                .iter()
+                .filter(|c| c.settings().ssid.as_str().unwrap() == ssid)
+                .nth(0)
+                .unwrap()
+                .clone(),
+            Err(e) => panic!(
+                "couldn't retrieve environment variable {}: {}",
+                wifi_env_var, e
+            ),
         };
 
         let state = connection.get_state().unwrap();

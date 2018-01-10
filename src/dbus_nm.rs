@@ -4,37 +4,35 @@ use std::net::Ipv4Addr;
 use ascii::AsAsciiStr;
 
 use dbus::Path;
-use dbus::arg::{Dict, Variant, Iter, Array, RefArg};
+use dbus::arg::{Array, Dict, Iter, RefArg, Variant};
 
-use dbus_api::{DBusApi, extract, path_to_string, VariantTo, variant_iter_to_vec_u8};
+use dbus_api::{extract, path_to_string, DBusApi, VariantTo, variant_iter_to_vec_u8};
 use manager::{Connectivity, NetworkManagerState};
 use connection::{ConnectionSettings, ConnectionState};
-use ssid::{Ssid, SsidSlice, AsSsidSlice};
-use device::{DeviceType, DeviceState};
-use wifi::{NM80211ApSecurityFlags, NM80211ApFlags, Security, WEP, NONE};
-
+use ssid::{AsSsidSlice, Ssid, SsidSlice};
+use device::{DeviceState, DeviceType};
+use wifi::{NM80211ApFlags, NM80211ApSecurityFlags, Security, NONE, WEP};
 
 type VariantMap = HashMap<String, Variant<Box<RefArg>>>;
 
-const NM_SERVICE_MANAGER: &'static str = "org.freedesktop.NetworkManager";
+const NM_SERVICE_MANAGER: &str = "org.freedesktop.NetworkManager";
 
-const NM_SERVICE_PATH: &'static str = "/org/freedesktop/NetworkManager";
-const NM_SETTINGS_PATH: &'static str = "/org/freedesktop/NetworkManager/Settings";
+const NM_SERVICE_PATH: &str = "/org/freedesktop/NetworkManager";
+const NM_SETTINGS_PATH: &str = "/org/freedesktop/NetworkManager/Settings";
 
-const NM_SERVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager";
-const NM_SETTINGS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings";
-const NM_CONNECTION_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Settings.\
-                                                   Connection";
-const NM_ACTIVE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Connection.Active";
-const NM_DEVICE_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device";
-const NM_WIRELESS_INTERFACE: &'static str = "org.freedesktop.NetworkManager.Device.Wireless";
-const NM_ACCESS_POINT_INTERFACE: &'static str = "org.freedesktop.NetworkManager.AccessPoint";
+const NM_SERVICE_INTERFACE: &str = "org.freedesktop.NetworkManager";
+const NM_SETTINGS_INTERFACE: &str = "org.freedesktop.NetworkManager.Settings";
+const NM_CONNECTION_INTERFACE: &str = "org.freedesktop.NetworkManager.Settings.\
+                                       Connection";
+const NM_ACTIVE_INTERFACE: &str = "org.freedesktop.NetworkManager.Connection.Active";
+const NM_DEVICE_INTERFACE: &str = "org.freedesktop.NetworkManager.Device";
+const NM_WIRELESS_INTERFACE: &str = "org.freedesktop.NetworkManager.Device.Wireless";
+const NM_ACCESS_POINT_INTERFACE: &str = "org.freedesktop.NetworkManager.AccessPoint";
 
 const NM_WEP_KEY_TYPE_PASSPHRASE: u32 = 2;
 
-const UNKNOWN_CONNECTION: &'static str = "org.freedesktop.NetworkManager.UnknownConnection";
-const METHOD_RETRY_ERROR_NAMES: &'static [&'static str; 1] = &[UNKNOWN_CONNECTION];
-
+const UNKNOWN_CONNECTION: &str = "org.freedesktop.NetworkManager.UnknownConnection";
+const METHOD_RETRY_ERROR_NAMES: &[&str; 1] = &[UNKNOWN_CONNECTION];
 
 pub struct DBusNetworkManager {
     dbus: DBusApi,
@@ -52,11 +50,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState, String> {
-        let response = self.dbus.call(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "state",
-        )?;
+        let response = self.dbus
+            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
         let state: i64 = self.dbus.extract(&response)?;
 
@@ -64,11 +59,8 @@ impl DBusNetworkManager {
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity, String> {
-        let response = self.dbus.call(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "CheckConnectivity",
-        )?;
+        let response = self.dbus
+            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
 
         let connectivity: u32 = self.dbus.extract(&response)?;
 
@@ -76,27 +68,18 @@ impl DBusNetworkManager {
     }
 
     pub fn is_wireless_enabled(&self) -> Result<bool, String> {
-        self.dbus.property(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "WirelessEnabled",
-        )
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
     }
 
     pub fn is_networking_enabled(&self) -> Result<bool, String> {
-        self.dbus.property(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "NetworkingEnabled",
-        )
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>, String> {
-        let response = self.dbus.call(
-            NM_SETTINGS_PATH,
-            NM_SETTINGS_INTERFACE,
-            "ListConnections",
-        )?;
+        let response = self.dbus
+            .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
 
         let array: Array<Path, _> = self.dbus.extract(&response)?;
 
@@ -104,11 +87,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_active_connections(&self) -> Result<Vec<String>, String> {
-        self.dbus.property(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "ActiveConnections",
-        )
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
     }
 
     pub fn get_active_connection_path(&self, path: &str) -> Option<String> {
@@ -127,7 +107,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings, String> {
-        let response = self.dbus.call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
+        let response = self.dbus
+            .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
         let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = self.dbus.extract(&response)?;
 
@@ -226,8 +207,16 @@ impl DBusNetworkManager {
             let mut security_settings: VariantMap = HashMap::new();
 
             if security.contains(WEP) {
-                add_val(&mut security_settings, "wep-key-type", NM_WEP_KEY_TYPE_PASSPHRASE);
-                add_str(&mut security_settings, "wep-key0", verify_password(password)?);
+                add_val(
+                    &mut security_settings,
+                    "wep-key-type",
+                    NM_WEP_KEY_TYPE_PASSPHRASE,
+                );
+                add_str(
+                    &mut security_settings,
+                    "wep-key0",
+                    verify_password(password)?,
+                );
             } else {
                 add_str(&mut security_settings, "key-mgmt", "wpa-psk");
                 add_str(&mut security_settings, "psk", verify_password(password)?);
@@ -247,10 +236,12 @@ impl DBusNetworkManager {
             ],
         )?;
 
-
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
-        Ok((path_to_string(&conn_path)?, path_to_string(&active_connection)?))
+        Ok((
+            path_to_string(&conn_path)?,
+            path_to_string(&active_connection)?,
+        ))
     }
 
     pub fn create_hotspot<T, U>(
@@ -322,18 +313,17 @@ impl DBusNetworkManager {
             ],
         )?;
 
-
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
-        Ok((path_to_string(&conn_path)?, path_to_string(&active_connection)?))
+        Ok((
+            path_to_string(&conn_path)?,
+            path_to_string(&active_connection)?,
+        ))
     }
 
     pub fn get_devices(&self) -> Result<Vec<String>, String> {
-        self.dbus.property(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "Devices",
-        )
+        self.dbus
+            .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
     }
 
     pub fn get_device_by_interface(&self, interface: &str) -> Result<String, String> {
@@ -383,19 +373,13 @@ impl DBusNetworkManager {
     }
 
     pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>, String> {
-        self.dbus.property(
-            path,
-            NM_WIRELESS_INTERFACE,
-            "AccessPoints",
-        )
+        self.dbus
+            .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
     }
 
     pub fn get_access_point_ssid(&self, path: &str) -> Option<Ssid> {
-        if let Ok(ssid_vec) = self.dbus.property::<Vec<u8>>(
-            path,
-            NM_ACCESS_POINT_INTERFACE,
-            "Ssid",
-        )
+        if let Ok(ssid_vec) = self.dbus
+            .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid")
         {
             Ssid::from_bytes(ssid_vec).ok()
         } else {
@@ -404,11 +388,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_strength(&self, path: &str) -> Result<u32, String> {
-        self.dbus.property(
-            path,
-            NM_ACCESS_POINT_INTERFACE,
-            "Strength",
-        )
+        self.dbus
+            .property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
     }
 
     pub fn get_access_point_flags(&self, path: &str) -> Result<NM80211ApFlags, String> {
@@ -416,22 +397,15 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_wpa_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
-        self.dbus.property(
-            path,
-            NM_ACCESS_POINT_INTERFACE,
-            "WpaFlags",
-        )
+        self.dbus
+            .property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
     }
 
     pub fn get_access_point_rsn_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
-        self.dbus.property(
-            path,
-            NM_ACCESS_POINT_INTERFACE,
-            "RsnFlags",
-        )
+        self.dbus
+            .property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
     }
 }
-
 
 impl VariantTo<DeviceType> for DBusApi {
     fn variant_to(value: &Variant<Box<RefArg>>) -> Option<DeviceType> {
@@ -439,31 +413,29 @@ impl VariantTo<DeviceType> for DBusApi {
     }
 }
 
-
 impl VariantTo<DeviceState> for DBusApi {
     fn variant_to(value: &Variant<Box<RefArg>>) -> Option<DeviceState> {
         value.0.as_i64().map(DeviceState::from)
     }
 }
 
-
 impl VariantTo<NM80211ApFlags> for DBusApi {
     fn variant_to(value: &Variant<Box<RefArg>>) -> Option<NM80211ApFlags> {
-        value.0.as_i64().and_then(
-            |v| NM80211ApFlags::from_bits(v as u32),
-        )
+        value
+            .0
+            .as_i64()
+            .and_then(|v| NM80211ApFlags::from_bits(v as u32))
     }
 }
-
 
 impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
     fn variant_to(value: &Variant<Box<RefArg>>) -> Option<NM80211ApSecurityFlags> {
-        value.0.as_i64().and_then(|v| {
-            NM80211ApSecurityFlags::from_bits(v as u32)
-        })
+        value
+            .0
+            .as_i64()
+            .and_then(|v| NM80211ApSecurityFlags::from_bits(v as u32))
     }
 }
-
 
 pub fn add_val<K, V>(map: &mut VariantMap, key: K, value: V)
 where
@@ -486,7 +458,10 @@ fn verify_password<T: AsAsciiStr + ?Sized>(password: &T) -> Result<&str, String>
         Err(_) => Err("Not an ASCII password".to_string()),
         Ok(p) => {
             if p.len() > 64 {
-                Err(format!("Password length should not exceed 64: {} len", p.len()))
+                Err(format!(
+                    "Password length should not exceed 64: {} len",
+                    p.len()
+                ))
             } else {
                 Ok(p.as_str())
             }

@@ -5,10 +5,9 @@ use ascii::AsAsciiStr;
 
 use dbus_nm::DBusNetworkManager;
 
-use connection::{Connection, ConnectionState, connect_to_access_point, create_hotspot};
+use connection::{connect_to_access_point, create_hotspot, Connection, ConnectionState};
 use device::{Device, PathGetter};
 use ssid::{AsSsidSlice, Ssid, SsidSlice};
-
 
 pub struct WiFiDevice<'a> {
     dbus_manager: Rc<DBusNetworkManager>,
@@ -32,9 +31,8 @@ impl<'a> WiFiDevice<'a> {
     pub fn get_access_points(&self) -> Result<Vec<AccessPoint>, String> {
         let mut access_points = Vec::new();
 
-        let paths = self.dbus_manager.get_device_access_points(
-            self.device.path(),
-        )?;
+        let paths = self.dbus_manager
+            .get_device_access_points(self.device.path())?;
 
         for path in paths {
             if let Some(access_point) = get_access_point(&self.dbus_manager, &path)? {
@@ -87,7 +85,6 @@ impl<'a> WiFiDevice<'a> {
     }
 }
 
-
 #[derive(Debug)]
 pub struct AccessPoint {
     path: String,
@@ -102,7 +99,6 @@ impl AccessPoint {
     }
 }
 
-
 bitflags! {
     pub struct Security: u32 {
         const NONE         = 0b0000_0000;
@@ -113,7 +109,6 @@ bitflags! {
     }
 }
 
-
 bitflags! {
     pub struct NM80211ApFlags: u32 {
         // access point has no special capabilities
@@ -122,7 +117,6 @@ bitflags! {
         const AP_FLAGS_PRIVACY        = 0x0000_0001;
     }
 }
-
 
 bitflags! {
     pub struct NM80211ApSecurityFlags: u32 {
@@ -151,7 +145,6 @@ bitflags! {
     }
 }
 
-
 pub fn new_wifi_device<'a>(
     dbus_manager: &Rc<DBusNetworkManager>,
     device: &'a Device,
@@ -161,7 +154,6 @@ pub fn new_wifi_device<'a>(
         device: device,
     }
 }
-
 
 fn get_access_point(
     manager: &DBusNetworkManager,
@@ -184,7 +176,6 @@ fn get_access_point(
         Ok(None)
     }
 }
-
 
 fn get_access_point_security(manager: &DBusNetworkManager, path: &str) -> Result<Security, String> {
     let flags = manager.get_access_point_flags(path)?;

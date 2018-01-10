@@ -3,8 +3,7 @@ extern crate network_manager;
 use std::env;
 use std::process;
 
-use network_manager::{NetworkManager, DeviceType};
-
+use network_manager::{DeviceType, NetworkManager};
 
 fn main() {
     let args: Vec<String> = env::args().collect();

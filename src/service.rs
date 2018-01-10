@@ -5,16 +5,16 @@ extern crate tokio_timer;
 
 use std::str::FromStr;
 use std::time::Duration;
-use self::dbus::{Connection, ConnectionItem, Message, Props, BusType, Path, Interface, Member};
+use self::dbus::{BusType, Connection, ConnectionItem, Interface, Member, Message, Path, Props};
 use self::dbus::arg::{Dict, Iter, Variant};
 use self::futures::Future;
 use self::futures_cpupool::CpuPool;
 use self::tokio_timer::Timer;
 
-pub const SD_SERVICE_MANAGER: &'static str = "org.freedesktop.systemd1";
-pub const SD_SERVICE_PATH: &'static str = "/org/freedesktop/systemd1";
-pub const SD_MANAGER_INTERFACE: &'static str = "org.freedesktop.systemd1.Manager";
-pub const SD_UNIT_INTERFACE: &'static str = "org.freedesktop.systemd1.Unit";
+pub const SD_SERVICE_MANAGER: &str = "org.freedesktop.systemd1";
+pub const SD_SERVICE_PATH: &str = "/org/freedesktop/systemd1";
+pub const SD_MANAGER_INTERFACE: &str = "org.freedesktop.systemd1.Manager";
+pub const SD_UNIT_INTERFACE: &str = "org.freedesktop.systemd1.Unit";
 
 pub fn start_service(timeout: u64) -> Result<ServiceState, Error> {
     let state = get_service_state()?;
@@ -31,9 +31,7 @@ pub fn start_service(timeout: u64) -> Result<ServiceState, Error> {
             ).map_err(Error::Message)?
                 .append2("NetworkManager.service", "fail");
 
-            let connection = Connection::get_private(BusType::System).map_err(
-                Error::Connection,
-            )?;
+            let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
 
             connection
                 .send_with_reply_and_block(message, 2000)
@@ -59,9 +57,7 @@ pub fn stop_service(timeout: u64) -> Result<ServiceState, Error> {
             ).map_err(Error::Message)?
                 .append2("NetworkManager.service", "fail");
 
-            let connection = Connection::get_private(BusType::System).map_err(
-                Error::Connection,
-            )?;
+            let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
 
             connection
                 .send_with_reply_and_block(message, 2000)
@@ -81,9 +77,7 @@ pub fn get_service_state() -> Result<ServiceState, Error> {
     ).map_err(Error::Message)?
         .append1("NetworkManager.service");
 
-    let connection = Connection::get_private(BusType::System).map_err(
-        Error::Connection,
-    )?;
+    let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
 
     let response = connection
         .send_with_reply_and_block(message, 2000)
@@ -91,8 +85,13 @@ pub fn get_service_state() -> Result<ServiceState, Error> {
 
     let path = response.get1::<Path>().ok_or(Error::NotFound)?;
 
-    let response = Props::new(&connection, SD_SERVICE_MANAGER, path, SD_UNIT_INTERFACE, 2000)
-        .get("ActiveState")
+    let response = Props::new(
+        &connection,
+        SD_SERVICE_MANAGER,
+        path,
+        SD_UNIT_INTERFACE,
+        2000,
+    ).get("ActiveState")
         .map_err(Error::Props)?;
 
     response
@@ -107,22 +106,18 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
         return get_service_state();
     }
 
-    let timer = Timer::default().sleep(Duration::from_secs(timeout)).then(
-        |_| {
-            Err(Error::TimedOut)
-        },
-    );
+    let timer = Timer::default()
+        .sleep(Duration::from_secs(timeout))
+        .then(|_| Err(Error::TimedOut));
 
     let process = CpuPool::new_num_cpus().spawn_fn(|| {
-        let connection = Connection::get_private(BusType::System).map_err(
-            Error::Connection,
-        )?;
+        let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
         connection
             .add_match(
                 "type='signal', sender='org.freedesktop.systemd1', \
-                        interface='org.freedesktop.DBus.Properties', \
-                        member='PropertiesChanged', \
-                        path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'",
+                 interface='org.freedesktop.DBus.Properties', \
+                 member='PropertiesChanged', \
+                 path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'",
             )
             .map_err(Error::Connection)?;
 
@@ -137,11 +132,11 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
                 continue;
             };
 
-            if response.interface().ok_or(Error::NotFound)? !=
-                Interface::from("org.freedesktop.DBus.Properties") ||
-                response.member().ok_or(Error::NotFound)? != Member::from("PropertiesChanged") ||
-                response.path().ok_or(Error::NotFound)? !=
-                    Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice")
+            if response.interface().ok_or(Error::NotFound)?
+                != Interface::from("org.freedesktop.DBus.Properties")
+                || response.member().ok_or(Error::NotFound)? != Member::from("PropertiesChanged")
+                || response.path().ok_or(Error::NotFound)?
+                    != Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice")
             {
                 continue;
             }

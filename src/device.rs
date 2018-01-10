@@ -3,8 +3,7 @@ use std::fmt;
 
 use dbus_nm::DBusNetworkManager;
 
-use wifi::{WiFiDevice, new_wifi_device};
-
+use wifi::{new_wifi_device, WiFiDevice};
 
 #[derive(Clone)]
 pub struct Device {
@@ -67,7 +66,11 @@ impl Device {
             _ => {
                 self.dbus_manager.connect_device(&self.path)?;
 
-                wait(self, &DeviceState::Activated, self.dbus_manager.method_timeout())
+                wait(
+                    self,
+                    &DeviceState::Activated,
+                    self.dbus_manager.method_timeout(),
+                )
             },
         }
     }
@@ -91,7 +94,11 @@ impl Device {
             _ => {
                 self.dbus_manager.disconnect_device(&self.path)?;
 
-                wait(self, &DeviceState::Disconnected, self.dbus_manager.method_timeout())
+                wait(
+                    self,
+                    &DeviceState::Disconnected,
+                    self.dbus_manager.method_timeout(),
+                )
             },
         }
     }
@@ -102,9 +109,7 @@ impl fmt::Debug for Device {
         write!(
             f,
             "Device {{ path: {:?}, interface: {:?}, device_type: {:?} }}",
-            self.path,
-            self.interface,
-            self.device_type
+            self.path, self.interface, self.device_type
         )
     }
 }
@@ -180,7 +185,6 @@ impl From<i64> for DeviceType {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum DeviceState {
     Unknown,
@@ -221,7 +225,6 @@ impl From<i64> for DeviceState {
         }
     }
 }
-
 
 pub fn get_devices(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Device>, String> {
     let device_paths = dbus_manager.get_devices()?;
@@ -280,15 +283,16 @@ fn wait(device: &Device, target_state: &DeviceState, timeout: u64) -> Result<Dev
         total_time += 1;
 
         if state == *target_state {
-            debug!("Device target state reached: {:?} / {}s elapsed", state, total_time);
+            debug!(
+                "Device target state reached: {:?} / {}s elapsed",
+                state, total_time
+            );
 
             return Ok(state);
         } else if total_time >= timeout {
             debug!(
                 "Timeout reached in waiting for device state ({:?}): {:?} / {}s elapsed",
-                target_state,
-                state,
-                total_time
+                target_state, state, total_time
             );
 
             return Ok(state);
@@ -296,9 +300,7 @@ fn wait(device: &Device, target_state: &DeviceState, timeout: u64) -> Result<Dev
 
         debug!(
             "Still waiting for device state ({:?}): {:?} / {}s elapsed",
-            target_state,
-            state,
-            total_time
+            target_state, state, total_time
         );
     }
 }

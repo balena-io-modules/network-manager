@@ -5,7 +5,6 @@ use std::fmt;
 use std::fmt::Write;
 use std::ascii;
 
-
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ssid {
     vec: Vec<u8>,
@@ -13,9 +12,7 @@ pub struct Ssid {
 
 impl Ssid {
     pub fn new() -> Self {
-        Ssid {
-            vec: Vec::new(),
-        }
+        Ssid { vec: Vec::new() }
     }
 
     pub fn from_bytes<B>(bytes: B) -> Result<Self, String>
@@ -32,9 +29,7 @@ impl Ssid {
     where
         B: Into<Vec<u8>>,
     {
-        Ssid {
-            vec: bytes.into(),
-        }
+        Ssid { vec: bytes.into() }
     }
 }
 
@@ -91,7 +86,10 @@ impl fmt::Debug for SsidSlice {
 impl AsSsidSlice for [u8] {
     fn as_ssid_slice(&self) -> Result<&SsidSlice, String> {
         if self.len() > 32 {
-            Err(format!("SSID length should not exceed 32: {} len", self.len()))
+            Err(format!(
+                "SSID length should not exceed 32: {} len",
+                self.len()
+            ))
         } else {
             Ok(unsafe { mem::transmute(self) })
         }
