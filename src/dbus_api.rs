@@ -143,7 +143,7 @@ impl DBusApi {
             if err {
                 error!("{}", message);
             } else {
-                warn!("{}", message);
+                debug!("{}", message);
             }
             Err(message)
         };
