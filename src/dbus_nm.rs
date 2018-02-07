@@ -6,6 +6,7 @@ use ascii::AsAsciiStr;
 use dbus::Path;
 use dbus::arg::{Array, Dict, Iter, RefArg, Variant};
 
+use errors::*;
 use dbus_api::{extract, path_to_string, DBusApi, VariantTo, variant_iter_to_vec_u8};
 use manager::{Connectivity, NetworkManagerState};
 use connection::{ConnectionSettings, ConnectionState};
@@ -49,7 +50,7 @@ impl DBusNetworkManager {
         self.dbus.method_timeout()
     }
 
-    pub fn get_state(&self) -> Result<NetworkManagerState, String> {
+    pub fn get_state(&self) -> Result<NetworkManagerState> {
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
@@ -58,7 +59,7 @@ impl DBusNetworkManager {
         Ok(NetworkManagerState::from(state))
     }
 
-    pub fn check_connectivity(&self) -> Result<Connectivity, String> {
+    pub fn check_connectivity(&self) -> Result<Connectivity> {
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
 
@@ -67,17 +68,17 @@ impl DBusNetworkManager {
         Ok(Connectivity::from(connectivity))
     }
 
-    pub fn is_wireless_enabled(&self) -> Result<bool, String> {
+    pub fn is_wireless_enabled(&self) -> Result<bool> {
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
     }
 
-    pub fn is_networking_enabled(&self) -> Result<bool, String> {
+    pub fn is_networking_enabled(&self) -> Result<bool> {
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
     }
 
-    pub fn list_connections(&self) -> Result<Vec<String>, String> {
+    pub fn list_connections(&self) -> Result<Vec<String>> {
         let response = self.dbus
             .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
 
@@ -86,7 +87,7 @@ impl DBusNetworkManager {
         Ok(array.map(|e| e.to_string()).collect())
     }
 
-    pub fn get_active_connections(&self) -> Result<Vec<String>, String> {
+    pub fn get_active_connections(&self) -> Result<Vec<String>> {
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
     }
@@ -97,7 +98,7 @@ impl DBusNetworkManager {
             .ok()
     }
 
-    pub fn get_connection_state(&self, path: &str) -> Result<ConnectionState, String> {
+    pub fn get_connection_state(&self, path: &str) -> Result<ConnectionState> {
         let state: i64 = match self.dbus.property(path, NM_ACTIVE_INTERFACE, "State") {
             Ok(state) => state,
             Err(_) => return Ok(ConnectionState::Unknown),
@@ -106,7 +107,7 @@ impl DBusNetworkManager {
         Ok(ConnectionState::from(state))
     }
 
-    pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings, String> {
+    pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings> {
         let response = self.dbus
             .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
@@ -150,17 +151,17 @@ impl DBusNetworkManager {
         })
     }
 
-    pub fn get_active_connection_devices(&self, path: &str) -> Result<Vec<String>, String> {
+    pub fn get_active_connection_devices(&self, path: &str) -> Result<Vec<String>> {
         self.dbus.property(path, NM_ACTIVE_INTERFACE, "Devices")
     }
 
-    pub fn delete_connection(&self, path: &str) -> Result<(), String> {
+    pub fn delete_connection(&self, path: &str) -> Result<()> {
         self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete")?;
 
         Ok(())
     }
 
-    pub fn activate_connection(&self, path: &str) -> Result<(), String> {
+    pub fn activate_connection(&self, path: &str) -> Result<()> {
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -175,7 +176,7 @@ impl DBusNetworkManager {
         Ok(())
     }
 
-    pub fn deactivate_connection(&self, path: &str) -> Result<(), String> {
+    pub fn deactivate_connection(&self, path: &str) -> Result<()> {
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -193,7 +194,7 @@ impl DBusNetworkManager {
         ssid: &SsidSlice,
         security: &Security,
         password: &P,
-    ) -> Result<(String, String), String>
+    ) -> Result<(String, String)>
     where
         P: AsAsciiStr + ?Sized,
     {
@@ -251,7 +252,7 @@ impl DBusNetworkManager {
         ssid: &T,
         password: Option<&U>,
         address: Option<Ipv4Addr>,
-    ) -> Result<(String, String), String>
+    ) -> Result<(String, String)>
     where
         T: AsSsidSlice + ?Sized,
         U: AsAsciiStr + ?Sized,
@@ -321,12 +322,12 @@ impl DBusNetworkManager {
         ))
     }
 
-    pub fn get_devices(&self) -> Result<Vec<String>, String> {
+    pub fn get_devices(&self) -> Result<Vec<String>> {
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
     }
 
-    pub fn get_device_by_interface(&self, interface: &str) -> Result<String, String> {
+    pub fn get_device_by_interface(&self, interface: &str) -> Result<String> {
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -339,19 +340,19 @@ impl DBusNetworkManager {
         path_to_string(&path)
     }
 
-    pub fn get_device_interface(&self, path: &str) -> Result<String, String> {
+    pub fn get_device_interface(&self, path: &str) -> Result<String> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "Interface")
     }
 
-    pub fn get_device_type(&self, path: &str) -> Result<DeviceType, String> {
+    pub fn get_device_type(&self, path: &str) -> Result<DeviceType> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "DeviceType")
     }
 
-    pub fn get_device_state(&self, path: &str) -> Result<DeviceState, String> {
+    pub fn get_device_state(&self, path: &str) -> Result<DeviceState> {
         self.dbus.property(path, NM_DEVICE_INTERFACE, "State")
     }
 
-    pub fn connect_device(&self, path: &str) -> Result<(), String> {
+    pub fn connect_device(&self, path: &str) -> Result<()> {
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -366,13 +367,13 @@ impl DBusNetworkManager {
         Ok(())
     }
 
-    pub fn disconnect_device(&self, path: &str) -> Result<(), String> {
+    pub fn disconnect_device(&self, path: &str) -> Result<()> {
         self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect")?;
 
         Ok(())
     }
 
-    pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>, String> {
+    pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>> {
         self.dbus
             .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
     }
@@ -387,21 +388,21 @@ impl DBusNetworkManager {
         }
     }
 
-    pub fn get_access_point_strength(&self, path: &str) -> Result<u32, String> {
+    pub fn get_access_point_strength(&self, path: &str) -> Result<u32> {
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
     }
 
-    pub fn get_access_point_flags(&self, path: &str) -> Result<NM80211ApFlags, String> {
+    pub fn get_access_point_flags(&self, path: &str) -> Result<NM80211ApFlags> {
         self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Flags")
     }
 
-    pub fn get_access_point_wpa_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
+    pub fn get_access_point_wpa_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags> {
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
     }
 
-    pub fn get_access_point_rsn_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags, String> {
+    pub fn get_access_point_rsn_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags> {
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
     }
@@ -453,15 +454,15 @@ where
     map.insert(key.into(), Variant(Box::new(value.into())));
 }
 
-fn verify_password<T: AsAsciiStr + ?Sized>(password: &T) -> Result<&str, String> {
+fn verify_password<T: AsAsciiStr + ?Sized>(password: &T) -> Result<&str> {
     match password.as_ascii_str() {
-        Err(_) => Err("Not an ASCII password".to_string()),
+        Err(e) => Err(e).chain_err(|| ErrorKind::PreSharedKey("Not an ASCII password".into())),
         Ok(p) => {
             if p.len() > 64 {
-                Err(format!(
+                bail!(ErrorKind::PreSharedKey(format!(
                     "Password length should not exceed 64: {} len",
                     p.len()
-                ))
+                )))
             } else {
                 Ok(p.as_str())
             }

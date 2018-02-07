@@ -3,6 +3,7 @@ use std::net::Ipv4Addr;
 
 use ascii::AsAsciiStr;
 
+use errors::*;
 use dbus_nm::DBusNetworkManager;
 
 use connection::{connect_to_access_point, create_hotspot, Connection, ConnectionState};
@@ -28,7 +29,7 @@ impl<'a> WiFiDevice<'a> {
     /// let access_points = device.get_access_points().unwrap();
     /// println!("{:?}", access_points);
     /// ```
-    pub fn get_access_points(&self) -> Result<Vec<AccessPoint>, String> {
+    pub fn get_access_points(&self) -> Result<Vec<AccessPoint>> {
         let mut access_points = Vec::new();
 
         let paths = self.dbus_manager
@@ -50,7 +51,7 @@ impl<'a> WiFiDevice<'a> {
         &self,
         access_point: &AccessPoint,
         password: &P,
-    ) -> Result<(Connection, ConnectionState), String>
+    ) -> Result<(Connection, ConnectionState)>
     where
         P: AsAsciiStr + ?Sized,
     {
@@ -69,7 +70,7 @@ impl<'a> WiFiDevice<'a> {
         ssid: &T,
         password: Option<&U>,
         address: Option<Ipv4Addr>,
-    ) -> Result<(Connection, ConnectionState), String>
+    ) -> Result<(Connection, ConnectionState)>
     where
         T: AsSsidSlice + ?Sized,
         U: AsAsciiStr + ?Sized,
@@ -161,10 +162,7 @@ pub fn new_wifi_device<'a>(
     }
 }
 
-fn get_access_point(
-    manager: &DBusNetworkManager,
-    path: &str,
-) -> Result<Option<AccessPoint>, String> {
+fn get_access_point(manager: &DBusNetworkManager, path: &str) -> Result<Option<AccessPoint>> {
     if let Some(ssid) = manager.get_access_point_ssid(path) {
         let strength = manager.get_access_point_strength(path)?;
 
@@ -183,7 +181,7 @@ fn get_access_point(
     }
 }
 
-fn get_access_point_security(manager: &DBusNetworkManager, path: &str) -> Result<Security, String> {
+fn get_access_point_security(manager: &DBusNetworkManager, path: &str) -> Result<Security> {
     let flags = manager.get_access_point_flags(path)?;
 
     let wpa_flags = manager.get_access_point_wpa_flags(path)?;
