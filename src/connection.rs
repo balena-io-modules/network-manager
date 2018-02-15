@@ -4,6 +4,7 @@ use std::net::Ipv4Addr;
 
 use ascii::AsAsciiStr;
 
+use errors::*;
 use dbus_nm::DBusNetworkManager;
 
 use wifi::Security;
@@ -18,7 +19,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self, String> {
+    fn init(dbus_manager: &Rc<DBusNetworkManager>, path: &str) -> Result<Self> {
         let settings = dbus_manager.get_connection_settings(path)?;
 
         Ok(Connection {
@@ -32,7 +33,7 @@ impl Connection {
         &self.settings
     }
 
-    pub fn get_state(&self) -> Result<ConnectionState, String> {
+    pub fn get_state(&self) -> Result<ConnectionState> {
         let active_path_option = get_connection_active_path(&self.dbus_manager, &self.path)?;
 
         if let Some(active_path) = active_path_option {
@@ -44,7 +45,7 @@ impl Connection {
         }
     }
 
-    pub fn delete(&self) -> Result<(), String> {
+    pub fn delete(&self) -> Result<()> {
         self.dbus_manager.delete_connection(&self.path)
     }
 
@@ -58,7 +59,7 @@ impl Connection {
     /// let connections = manager.get_connections().unwrap();
     /// connections[0].activate().unwrap();
     /// ```
-    pub fn activate(&self) -> Result<ConnectionState, String> {
+    pub fn activate(&self) -> Result<ConnectionState> {
         let state = self.get_state()?;
 
         match state {
@@ -68,7 +69,9 @@ impl Connection {
                 &ConnectionState::Activated,
                 self.dbus_manager.method_timeout(),
             ),
-            ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
+            ConnectionState::Unknown => bail!(ErrorKind::NetworkManager(
+                "Unable to get connection state".into()
+            )),
             _ => {
                 self.dbus_manager.activate_connection(&self.path)?;
 
@@ -91,7 +94,7 @@ impl Connection {
     /// let connections = manager.get_connections().unwrap();
     /// connections[0].deactivate().unwrap();
     /// ```
-    pub fn deactivate(&self) -> Result<ConnectionState, String> {
+    pub fn deactivate(&self) -> Result<ConnectionState> {
         let state = self.get_state()?;
 
         match state {
@@ -101,7 +104,9 @@ impl Connection {
                 &ConnectionState::Deactivated,
                 self.dbus_manager.method_timeout(),
             ),
-            ConnectionState::Unknown => Err("Unable to get connection state".to_string()),
+            ConnectionState::Unknown => bail!(ErrorKind::NetworkManager(
+                "Unable to get connection state".into()
+            )),
             _ => {
                 let active_path_option =
                     get_connection_active_path(&self.dbus_manager, &self.path)?;
@@ -121,7 +126,7 @@ impl Connection {
         }
     }
 
-    pub fn get_devices(&self) -> Result<Vec<Device>, String> {
+    pub fn get_devices(&self) -> Result<Vec<Device>> {
         let active_path_option = get_connection_active_path(&self.dbus_manager, &self.path)?;
 
         if let Some(active_path) = active_path_option {
@@ -208,7 +213,7 @@ impl From<i64> for ConnectionState {
     }
 }
 
-pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Connection>, String> {
+pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Connection>> {
     let paths = dbus_manager.list_connections()?;
 
     let mut connections = Vec::with_capacity(paths.len());
@@ -222,9 +227,7 @@ pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Conn
     Ok(connections)
 }
 
-pub fn get_active_connections(
-    dbus_manager: &Rc<DBusNetworkManager>,
-) -> Result<Vec<Connection>, String> {
+pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Connection>> {
     let active_paths = dbus_manager.get_active_connections()?;
 
     let mut connections = Vec::with_capacity(active_paths.len());
@@ -247,7 +250,7 @@ pub fn connect_to_access_point<P>(
     ssid: &SsidSlice,
     security: &Security,
     password: &P,
-) -> Result<(Connection, ConnectionState), String>
+) -> Result<(Connection, ConnectionState)>
 where
     P: AsAsciiStr + ?Sized,
 {
@@ -277,7 +280,7 @@ pub fn create_hotspot<S, P>(
     ssid: &S,
     password: Option<&P>,
     address: Option<Ipv4Addr>,
-) -> Result<(Connection, ConnectionState), String>
+) -> Result<(Connection, ConnectionState)>
 where
     S: AsSsidSlice + ?Sized,
     P: AsAsciiStr + ?Sized,
@@ -298,7 +301,7 @@ where
 fn get_connection_active_path(
     dbus_manager: &DBusNetworkManager,
     connection_path: &str,
-) -> Result<Option<String>, String> {
+) -> Result<Option<String>> {
     let active_paths = dbus_manager.get_active_connections()?;
 
     for active_path in active_paths {
@@ -316,7 +319,7 @@ fn wait(
     connection: &Connection,
     target_state: &ConnectionState,
     timeout: u64,
-) -> Result<ConnectionState, String> {
+) -> Result<ConnectionState> {
     if timeout == 0 {
         return connection.get_state();
     }

@@ -1,9 +1,32 @@
+#[macro_use]
+extern crate error_chain;
+
 extern crate network_manager;
 
 use std::env;
 use std::process;
+use std::io::Write;
 
 use network_manager::{Device, DeviceType, NetworkManager};
+
+mod errors {
+    use network_manager;
+
+    error_chain! {
+        links {
+            NetworkManager(network_manager::errors::Error, network_manager::errors::ErrorKind);
+        }
+
+        errors {
+            Runtime(info: String) {
+                description("Runtime error")
+                display("{}", info)
+            }
+        }
+    }
+}
+
+use errors::*;
 
 struct Options {
     interface: Option<String>,
@@ -11,9 +34,41 @@ struct Options {
     password: Option<String>,
 }
 
-fn print_usage_and_exit() {
-    println!("USAGE: hotspot [-i INTERFACE] SSID [PASSWORD]");
-    process::exit(1);
+fn main() {
+    if let Err(ref e) = run() {
+        let stderr = &mut ::std::io::stderr();
+        let errmsg = "Error writing to stderr";
+
+        writeln!(stderr, "{}", e).expect(errmsg);
+
+        for e in e.iter().skip(1) {
+            writeln!(stderr, "  caused by: {}", e).expect(errmsg);
+        }
+
+        ::std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
+    let Options {
+        interface,
+        ssid,
+        password,
+    } = parse_options();
+
+    let pass_str = match password {
+        Some(ref s) => Some(s as &str),
+        None => None,
+    };
+
+    let manager = NetworkManager::new();
+
+    let device = find_device(&manager, interface)?;
+    let wifi_device = device.as_wifi_device().unwrap();
+
+    wifi_device.create_hotspot(&ssid as &str, pass_str, None)?;
+
+    Ok(())
 }
 
 fn parse_options() -> Options {
@@ -48,48 +103,34 @@ fn parse_options() -> Options {
     }
 }
 
-fn find_device(manager: &NetworkManager, interface: Option<String>) -> Option<Device> {
+fn print_usage_and_exit() {
+    println!("USAGE: hotspot [-i INTERFACE] SSID [PASSWORD]");
+    process::exit(1);
+}
+
+fn find_device(manager: &NetworkManager, interface: Option<String>) -> Result<Device> {
     if let Some(interface) = interface {
-        let device = manager.get_device_by_interface(&interface).unwrap();
+        let device = manager.get_device_by_interface(&interface)?;
 
         if *device.device_type() == DeviceType::WiFi {
-            Some(device)
+            Ok(device)
         } else {
-            None
+            bail!(ErrorKind::Runtime(format!(
+                "{} is not a WiFi device",
+                interface
+            )))
         }
     } else {
-        let devices = manager.get_devices().unwrap();
+        let devices = manager.get_devices()?;
 
         let index = devices
             .iter()
             .position(|d| *d.device_type() == DeviceType::WiFi);
 
         if let Some(index) = index {
-            Some(devices[index].clone())
+            Ok(devices[index].clone())
         } else {
-            None
+            bail!(ErrorKind::Runtime("Cannot find a WiFi device".into()))
         }
     }
-}
-
-fn main() {
-    let Options {
-        interface,
-        ssid,
-        password,
-    } = parse_options();
-
-    let pass_str = match password {
-        Some(ref s) => Some(s as &str),
-        None => None,
-    };
-
-    let manager = NetworkManager::new();
-
-    let device = find_device(&manager, interface).unwrap();
-    let wifi_device = device.as_wifi_device().unwrap();
-
-    wifi_device
-        .create_hotspot(&ssid as &str, pass_str, None)
-        .unwrap();
 }

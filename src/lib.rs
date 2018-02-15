@@ -4,6 +4,9 @@
 //! functionality for configuring Network Manager from Rust.
 
 #[macro_use]
+extern crate error_chain;
+
+#[macro_use]
 extern crate log;
 
 #[macro_use]
@@ -12,6 +15,8 @@ extern crate bitflags;
 extern crate dbus;
 
 extern crate ascii;
+
+pub mod errors;
 
 mod dbus_nm;
 mod dbus_api;

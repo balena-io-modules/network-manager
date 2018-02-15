@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
+use errors::*;
 use dbus_nm::DBusNetworkManager;
 
 use connection::{get_active_connections, get_connections, Connection};
 use device::{get_device_by_interface, get_devices, Device};
-use service::{get_service_state, start_service, stop_service, Error, ServiceState};
+use service::{get_service_state, start_service, stop_service, ServiceState};
 
 pub struct NetworkManager {
     dbus_manager: Rc<DBusNetworkManager>,
@@ -32,7 +33,7 @@ impl NetworkManager {
     /// let state = NetworkManager::start_service(10).unwrap();
     /// println!("{:?}", state);
     /// ```
-    pub fn start_service(timeout: u64) -> Result<ServiceState, Error> {
+    pub fn start_service(timeout: u64) -> Result<ServiceState> {
         start_service(timeout)
     }
 
@@ -45,7 +46,7 @@ impl NetworkManager {
     /// let state = NetworkManager::stop_service(10).unwrap();
     /// println!("{:?}", state);
     /// ```
-    pub fn stop_service(timeout: u64) -> Result<ServiceState, Error> {
+    pub fn stop_service(timeout: u64) -> Result<ServiceState> {
         stop_service(timeout)
     }
 
@@ -58,7 +59,7 @@ impl NetworkManager {
     /// let state = NetworkManager::get_service_state().unwrap();
     /// println!("{:?}", state);
     /// ```
-    pub fn get_service_state() -> Result<ServiceState, Error> {
+    pub fn get_service_state() -> Result<ServiceState> {
         get_service_state()
     }
 
@@ -72,11 +73,11 @@ impl NetworkManager {
     /// let connections = manager.get_connections().unwrap();
     /// println!("{:?}", connections);
     /// ```
-    pub fn get_connections(&self) -> Result<Vec<Connection>, String> {
+    pub fn get_connections(&self) -> Result<Vec<Connection>> {
         get_connections(&self.dbus_manager)
     }
 
-    pub fn get_active_connections(&self) -> Result<Vec<Connection>, String> {
+    pub fn get_active_connections(&self) -> Result<Vec<Connection>> {
         get_active_connections(&self.dbus_manager)
     }
 
@@ -90,27 +91,27 @@ impl NetworkManager {
     /// let devices = manager.get_devices().unwrap();
     /// println!("{:?}", devices);
     /// ```
-    pub fn get_devices(&self) -> Result<Vec<Device>, String> {
+    pub fn get_devices(&self) -> Result<Vec<Device>> {
         get_devices(&self.dbus_manager)
     }
 
-    pub fn get_device_by_interface(&self, interface: &str) -> Result<Device, String> {
+    pub fn get_device_by_interface(&self, interface: &str) -> Result<Device> {
         get_device_by_interface(&self.dbus_manager, interface)
     }
 
-    pub fn get_state(&self) -> Result<NetworkManagerState, String> {
+    pub fn get_state(&self) -> Result<NetworkManagerState> {
         self.dbus_manager.get_state()
     }
 
-    pub fn get_connectivity(&self) -> Result<Connectivity, String> {
+    pub fn get_connectivity(&self) -> Result<Connectivity> {
         self.dbus_manager.check_connectivity()
     }
 
-    pub fn is_networking_enabled(&self) -> Result<bool, String> {
+    pub fn is_networking_enabled(&self) -> Result<bool> {
         self.dbus_manager.is_networking_enabled()
     }
 
-    pub fn is_wireless_enabled(&self) -> Result<bool, String> {
+    pub fn is_wireless_enabled(&self) -> Result<bool> {
         self.dbus_manager.is_wireless_enabled()
     }
 }

@@ -11,79 +11,83 @@ use self::futures::Future;
 use self::futures_cpupool::CpuPool;
 use self::tokio_timer::Timer;
 
+use errors::*;
+
 pub const SD_SERVICE_MANAGER: &str = "org.freedesktop.systemd1";
 pub const SD_SERVICE_PATH: &str = "/org/freedesktop/systemd1";
 pub const SD_MANAGER_INTERFACE: &str = "org.freedesktop.systemd1.Manager";
 pub const SD_UNIT_INTERFACE: &str = "org.freedesktop.systemd1.Unit";
 
-pub fn start_service(timeout: u64) -> Result<ServiceState, Error> {
+pub fn start_service(timeout: u64) -> Result<ServiceState> {
     let state = get_service_state()?;
     match state {
         ServiceState::Active => Ok(state),
         ServiceState::Activating => handler(timeout, ServiceState::Active),
-        ServiceState::Failed => Err(Error::Failed),
+        ServiceState::Failed => bail!(ErrorKind::Service),
         _ => {
             let message = Message::new_method_call(
                 SD_SERVICE_MANAGER,
                 SD_SERVICE_PATH,
                 SD_MANAGER_INTERFACE,
                 "StartUnit",
-            ).map_err(Error::Message)?
+            ).map_err(|_| ErrorKind::Service)?
                 .append2("NetworkManager.service", "fail");
 
-            let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
+            let connection =
+                Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
 
             connection
                 .send_with_reply_and_block(message, 2000)
-                .map_err(Error::Connection)?;
+                .map_err(|_| ErrorKind::Service)?;
 
             handler(timeout, ServiceState::Active)
         },
     }
 }
 
-pub fn stop_service(timeout: u64) -> Result<ServiceState, Error> {
+pub fn stop_service(timeout: u64) -> Result<ServiceState> {
     let state = get_service_state()?;
     match state {
         ServiceState::Inactive => Ok(state),
         ServiceState::Deactivating => handler(timeout, ServiceState::Inactive),
-        ServiceState::Failed => Err(Error::Failed),
+        ServiceState::Failed => bail!(ErrorKind::Service),
         _ => {
             let message = Message::new_method_call(
                 SD_SERVICE_MANAGER,
                 SD_SERVICE_PATH,
                 SD_MANAGER_INTERFACE,
                 "StopUnit",
-            ).map_err(Error::Message)?
+            ).map_err(|_| ErrorKind::Service)?
                 .append2("NetworkManager.service", "fail");
 
-            let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
+            let connection =
+                Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
 
             connection
                 .send_with_reply_and_block(message, 2000)
-                .map_err(Error::Connection)?;
+                .map_err(|_| ErrorKind::Service)?;
 
             handler(timeout, ServiceState::Inactive)
         },
     }
 }
 
-pub fn get_service_state() -> Result<ServiceState, Error> {
+pub fn get_service_state() -> Result<ServiceState> {
     let message = Message::new_method_call(
         SD_SERVICE_MANAGER,
         SD_SERVICE_PATH,
         SD_MANAGER_INTERFACE,
         "GetUnit",
-    ).map_err(Error::Message)?
+    ).map_err(|_| ErrorKind::Service)?
         .append1("NetworkManager.service");
 
-    let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
+    let connection = Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
 
     let response = connection
         .send_with_reply_and_block(message, 2000)
-        .map_err(Error::Connection)?;
+        .map_err(|_| ErrorKind::Service)?;
 
-    let path = response.get1::<Path>().ok_or(Error::NotFound)?;
+    let path = response.get1::<Path>().ok_or(ErrorKind::Service)?;
 
     let response = Props::new(
         &connection,
@@ -92,26 +96,26 @@ pub fn get_service_state() -> Result<ServiceState, Error> {
         SD_UNIT_INTERFACE,
         2000,
     ).get("ActiveState")
-        .map_err(Error::Props)?;
+        .map_err(|_| ErrorKind::Service)?;
 
     response
         .inner::<&str>()
         .ok()
-        .ok_or(Error::NotFound)?
+        .ok_or(ErrorKind::Service)?
         .parse()
 }
 
-fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Error> {
+fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState> {
     if timeout == 0 {
         return get_service_state();
     }
 
     let timer = Timer::default()
         .sleep(Duration::from_secs(timeout))
-        .then(|_| Err(Error::TimedOut));
+        .then(|_| bail!(ErrorKind::Service));
 
     let process = CpuPool::new_num_cpus().spawn_fn(|| {
-        let connection = Connection::get_private(BusType::System).map_err(Error::Connection)?;
+        let connection = Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
         connection
             .add_match(
                 "type='signal', sender='org.freedesktop.systemd1', \
@@ -119,7 +123,7 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
                  member='PropertiesChanged', \
                  path='/org/freedesktop/systemd1/unit/NetworkManager_2eservice'",
             )
-            .map_err(Error::Connection)?;
+            .map_err(|_| ErrorKind::Service)?;
 
         if get_service_state()? == target_state {
             return Ok(target_state);
@@ -132,10 +136,10 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
                 continue;
             };
 
-            if response.interface().ok_or(Error::NotFound)?
+            if response.interface().ok_or(ErrorKind::Service)?
                 != Interface::from("org.freedesktop.DBus.Properties")
-                || response.member().ok_or(Error::NotFound)? != Member::from("PropertiesChanged")
-                || response.path().ok_or(Error::NotFound)?
+                || response.member().ok_or(ErrorKind::Service)? != Member::from("PropertiesChanged")
+                || response.path().ok_or(ErrorKind::Service)?
                     != Path::from("/org/freedesktop/systemd1/unit/NetworkManager_2eservice")
             {
                 continue;
@@ -143,13 +147,13 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
 
             let (interface, dictionary) = response.get2::<&str, Dict<&str, Variant<Iter>, _>>();
 
-            if interface.ok_or(Error::NotFound)? != "org.freedesktop.systemd1.Unit" {
+            if interface.ok_or(ErrorKind::Service)? != "org.freedesktop.systemd1.Unit" {
                 continue;
             }
 
-            for (k, mut v) in dictionary.ok_or(Error::NotFound)? {
+            for (k, mut v) in dictionary.ok_or(ErrorKind::Service)? {
                 if k == "ActiveState" {
-                    let response = v.0.get::<&str>().ok_or(Error::NotFound)?;
+                    let response = v.0.get::<&str>().ok_or(ErrorKind::Service)?;
                     let state: ServiceState = response.parse()?;
                     if state == target_state {
                         return Ok(target_state);
@@ -157,7 +161,7 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState, Err
                 }
             }
         }
-        Err(Error::NotFound)
+        bail!(ErrorKind::Service)
     });
 
     match timer.select(process).map(|(result, _)| result).wait() {
@@ -176,19 +180,9 @@ pub enum ServiceState {
     Deactivating,
 }
 
-#[derive(Debug)]
-pub enum Error {
-    Message(String),
-    Connection(dbus::Error),
-    Props(dbus::Error),
-    TimedOut,
-    Failed,
-    NotFound,
-}
-
 impl FromStr for ServiceState {
     type Err = Error;
-    fn from_str(s: &str) -> Result<ServiceState, Error> {
+    fn from_str(s: &str) -> Result<ServiceState> {
         match s {
             "active" => Ok(ServiceState::Active),
             "reloading" => Ok(ServiceState::Reloading),
@@ -196,7 +190,7 @@ impl FromStr for ServiceState {
             "failed" => Ok(ServiceState::Failed),
             "activating" => Ok(ServiceState::Activating),
             "deactivating" => Ok(ServiceState::Deactivating),
-            _ => Err(Error::NotFound),
+            _ => bail!(ErrorKind::Service),
         }
     }
 }

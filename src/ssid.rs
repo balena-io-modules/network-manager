@@ -5,6 +5,8 @@ use std::fmt;
 use std::fmt::Write;
 use std::ascii;
 
+use errors::*;
+
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ssid {
     vec: Vec<u8>,
@@ -15,7 +17,7 @@ impl Ssid {
         Ssid { vec: Vec::new() }
     }
 
-    pub fn from_bytes<B>(bytes: B) -> Result<Self, String>
+    pub fn from_bytes<B>(bytes: B) -> Result<Self>
     where
         B: Into<Vec<u8>> + AsRef<[u8]>,
     {
@@ -34,7 +36,7 @@ impl Ssid {
 }
 
 pub trait IntoSsid: Sized {
-    fn into_ssid(self) -> Result<Ssid, String>;
+    fn into_ssid(self) -> Result<Ssid>;
 }
 
 impl Deref for Ssid {
@@ -58,12 +60,12 @@ pub struct SsidSlice {
 }
 
 pub trait AsSsidSlice {
-    fn as_ssid_slice(&self) -> Result<&SsidSlice, String>;
+    fn as_ssid_slice(&self) -> Result<&SsidSlice>;
 }
 
 impl SsidSlice {
-    pub fn as_str(&self) -> Result<&str, str::Utf8Error> {
-        str::from_utf8(&self.slice)
+    pub fn as_str(&self) -> Result<&str> {
+        Ok(str::from_utf8(&self.slice)?)
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -84,12 +86,12 @@ impl fmt::Debug for SsidSlice {
 }
 
 impl AsSsidSlice for [u8] {
-    fn as_ssid_slice(&self) -> Result<&SsidSlice, String> {
+    fn as_ssid_slice(&self) -> Result<&SsidSlice> {
         if self.len() > 32 {
-            Err(format!(
+            bail!(ErrorKind::SSID(format!(
                 "SSID length should not exceed 32: {} len",
                 self.len()
-            ))
+            )))
         } else {
             Ok(unsafe { mem::transmute(self) })
         }
@@ -97,7 +99,7 @@ impl AsSsidSlice for [u8] {
 }
 
 impl AsSsidSlice for str {
-    fn as_ssid_slice(&self) -> Result<&SsidSlice, String> {
+    fn as_ssid_slice(&self) -> Result<&SsidSlice> {
         self.as_bytes().as_ssid_slice()
     }
 }
