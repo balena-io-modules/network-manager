@@ -134,8 +134,8 @@ pub enum NetworkManagerState {
     ConnectedGlobal,
 }
 
-impl From<i64> for NetworkManagerState {
-    fn from(state: i64) -> Self {
+impl From<u32> for NetworkManagerState {
+    fn from(state: u32) -> Self {
         match state {
             0 => NetworkManagerState::Unknown,
             10 => NetworkManagerState::Asleep,

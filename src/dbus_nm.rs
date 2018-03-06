@@ -54,7 +54,7 @@ impl DBusNetworkManager {
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
-        let state: i64 = self.dbus.extract(&response)?;
+        let state: u32 = self.dbus.extract(&response)?;
 
         Ok(NetworkManagerState::from(state))
     }
