@@ -26,6 +26,7 @@ impl<'a> WiFiDevice<'a> {
     /// let devices = manager.get_devices().unwrap();
     /// let i = devices.iter().position(|ref d| *d.device_type() == DeviceType::WiFi).unwrap();
     /// let device = devices[i].as_wifi_device().unwrap();
+    /// device.request_scan()?;
     /// let access_points = device.get_access_points().unwrap();
     /// println!("{:?}", access_points);
     /// ```
@@ -45,6 +46,11 @@ impl<'a> WiFiDevice<'a> {
         access_points.reverse();
 
         Ok(access_points)
+    }
+
+    pub fn request_scan(&self) -> Result<()> {
+        self.dbus_manager.request_access_point_scan( self.device.path())?;
+        Ok(())
     }
 
     pub fn connect<P>(
