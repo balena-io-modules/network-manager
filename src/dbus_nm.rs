@@ -373,6 +373,18 @@ impl DBusNetworkManager {
         Ok(())
     }
 
+    pub fn request_access_point_scan(&self, path: &str) -> Result<()> {
+        let options: VariantMap = HashMap::new();
+        self.dbus.call_with_args(
+            path,
+            NM_WIRELESS_INTERFACE,
+            "RequestScan",
+            &[&options as &RefArg],
+        )?;
+
+        Ok(())
+    }
+
     pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>> {
         self.dbus
             .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
