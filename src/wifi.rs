@@ -1,8 +1,6 @@
 use std::rc::Rc;
 use std::net::Ipv4Addr;
 
-use ascii::AsAsciiStr;
-
 use errors::*;
 use dbus_nm::DBusNetworkManager;
 
@@ -54,33 +52,27 @@ impl<'a> WiFiDevice<'a> {
         Ok(())
     }
 
-    pub fn connect<P>(
+    pub fn connect(
         &self,
         access_point: &AccessPoint,
-        password: &P,
-    ) -> Result<(Connection, ConnectionState)>
-    where
-        P: AsAsciiStr + ?Sized,
-    {
+        credentials: &AccessPointCredentials,
+    ) -> Result<(Connection, ConnectionState)> {
         connect_to_access_point(
             &self.dbus_manager,
             self.device.path(),
-            &access_point.path,
-            access_point.ssid(),
-            &access_point.security,
-            password,
+            access_point,
+            credentials,
         )
     }
 
-    pub fn create_hotspot<T, U>(
+    pub fn create_hotspot<T>(
         &self,
         ssid: &T,
-        password: Option<&U>,
+        password: Option<&str>,
         address: Option<Ipv4Addr>,
     ) -> Result<(Connection, ConnectionState)>
     where
         T: AsSsidSlice + ?Sized,
-        U: AsAsciiStr + ?Sized,
     {
         create_hotspot(
             &self.dbus_manager,
@@ -95,10 +87,10 @@ impl<'a> WiFiDevice<'a> {
 
 #[derive(Debug)]
 pub struct AccessPoint {
-    path: String,
-    ssid: Ssid,
-    strength: u32,
-    security: Security,
+    pub path: String,
+    pub ssid: Ssid,
+    pub strength: u32,
+    pub security: Security,
 }
 
 impl AccessPoint {
@@ -115,6 +107,21 @@ bitflags! {
         const WPA2         = 0b0000_0100;
         const ENTERPRISE   = 0b0000_1000;
     }
+}
+
+#[derive(Debug)]
+pub enum AccessPointCredentials {
+    None,
+    Wep {
+        passphrase: String,
+    },
+    Wpa {
+        passphrase: String,
+    },
+    Enterprise {
+        identity: String,
+        passphrase: String,
+    },
 }
 
 bitflags! {
@@ -195,22 +202,27 @@ fn get_access_point_security(manager: &DBusNetworkManager, path: &str) -> Result
 
     let rsn_flags = manager.get_access_point_rsn_flags(path)?;
 
-    let mut security = NONE;
+    let mut security = Security::NONE;
 
-    if flags.contains(AP_FLAGS_PRIVACY) && wpa_flags == AP_SEC_NONE && rsn_flags == AP_SEC_NONE {
-        security |= WEP;
+    if flags.contains(NM80211ApFlags::AP_FLAGS_PRIVACY)
+        && wpa_flags == NM80211ApSecurityFlags::AP_SEC_NONE
+        && rsn_flags == NM80211ApSecurityFlags::AP_SEC_NONE
+    {
+        security |= Security::WEP;
     }
 
-    if wpa_flags != AP_SEC_NONE {
-        security |= WPA;
+    if wpa_flags != NM80211ApSecurityFlags::AP_SEC_NONE {
+        security |= Security::WPA;
     }
 
-    if rsn_flags != AP_SEC_NONE {
-        security |= WPA2;
+    if rsn_flags != NM80211ApSecurityFlags::AP_SEC_NONE {
+        security |= Security::WPA2;
     }
 
-    if wpa_flags.contains(AP_SEC_KEY_MGMT_802_1X) || rsn_flags.contains(AP_SEC_KEY_MGMT_802_1X) {
-        security |= ENTERPRISE;
+    if wpa_flags.contains(NM80211ApSecurityFlags::AP_SEC_KEY_MGMT_802_1X)
+        || rsn_flags.contains(NM80211ApSecurityFlags::AP_SEC_KEY_MGMT_802_1X)
+    {
+        security |= Security::ENTERPRISE;
     }
 
     Ok(security)

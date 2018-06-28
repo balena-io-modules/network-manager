@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 
-use ascii::AsAsciiStr;
-
 use dbus::Path;
 use dbus::arg::{Array, Dict, Iter, RefArg, Variant};
+
+use ascii::AsciiStr;
 
 use errors::*;
 use dbus_api::{extract, path_to_string, DBusApi, VariantTo, variant_iter_to_vec_u8};
 use manager::{Connectivity, NetworkManagerState};
 use connection::{ConnectionSettings, ConnectionState};
-use ssid::{AsSsidSlice, Ssid, SsidSlice};
+use ssid::{AsSsidSlice, Ssid};
 use device::{DeviceState, DeviceType};
-use wifi::{NM80211ApFlags, NM80211ApSecurityFlags, Security, NONE, WEP};
+use wifi::{AccessPoint, AccessPointCredentials, NM80211ApFlags, NM80211ApSecurityFlags};
 
 type VariantMap = HashMap<String, Variant<Box<RefArg>>>;
 
@@ -187,27 +187,26 @@ impl DBusNetworkManager {
         Ok(())
     }
 
-    pub fn connect_to_access_point<P>(
+    pub fn connect_to_access_point(
         &self,
         device_path: &str,
-        ap_path: &str,
-        ssid: &SsidSlice,
-        security: &Security,
-        password: &P,
-    ) -> Result<(String, String)>
-    where
-        P: AsAsciiStr + ?Sized,
-    {
+        access_point: &AccessPoint,
+        credentials: &AccessPointCredentials,
+    ) -> Result<(String, String)> {
         let mut settings: HashMap<String, VariantMap> = HashMap::new();
 
         let mut wireless: VariantMap = HashMap::new();
-        add_val(&mut wireless, "ssid", ssid.as_bytes().to_vec());
+        add_val(
+            &mut wireless,
+            "ssid",
+            access_point.ssid().as_bytes().to_vec(),
+        );
         settings.insert("802-11-wireless".to_string(), wireless);
 
-        if *security != NONE {
-            let mut security_settings: VariantMap = HashMap::new();
+        match *credentials {
+            AccessPointCredentials::Wep { ref passphrase } => {
+                let mut security_settings: VariantMap = HashMap::new();
 
-            if security.contains(WEP) {
                 add_val(
                     &mut security_settings,
                     "wep-key-type",
@@ -216,15 +215,42 @@ impl DBusNetworkManager {
                 add_str(
                     &mut security_settings,
                     "wep-key0",
-                    verify_password(password)?,
+                    verify_ascii_password(passphrase)?,
                 );
-            } else {
-                add_str(&mut security_settings, "key-mgmt", "wpa-psk");
-                add_str(&mut security_settings, "psk", verify_password(password)?);
-            };
 
-            settings.insert("802-11-wireless-security".to_string(), security_settings);
-        }
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+            },
+            AccessPointCredentials::Wpa { ref passphrase } => {
+                let mut security_settings: VariantMap = HashMap::new();
+
+                add_str(&mut security_settings, "key-mgmt", "wpa-psk");
+                add_str(
+                    &mut security_settings,
+                    "psk",
+                    verify_ascii_password(passphrase)?,
+                );
+
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+            },
+            AccessPointCredentials::Enterprise {
+                ref identity,
+                ref passphrase,
+            } => {
+                let mut security_settings: VariantMap = HashMap::new();
+
+                add_str(&mut security_settings, "key-mgmt", "wpa-eap");
+
+                let mut eap: VariantMap = HashMap::new();
+                add_val(&mut eap, "eap", vec!["peap".to_string()]);
+                add_str(&mut eap, "identity", identity as &str);
+                add_str(&mut eap, "password", passphrase as &str);
+                add_str(&mut eap, "phase2-auth", "mschapv2");
+
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+                settings.insert("802-1x".to_string(), eap);
+            },
+            AccessPointCredentials::None => {},
+        };
 
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
@@ -233,7 +259,7 @@ impl DBusNetworkManager {
             &[
                 &settings as &RefArg,
                 &Path::new(device_path.to_string())? as &RefArg,
-                &Path::new(ap_path.to_string())? as &RefArg,
+                &Path::new(access_point.path.to_string())? as &RefArg,
             ],
         )?;
 
@@ -245,17 +271,16 @@ impl DBusNetworkManager {
         ))
     }
 
-    pub fn create_hotspot<T, U>(
+    pub fn create_hotspot<T>(
         &self,
         device_path: &str,
         interface: &str,
         ssid: &T,
-        password: Option<&U>,
+        password: Option<&str>,
         address: Option<Ipv4Addr>,
     ) -> Result<(String, String)>
     where
         T: AsSsidSlice + ?Sized,
-        U: AsAsciiStr + ?Sized,
     {
         let ssid = ssid.as_ssid_slice()?;
         let ssid_vec = ssid.as_bytes().to_vec();
@@ -294,7 +319,7 @@ impl DBusNetworkManager {
 
             let mut security: VariantMap = HashMap::new();
             add_str(&mut security, "key-mgmt", "wpa-psk");
-            add_str(&mut security, "psk", verify_password(password)?);
+            add_str(&mut security, "psk", verify_ascii_password(password)?);
 
             settings.insert("802-11-wireless-security".to_string(), security);
         }
@@ -466,17 +491,22 @@ where
     map.insert(key.into(), Variant(Box::new(value.into())));
 }
 
-fn verify_password<T: AsAsciiStr + ?Sized>(password: &T) -> Result<&str> {
-    match password.as_ascii_str() {
+fn verify_ascii_password(password: &str) -> Result<&str> {
+    match AsciiStr::from_ascii(password) {
         Err(e) => Err(e).chain_err(|| ErrorKind::PreSharedKey("Not an ASCII password".into())),
         Ok(p) => {
-            if p.len() > 64 {
+            if p.len() < 8 {
+                bail!(ErrorKind::PreSharedKey(format!(
+                    "Password length should be at least 8 characters: {} len",
+                    p.len()
+                )))
+            } else if p.len() > 64 {
                 bail!(ErrorKind::PreSharedKey(format!(
                     "Password length should not exceed 64: {} len",
                     p.len()
                 )))
             } else {
-                Ok(p.as_str())
+                Ok(password)
             }
         },
     }

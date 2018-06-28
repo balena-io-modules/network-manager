@@ -2,14 +2,12 @@ use std::rc::Rc;
 use std::fmt;
 use std::net::Ipv4Addr;
 
-use ascii::AsAsciiStr;
-
 use errors::*;
 use dbus_nm::DBusNetworkManager;
 
-use wifi::Security;
+use wifi::{AccessPoint, AccessPointCredentials};
 use device::{get_active_connection_devices, Device};
-use ssid::{AsSsidSlice, Ssid, SsidSlice};
+use ssid::{AsSsidSlice, Ssid};
 
 #[derive(Clone)]
 pub struct Connection {
@@ -243,24 +241,13 @@ pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<V
     Ok(connections)
 }
 
-pub fn connect_to_access_point<P>(
+pub fn connect_to_access_point(
     dbus_manager: &Rc<DBusNetworkManager>,
     device_path: &str,
-    access_point_path: &str,
-    ssid: &SsidSlice,
-    security: &Security,
-    password: &P,
-) -> Result<(Connection, ConnectionState)>
-where
-    P: AsAsciiStr + ?Sized,
-{
-    let (path, _) = dbus_manager.connect_to_access_point(
-        device_path,
-        access_point_path,
-        ssid,
-        security,
-        password,
-    )?;
+    access_point: &AccessPoint,
+    credentials: &AccessPointCredentials,
+) -> Result<(Connection, ConnectionState)> {
+    let (path, _) = dbus_manager.connect_to_access_point(device_path, access_point, credentials)?;
 
     let connection = Connection::init(dbus_manager, &path)?;
 
@@ -273,17 +260,16 @@ where
     Ok((connection, state))
 }
 
-pub fn create_hotspot<S, P>(
+pub fn create_hotspot<S>(
     dbus_manager: &Rc<DBusNetworkManager>,
     device_path: &str,
     interface: &str,
     ssid: &S,
-    password: Option<&P>,
+    password: Option<&str>,
     address: Option<Ipv4Addr>,
 ) -> Result<(Connection, ConnectionState)>
 where
     S: AsSsidSlice + ?Sized,
-    P: AsAsciiStr + ?Sized,
 {
     let (path, _) = dbus_manager.create_hotspot(device_path, interface, ssid, password, address)?;
 
