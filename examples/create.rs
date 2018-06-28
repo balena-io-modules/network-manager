@@ -7,7 +7,7 @@ use std::env;
 use std::process;
 use std::io::Write;
 
-use network_manager::{AccessPoint, Device, DeviceType, NetworkManager};
+use network_manager::{AccessPoint, AccessPointCredentials, Device, DeviceType, NetworkManager};
 
 mod errors {
     use network_manager;
@@ -61,7 +61,11 @@ fn run() -> Result<()> {
 
     let ap_index = find_access_point(&access_points, &args[1] as &str)?;
 
-    wifi_device.connect(&access_points[ap_index], &args[2] as &str)?;
+    let credentials = AccessPointCredentials::Wpa {
+        passphrase: args[2].clone(),
+    };
+
+    wifi_device.connect(&access_points[ap_index], &credentials)?;
 
     Ok(())
 }
