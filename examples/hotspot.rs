@@ -1,13 +1,16 @@
 #[macro_use]
 extern crate error_chain;
 
+extern crate clap;
 extern crate network_manager;
 
-use std::env;
-use std::process;
+use clap::{App, Arg};
 use std::io::Write;
 
 use network_manager::{Device, DeviceType, NetworkManager};
+
+// Network manager version set at compile time
+const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod errors {
     use network_manager;
@@ -28,12 +31,6 @@ mod errors {
 
 use errors::*;
 
-struct Options {
-    interface: Option<String>,
-    ssid: String,
-    password: Option<String>,
-}
-
 fn main() {
     if let Err(ref e) = run() {
         let stderr = &mut ::std::io::stderr();
@@ -50,67 +47,46 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let Options {
-        interface,
-        ssid,
-        password,
-    } = parse_options();
-
-    let pass_str = match password {
-        Some(ref s) => Some(s as &str),
-        None => None,
-    };
+    let matches = App::new(file!())
+        .version(CARGO_PKG_VERSION)
+        .arg(
+            Arg::with_name("INTERFACE")
+                .short("i")
+                .takes_value(true)
+                .required(false)
+                .help("Network interface"),
+        )
+        .arg(
+            Arg::with_name("SSID")
+                .takes_value(true)
+                .required(true)
+                .help("Network SSID"),
+        )
+        .arg(
+            Arg::with_name("PASSWORD")
+                .takes_value(true)
+                .required(false)
+                .help("Network password"),
+        )
+        .get_matches();
 
     let manager = NetworkManager::new();
 
-    let device = find_device(&manager, interface)?;
+    let device = find_device(&manager, matches.value_of("INTERFACE"))?;
     let wifi_device = device.as_wifi_device().unwrap();
 
-    wifi_device.create_hotspot(&ssid as &str, pass_str, None)?;
+    wifi_device.create_hotspot(
+        matches.value_of("SSID").unwrap(),
+        matches.value_of("PASSWORD"),
+        None,
+    )?;
 
     Ok(())
 }
 
-fn parse_options() -> Options {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        print_usage_and_exit();
-    }
-
-    let (ssid_pos, interface) = if args[1] == "-i" {
-        if args.len() < 4 {
-            print_usage_and_exit();
-        }
-
-        (3, Some(args[2].clone()))
-    } else {
-        (1, None)
-    };
-
-    let ssid = args[ssid_pos].clone();
-
-    let password = if args.len() < ssid_pos + 2 {
-        None
-    } else {
-        Some(args[ssid_pos + 1].clone())
-    };
-
-    Options {
-        interface: interface,
-        ssid: ssid,
-        password: password,
-    }
-}
-
-fn print_usage_and_exit() {
-    println!("USAGE: hotspot [-i INTERFACE] SSID [PASSWORD]");
-    process::exit(1);
-}
-
-fn find_device(manager: &NetworkManager, interface: Option<String>) -> Result<Device> {
+fn find_device(manager: &NetworkManager, interface: Option<&str>) -> Result<Device> {
     if let Some(interface) = interface {
-        let device = manager.get_device_by_interface(&interface)?;
+        let device = manager.get_device_by_interface(interface)?;
 
         if *device.device_type() == DeviceType::WiFi {
             Ok(device)
