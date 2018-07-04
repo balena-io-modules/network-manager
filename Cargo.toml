@@ -1,6 +1,6 @@
 [package]
 name = "network-manager"
-version = "0.11.0"
+version = "0.11.1"
 authors = ["Zahari Petkov <zahari@resin.io>", "Aaron Brodersen <aaron@resin.io>"]
 description = "Rust NetworkManager bindings"
 homepage = "https://github.com/resin-io-modules/network-manager"
@@ -21,3 +21,6 @@ log = "0.3"
 [dependencies.error-chain]
 version = "0.11"
 default-features = false
+
+[dev-dependencies]
+clap = "2.32"

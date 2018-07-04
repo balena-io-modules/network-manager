@@ -1,13 +1,16 @@
 #[macro_use]
 extern crate error_chain;
 
+extern crate clap;
 extern crate network_manager;
 
-use std::env;
-use std::process;
+use clap::{App, Arg};
 use std::io::Write;
 
 use network_manager::{AccessPoint, AccessPointCredentials, Device, DeviceType, NetworkManager};
+
+// Network manager version set at compile time
+const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod errors {
     use network_manager;
@@ -44,12 +47,21 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() != 3 {
-        println!("USAGE: create SSID PASSWORD");
-        process::exit(1);
-    }
+    let matches = App::new(file!())
+        .version(CARGO_PKG_VERSION)
+        .arg(
+            Arg::with_name("SSID")
+                .takes_value(true)
+                .required(true)
+                .help("Network SSID"),
+        )
+        .arg(
+            Arg::with_name("PASSWORD")
+                .takes_value(true)
+                .required(true)
+                .help("Network password"),
+        )
+        .get_matches();
 
     let manager = NetworkManager::new();
 
@@ -59,10 +71,10 @@ fn run() -> Result<()> {
 
     let access_points = wifi_device.get_access_points()?;
 
-    let ap_index = find_access_point(&access_points, &args[1] as &str)?;
+    let ap_index = find_access_point(&access_points, matches.value_of("SSID").unwrap())?;
 
     let credentials = AccessPointCredentials::Wpa {
-        passphrase: args[2].clone(),
+        passphrase: matches.value_of("PASSWORD").unwrap().to_string(),
     };
 
     wifi_device.connect(&access_points[ap_index], &credentials)?;
