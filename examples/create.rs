@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate error_chain;
 
+#[macro_use]
 extern crate clap;
 extern crate network_manager;
 
@@ -8,9 +9,6 @@ use clap::{App, Arg};
 use std::io::Write;
 
 use network_manager::{AccessPoint, AccessPointCredentials, Device, DeviceType, NetworkManager};
-
-// Network manager version set at compile time
-const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod errors {
     use network_manager;
@@ -48,7 +46,7 @@ fn main() {
 
 fn run() -> Result<()> {
     let matches = App::new(file!())
-        .version(CARGO_PKG_VERSION)
+        .version(crate_version!())
         .arg(
             Arg::with_name("SSID")
                 .takes_value(true)
