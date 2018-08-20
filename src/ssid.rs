@@ -35,10 +35,6 @@ impl Ssid {
     }
 }
 
-pub trait IntoSsid: Sized {
-    fn into_ssid(self) -> Result<Ssid>;
-}
-
 impl Deref for Ssid {
     type Target = SsidSlice;
 
