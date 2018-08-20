@@ -4,7 +4,7 @@ use std::fmt;
 use errors::*;
 use dbus_nm::DBusNetworkManager;
 
-use wifi::{new_wifi_device, WiFiDevice};
+use wifi::WiFiDevice;
 
 #[derive(Clone)]
 pub struct Device {
@@ -42,7 +42,7 @@ impl Device {
 
     pub fn as_wifi_device(&self) -> Option<WiFiDevice> {
         if self.device_type == DeviceType::WiFi {
-            Some(new_wifi_device(&self.dbus_manager, self))
+            Some(WiFiDevice::new(self.dbus_manager.clone(), self.clone()))
         } else {
             None
         }

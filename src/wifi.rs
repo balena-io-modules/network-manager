@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::net::Ipv4Addr;
+use std::ops::Deref;
 
 use errors::*;
 use dbus_nm::DBusNetworkManager;
@@ -8,12 +9,22 @@ use connection::{connect_to_access_point, create_hotspot, Connection, Connection
 use device::{Device, PathGetter};
 use ssid::{AsSsidSlice, Ssid, SsidSlice};
 
-pub struct WiFiDevice<'a> {
+pub struct WiFiDevice {
     dbus_manager: Rc<DBusNetworkManager>,
-    device: &'a Device,
+    device: Device,
 }
 
-impl<'a> WiFiDevice<'a> {
+impl WiFiDevice {
+    pub(crate) fn new(
+        dbus_manager: Rc<DBusNetworkManager>,
+        device: Device,
+    ) -> WiFiDevice {
+        WiFiDevice {
+            dbus_manager,
+            device,
+        }
+    }
+
     /// Get the list of access points visible to this device.
     ///
     /// # Examples
@@ -82,6 +93,14 @@ impl<'a> WiFiDevice<'a> {
             password,
             address,
         )
+    }
+}
+
+impl Deref for WiFiDevice {
+    type Target = Device;
+
+    fn deref(&self) -> &Self::Target {
+        &self.device
     }
 }
 
@@ -163,16 +182,6 @@ bitflags! {
         const AP_SEC_KEY_MGMT_PSK            = 0x0000_0100;
         // 802.1x authentication and key management is supported
         const AP_SEC_KEY_MGMT_802_1X         = 0x0000_0200;
-    }
-}
-
-pub fn new_wifi_device<'a>(
-    dbus_manager: &Rc<DBusNetworkManager>,
-    device: &'a Device,
-) -> WiFiDevice<'a> {
-    WiFiDevice {
-        dbus_manager: Rc::clone(dbus_manager),
-        device: device,
     }
 }
 
