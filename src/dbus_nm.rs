@@ -6,6 +6,8 @@ use dbus::arg::{Array, Dict, Iter, RefArg, Variant};
 
 use ascii::AsciiStr;
 
+use bitintr::Rev;
+
 use errors::*;
 use dbus_api::{extract, path_to_string, DBusApi, VariantTo, variant_iter_to_vec_u8};
 use manager::{Connectivity, NetworkManagerState};
@@ -325,6 +327,62 @@ impl DBusNetworkManager {
         }
 
         settings.insert("802-11-wireless".to_string(), wireless);
+        settings.insert("connection".to_string(), connection);
+        settings.insert("ipv4".to_string(), ipv4);
+
+        let response = self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "AddAndActivateConnection",
+            &[
+                &settings as &RefArg,
+                &Path::new(device_path)? as &RefArg,
+                &Path::new("/")? as &RefArg,
+            ],
+        )?;
+
+        let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
+
+        Ok((
+            path_to_string(&conn_path)?,
+            path_to_string(&active_connection)?,
+        ))
+    }
+
+    pub fn set_ethernet_address(
+        &self,
+        device_path: &str,
+        interface: &str,
+        address: Ipv4Addr,
+        address_netmask_bit_count: u8,
+        gateway: Ipv4Addr,
+        dns_addr_1: Ipv4Addr,
+        dns_addr_2: Ipv4Addr,
+        dns_search: &str,
+        method: &str,
+        connection_name: &str,
+    ) -> Result<(String, String)>
+    {
+        let mut connection: VariantMap = HashMap::new();
+        add_str(&mut connection, "id", connection_name);
+        add_str(&mut connection, "interface-name", interface);
+        add_str(&mut connection, "type", "802-3-ethernet");
+
+        let mut ipv4: VariantMap = HashMap::new();
+        add_str(&mut ipv4, "method", method);
+
+        if(method == "manual"){
+            add_str(&mut ipv4, "gateway", format!("{}", gateway));
+            let mut addr_map: VariantMap = HashMap::new();
+            let prefix = address_netmask_bit_count as u32;
+            add_str(&mut addr_map, "address", format!("{}", address));
+            add_val(&mut addr_map, "prefix", prefix);
+            add_val(&mut ipv4, "address-data", vec![addr_map]);
+        }
+        add_val(&mut ipv4, "dns", vec![u32::from(dns_addr_1).rev(), u32::from(dns_addr_2).rev()]);
+        add_val(&mut ipv4, "dns-search", vec![dns_search.to_string()]);
+
+        let mut settings: HashMap<String, VariantMap> = HashMap::new();
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
