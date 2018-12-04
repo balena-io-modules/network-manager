@@ -17,6 +17,7 @@ tokio-timer = "0.1"
 bitflags = "1.0"
 ascii = "0.8"
 log = "0.3"
+bitintr = "0.2.0"
 
 [dependencies.error-chain]
 version = "0.11"

@@ -284,6 +284,44 @@ where
     Ok((connection, state))
 }
 
+pub fn set_ethernet_address(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    device_path: &str,
+    interface: &str,
+    address: Ipv4Addr,
+    address_netmask_bit_count: u8,
+    gateway: Ipv4Addr,
+    dns_addr_1: Ipv4Addr,
+    dns_addr_2: Ipv4Addr,
+    dns_search: &str,
+    method: &str,
+    connection_name: &str,
+) -> Result<(Connection, ConnectionState)>
+{
+    let (path, _) = dbus_manager.set_ethernet_address(
+        device_path,
+        interface,
+        address,
+        address_netmask_bit_count,
+        gateway,
+        dns_addr_1,
+        dns_addr_2,
+        dns_search,
+        method,
+        connection_name,
+    )?;
+
+    let connection = Connection::init(dbus_manager, &path)?;
+
+    let state = wait(
+        &connection,
+        &ConnectionState::Activated,
+        dbus_manager.method_timeout(),
+    )?;
+
+    Ok((connection, state))
+}
+
 fn get_connection_active_path(
     dbus_manager: &DBusNetworkManager,
     connection_path: &str,

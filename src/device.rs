@@ -5,6 +5,7 @@ use errors::*;
 use dbus_nm::DBusNetworkManager;
 
 use wifi::{new_wifi_device, WiFiDevice};
+use ethernet::{new_ethernet_device, EthernetDevice};
 
 #[derive(Clone)]
 pub struct Device {
@@ -43,6 +44,14 @@ impl Device {
     pub fn as_wifi_device(&self) -> Option<WiFiDevice> {
         if self.device_type == DeviceType::WiFi {
             Some(new_wifi_device(&self.dbus_manager, self))
+        } else {
+            None
+        }
+    }
+
+    pub fn as_ethernet_device(&self) -> Option<EthernetDevice> {
+        if self.device_type == DeviceType::Ethernet {
+            Some(new_ethernet_device(&self.dbus_manager, self))
         } else {
             None
         }

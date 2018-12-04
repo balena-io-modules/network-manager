@@ -16,6 +16,8 @@ extern crate dbus;
 
 extern crate ascii;
 
+extern crate bitintr;
+
 pub mod errors;
 
 mod dbus_nm;
@@ -25,6 +27,7 @@ mod service;
 mod connection;
 mod device;
 mod wifi;
+mod ethernet;
 mod ssid;
 
 pub use manager::{Connectivity, NetworkManager};
