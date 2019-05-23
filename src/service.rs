@@ -12,6 +12,8 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 pub const SD_SERVICE_MANAGER: &str = "org.freedesktop.systemd1";
 pub const SD_SERVICE_PATH: &str = "/org/freedesktop/systemd1";
@@ -42,7 +44,7 @@ pub fn start_service(timeout: u64) -> Result<ServiceState> {
                 .map_err(|_| ErrorKind::Service)?;
 
             handler(timeout, ServiceState::Active)
-        },
+        }
     }
 }
 
@@ -70,7 +72,7 @@ pub fn stop_service(timeout: u64) -> Result<ServiceState> {
                 .map_err(|_| ErrorKind::Service)?;
 
             handler(timeout, ServiceState::Inactive)
-        },
+        }
     }
 }
 
@@ -176,6 +178,7 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ServiceState {
     Active,
     Reloading,

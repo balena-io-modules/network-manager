@@ -4,13 +4,17 @@ use std::rc::Rc;
 
 use dbus_nm::DBusNetworkManager;
 use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use device::{get_active_connection_devices, Device};
 use ssid::{AsSsidSlice, Ssid};
 use wifi::{AccessPoint, AccessPointCredentials};
 
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Connection {
+    #[cfg_attr(feature = "serde", serde(skip))]
     dbus_manager: Rc<DBusNetworkManager>,
     path: String,
     settings: ConnectionSettings,
@@ -178,6 +182,7 @@ impl<'a> From<&'a Connection> for i32 {
 }
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ConnectionSettings {
     pub kind: String, // `type` is a reserved word, so we are using `kind` instead
     pub id: String,
@@ -187,6 +192,7 @@ pub struct ConnectionSettings {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ConnectionState {
     Unknown = 0,
     Activating = 1,

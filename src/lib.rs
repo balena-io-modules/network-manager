@@ -16,6 +16,9 @@ extern crate dbus;
 
 extern crate ascii;
 
+#[cfg(feature = "serde")]
+extern crate serde;
+
 pub mod errors;
 
 mod connection;

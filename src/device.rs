@@ -3,11 +3,15 @@ use std::rc::Rc;
 
 use dbus_nm::DBusNetworkManager;
 use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use wifi::{new_wifi_device, WiFiDevice};
 
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Device {
+    #[cfg_attr(feature = "serde", serde(skip))]
     dbus_manager: Rc<DBusNetworkManager>,
     path: String,
     interface: String,
@@ -126,6 +130,7 @@ impl PathGetter for Device {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum DeviceType {
     Unknown,
     Ethernet,
@@ -187,6 +192,7 @@ impl From<i64> for DeviceType {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum DeviceState {
     Unknown,
     Unmanaged,

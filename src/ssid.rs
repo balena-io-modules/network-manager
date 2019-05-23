@@ -6,10 +6,25 @@ use std::ops::Deref;
 use std::str;
 
 use errors::*;
+#[cfg(feature = "serde")]
+use serde::{ser::Error, Deserialize, Serialize, Serializer};
 
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(transparent))]
 pub struct Ssid {
+    #[cfg_attr(feature = "serde", serde(serialize_with = "as_str"))]
     vec: Vec<u8>,
+}
+
+#[cfg(feature = "serde")]
+fn as_str<S>(vec: &[u8], serializer: S) -> std::result::Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match str::from_utf8(&vec) {
+        Ok(value) => serializer.serialize_some(&value),
+        Err(_) => Err(S::Error::custom("SSID contains invalid UTF-8 characters")),
+    }
 }
 
 impl Ssid {
@@ -55,7 +70,9 @@ impl fmt::Debug for Ssid {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize), serde(transparent))]
 pub struct SsidSlice {
+    #[cfg_attr(feature = "serde", serde(serialize_with = "as_str"))]
     slice: [u8],
 }
 

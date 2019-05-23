@@ -2,6 +2,8 @@ use std::rc::Rc;
 
 use dbus_nm::DBusNetworkManager;
 use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use connection::{get_active_connections, get_connections, Connection};
 use device::{get_device_by_interface, get_devices, Device};
@@ -123,6 +125,7 @@ impl Default for NetworkManager {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum NetworkManagerState {
     Unknown,
     Asleep,
@@ -154,6 +157,7 @@ impl From<u32> for NetworkManagerState {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Connectivity {
     Unknown,
     None,
