@@ -44,7 +44,7 @@ impl Deref for Ssid {
 
     #[inline]
     fn deref(&self) -> &SsidSlice {
-        unsafe { mem::transmute(&self.vec[..]) }
+        unsafe { &*(&self.vec[..] as *const [u8] as *const SsidSlice) }
     }
 }
 
@@ -93,7 +93,7 @@ impl AsSsidSlice for [u8] {
                 self.len()
             )))
         } else {
-            Ok(unsafe { mem::transmute(self) })
+            Ok(unsafe { &*(self as *const [u8] as *const SsidSlice) })
         }
     }
 }

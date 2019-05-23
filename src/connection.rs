@@ -23,7 +23,7 @@ impl Connection {
         Ok(Connection {
             dbus_manager: Rc::clone(dbus_manager),
             path: path.to_string(),
-            settings: settings,
+            settings,
         })
     }
 
@@ -78,7 +78,7 @@ impl Connection {
                     &ConnectionState::Activated,
                     self.dbus_manager.method_timeout(),
                 )
-            },
+            }
         }
     }
 
@@ -120,7 +120,7 @@ impl Connection {
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
-            },
+            }
         }
     }
 
@@ -206,7 +206,7 @@ impl From<i64> for ConnectionState {
             _ => {
                 warn!("Undefined connection state: {}", state);
                 ConnectionState::Unknown
-            },
+            }
         }
     }
 }

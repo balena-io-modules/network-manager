@@ -26,10 +26,10 @@ impl DBusApi {
         let method_timeout = method_timeout.unwrap_or(DEFAULT_TIMEOUT);
 
         DBusApi {
-            connection: connection,
-            method_timeout: method_timeout,
-            base: base,
-            method_retry_error_names: method_retry_error_names,
+            connection,
+            method_timeout,
+            base,
+            method_retry_error_names,
         }
     }
 
@@ -102,7 +102,7 @@ impl DBusApi {
                 }
 
                 self.send_message_checked(message)
-            },
+            }
             Err(details) => Some(Err(ErrorKind::DBusAPI(details).into())),
         }
     }
@@ -126,7 +126,7 @@ impl DBusApi {
                 }
 
                 Some(Err(Error::from(e)))
-            },
+            }
         }
     }
 
@@ -160,7 +160,7 @@ impl DBusApi {
                     None => property_error("no details", false),
                 };
                 Err(e).chain_err(|| dbus_err)
-            },
+            }
         }
     }
 

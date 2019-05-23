@@ -128,30 +128,30 @@ impl DBusNetworkManager {
                 match k2 {
                     "id" => {
                         id = extract::<String>(&mut v2)?;
-                    },
+                    }
                     "uuid" => {
                         uuid = extract::<String>(&mut v2)?;
-                    },
+                    }
                     "type" => {
                         kind = extract::<String>(&mut v2)?;
-                    },
+                    }
                     "ssid" => {
                         ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&mut v2)?)?;
-                    },
+                    }
                     "mode" => {
                         mode = extract::<String>(&mut v2)?;
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         }
 
         Ok(ConnectionSettings {
-            kind: kind,
-            id: id,
-            uuid: uuid,
-            ssid: ssid,
-            mode: mode,
+            kind,
+            id,
+            uuid,
+            ssid,
+            mode,
         })
     }
 
@@ -223,7 +223,7 @@ impl DBusNetworkManager {
                 );
 
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
-            },
+            }
             AccessPointCredentials::Wpa { ref passphrase } => {
                 let mut security_settings: VariantMap = HashMap::new();
 
@@ -235,7 +235,7 @@ impl DBusNetworkManager {
                 );
 
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
-            },
+            }
             AccessPointCredentials::Enterprise {
                 ref identity,
                 ref passphrase,
@@ -252,8 +252,8 @@ impl DBusNetworkManager {
 
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
                 settings.insert("802-1x".to_string(), eap);
-            },
-            AccessPointCredentials::None => {},
+            }
+            AccessPointCredentials::None => {}
         };
 
         let response = self.dbus.call_with_args(
@@ -513,6 +513,6 @@ fn verify_ascii_password(password: &str) -> Result<&str> {
             } else {
                 Ok(password)
             }
-        },
+        }
     }
 }

@@ -23,8 +23,8 @@ impl Device {
         Ok(Device {
             dbus_manager: Rc::clone(dbus_manager),
             path: path.to_string(),
-            interface: interface,
-            device_type: device_type,
+            interface,
+            device_type,
         })
     }
 
@@ -72,7 +72,7 @@ impl Device {
                     &DeviceState::Activated,
                     self.dbus_manager.method_timeout(),
                 )
-            },
+            }
         }
     }
 
@@ -100,7 +100,7 @@ impl Device {
                     &DeviceState::Disconnected,
                     self.dbus_manager.method_timeout(),
                 )
-            },
+            }
         }
     }
 }
@@ -181,7 +181,7 @@ impl From<i64> for DeviceType {
             _ => {
                 warn!("Undefined device type: {}", device_type);
                 DeviceType::Unknown
-            },
+            }
         }
     }
 }
@@ -222,7 +222,7 @@ impl From<i64> for DeviceState {
             _ => {
                 warn!("Undefined device state: {}", state);
                 DeviceState::Unknown
-            },
+            }
         }
     }
 }
