@@ -1,7 +1,7 @@
-use dbus::Connection as DBusConnection;
-use dbus::{BusType, ConnPath, Message, Path};
 use dbus::arg::{Array, Get, Iter, RefArg, Variant};
 use dbus::stdintf::OrgFreedesktopDBusProperties;
+use dbus::Connection as DBusConnection;
+use dbus::{BusType, ConnPath, Message, Path};
 
 use errors::*;
 
@@ -26,10 +26,10 @@ impl DBusApi {
         let method_timeout = method_timeout.unwrap_or(DEFAULT_TIMEOUT);
 
         DBusApi {
-            connection: connection,
-            method_timeout: method_timeout,
-            base: base,
-            method_retry_error_names: method_retry_error_names,
+            connection,
+            method_timeout,
+            base,
+            method_retry_error_names,
         }
     }
 
@@ -102,13 +102,14 @@ impl DBusApi {
                 }
 
                 self.send_message_checked(message)
-            },
+            }
             Err(details) => Some(Err(ErrorKind::DBusAPI(details).into())),
         }
     }
 
     fn send_message_checked(&self, message: Message) -> Option<Result<Message>> {
-        match self.connection
+        match self
+            .connection
             .send_with_reply_and_block(message, self.method_timeout as i32 * 1000)
         {
             Ok(response) => Some(Ok(response)),
@@ -125,7 +126,7 @@ impl DBusApi {
                 }
 
                 Some(Err(Error::from(e)))
-            },
+            }
         }
     }
 
@@ -159,7 +160,7 @@ impl DBusApi {
                     None => property_error("no details", false),
                 };
                 Err(e).chain_err(|| dbus_err)
-            },
+            }
         }
     }
 

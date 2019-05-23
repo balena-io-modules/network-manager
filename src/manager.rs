@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use connection::{get_active_connections, get_connections, Connection};
 use device::{get_device_by_interface, get_devices, Device};
@@ -123,6 +125,7 @@ impl Default for NetworkManager {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum NetworkManagerState {
     Unknown,
     Asleep,
@@ -148,12 +151,13 @@ impl From<u32> for NetworkManagerState {
             _ => {
                 warn!("Undefined Network Manager state: {}", state);
                 NetworkManagerState::Unknown
-            },
+            }
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Connectivity {
     Unknown,
     None,
@@ -173,7 +177,7 @@ impl From<u32> for Connectivity {
             _ => {
                 warn!("Undefined connectivity state: {}", state);
                 Connectivity::Unknown
-            },
+            }
         }
     }
 }
@@ -186,14 +190,14 @@ mod tests {
     fn test_get_connections() {
         let manager = NetworkManager::new();
         let connections = manager.get_connections().unwrap();
-        assert!(connections.len() > 0);
+        assert!(!connections.is_empty());
     }
 
     #[test]
     fn test_get_devices() {
         let manager = NetworkManager::new();
         let devices = manager.get_devices().unwrap();
-        assert!(devices.len() > 0);
+        assert!(!devices.is_empty());
     }
 
     #[test]
@@ -222,7 +226,7 @@ mod tests {
                     ServiceState::Active,
                     NetworkManager::get_service_state().unwrap()
                 );
-            },
+            }
             ServiceState::Inactive => {
                 NetworkManager::start_service(10).unwrap();
                 assert_eq!(
@@ -235,7 +239,7 @@ mod tests {
                     ServiceState::Inactive,
                     NetworkManager::get_service_state().unwrap()
                 );
-            },
+            }
             _ => (),
         }
     }

@@ -1,14 +1,18 @@
-use std::rc::Rc;
 use std::net::Ipv4Addr;
+use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use connection::{connect_to_access_point, create_hotspot, Connection, ConnectionState};
 use device::{Device, PathGetter};
 use ssid::{AsSsidSlice, Ssid, SsidSlice};
 
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct WiFiDevice<'a> {
+    #[cfg_attr(feature = "serde", serde(skip))]
     dbus_manager: Rc<DBusNetworkManager>,
     device: &'a Device,
 }
@@ -31,7 +35,8 @@ impl<'a> WiFiDevice<'a> {
     pub fn get_access_points(&self) -> Result<Vec<AccessPoint>> {
         let mut access_points = Vec::new();
 
-        let paths = self.dbus_manager
+        let paths = self
+            .dbus_manager
             .get_device_access_points(self.device.path())?;
 
         for path in paths {
@@ -86,6 +91,7 @@ impl<'a> WiFiDevice<'a> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AccessPoint {
     pub path: String,
     pub ssid: Ssid,
@@ -100,6 +106,7 @@ impl AccessPoint {
 }
 
 bitflags! {
+    #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     pub struct Security: u32 {
         const NONE         = 0b0000_0000;
         const WEP          = 0b0000_0001;
@@ -110,6 +117,7 @@ bitflags! {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum AccessPointCredentials {
     None,
     Wep {
@@ -172,7 +180,7 @@ pub fn new_wifi_device<'a>(
 ) -> WiFiDevice<'a> {
     WiFiDevice {
         dbus_manager: Rc::clone(dbus_manager),
-        device: device,
+        device,
     }
 }
 
@@ -184,9 +192,9 @@ fn get_access_point(manager: &DBusNetworkManager, path: &str) -> Result<Option<A
 
         let access_point = AccessPoint {
             path: path.to_string(),
-            ssid: ssid,
-            strength: strength,
-            security: security,
+            ssid,
+            strength,
+            security,
         };
 
         Ok(Some(access_point))

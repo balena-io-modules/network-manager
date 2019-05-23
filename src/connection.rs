@@ -1,16 +1,20 @@
-use std::rc::Rc;
 use std::fmt;
 use std::net::Ipv4Addr;
+use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
-use wifi::{AccessPoint, AccessPointCredentials};
 use device::{get_active_connection_devices, Device};
 use ssid::{AsSsidSlice, Ssid};
+use wifi::{AccessPoint, AccessPointCredentials};
 
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Connection {
+    #[cfg_attr(feature = "serde", serde(skip))]
     dbus_manager: Rc<DBusNetworkManager>,
     path: String,
     settings: ConnectionSettings,
@@ -23,7 +27,7 @@ impl Connection {
         Ok(Connection {
             dbus_manager: Rc::clone(dbus_manager),
             path: path.to_string(),
-            settings: settings,
+            settings,
         })
     }
 
@@ -78,7 +82,7 @@ impl Connection {
                     &ConnectionState::Activated,
                     self.dbus_manager.method_timeout(),
                 )
-            },
+            }
         }
     }
 
@@ -120,7 +124,7 @@ impl Connection {
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
-            },
+            }
         }
     }
 
@@ -178,6 +182,7 @@ impl<'a> From<&'a Connection> for i32 {
 }
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ConnectionSettings {
     pub kind: String, // `type` is a reserved word, so we are using `kind` instead
     pub id: String,
@@ -187,6 +192,7 @@ pub struct ConnectionSettings {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ConnectionState {
     Unknown = 0,
     Activating = 1,
@@ -206,7 +212,7 @@ impl From<i64> for ConnectionState {
             _ => {
                 warn!("Undefined connection state: {}", state);
                 ConnectionState::Unknown
-            },
+            }
         }
     }
 }

@@ -3,15 +3,17 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate tokio_timer;
 
-use std::str::FromStr;
-use std::time::Duration;
-use self::dbus::{BusType, Connection, ConnectionItem, Interface, Member, Message, Path, Props};
 use self::dbus::arg::{Dict, Iter, Variant};
+use self::dbus::{BusType, Connection, ConnectionItem, Interface, Member, Message, Path, Props};
 use self::futures::Future;
 use self::futures_cpupool::CpuPool;
 use self::tokio_timer::Timer;
+use std::str::FromStr;
+use std::time::Duration;
 
 use errors::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 pub const SD_SERVICE_MANAGER: &str = "org.freedesktop.systemd1";
 pub const SD_SERVICE_PATH: &str = "/org/freedesktop/systemd1";
@@ -30,8 +32,9 @@ pub fn start_service(timeout: u64) -> Result<ServiceState> {
                 SD_SERVICE_PATH,
                 SD_MANAGER_INTERFACE,
                 "StartUnit",
-            ).map_err(|_| ErrorKind::Service)?
-                .append2("NetworkManager.service", "fail");
+            )
+            .map_err(|_| ErrorKind::Service)?
+            .append2("NetworkManager.service", "fail");
 
             let connection =
                 Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
@@ -41,7 +44,7 @@ pub fn start_service(timeout: u64) -> Result<ServiceState> {
                 .map_err(|_| ErrorKind::Service)?;
 
             handler(timeout, ServiceState::Active)
-        },
+        }
     }
 }
 
@@ -57,8 +60,9 @@ pub fn stop_service(timeout: u64) -> Result<ServiceState> {
                 SD_SERVICE_PATH,
                 SD_MANAGER_INTERFACE,
                 "StopUnit",
-            ).map_err(|_| ErrorKind::Service)?
-                .append2("NetworkManager.service", "fail");
+            )
+            .map_err(|_| ErrorKind::Service)?
+            .append2("NetworkManager.service", "fail");
 
             let connection =
                 Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
@@ -68,7 +72,7 @@ pub fn stop_service(timeout: u64) -> Result<ServiceState> {
                 .map_err(|_| ErrorKind::Service)?;
 
             handler(timeout, ServiceState::Inactive)
-        },
+        }
     }
 }
 
@@ -78,8 +82,9 @@ pub fn get_service_state() -> Result<ServiceState> {
         SD_SERVICE_PATH,
         SD_MANAGER_INTERFACE,
         "GetUnit",
-    ).map_err(|_| ErrorKind::Service)?
-        .append1("NetworkManager.service");
+    )
+    .map_err(|_| ErrorKind::Service)?
+    .append1("NetworkManager.service");
 
     let connection = Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
 
@@ -95,8 +100,9 @@ pub fn get_service_state() -> Result<ServiceState> {
         path,
         SD_UNIT_INTERFACE,
         2000,
-    ).get("ActiveState")
-        .map_err(|_| ErrorKind::Service)?;
+    )
+    .get("ActiveState")
+    .map_err(|_| ErrorKind::Service)?;
 
     response
         .inner::<&str>()
@@ -115,7 +121,8 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState> {
         .then(|_| bail!(ErrorKind::Service));
 
     let process = CpuPool::new_num_cpus().spawn_fn(|| {
-        let connection = Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
+        let connection =
+            Connection::get_private(BusType::System).map_err(|_| ErrorKind::Service)?;
         connection
             .add_match(
                 "type='signal', sender='org.freedesktop.systemd1', \
@@ -171,6 +178,7 @@ fn handler(timeout: u64, target_state: ServiceState) -> Result<ServiceState> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ServiceState {
     Active,
     Reloading,

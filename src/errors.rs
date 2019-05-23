@@ -1,4 +1,4 @@
-error_chain!{
+error_chain! {
     foreign_links {
         Ascii(::ascii::AsAsciiStrError);
         Utf8(::std::str::Utf8Error);

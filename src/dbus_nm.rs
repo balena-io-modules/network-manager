@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 
-use dbus::Path;
 use dbus::arg::{Array, Dict, Iter, RefArg, Variant};
+use dbus::Path;
 
 use ascii::AsciiStr;
 
-use errors::*;
-use dbus_api::{extract, path_to_string, DBusApi, VariantTo, variant_iter_to_vec_u8};
-use manager::{Connectivity, NetworkManagerState};
 use connection::{ConnectionSettings, ConnectionState};
-use ssid::{AsSsidSlice, Ssid};
+use dbus_api::{extract, path_to_string, variant_iter_to_vec_u8, DBusApi, VariantTo};
 use device::{DeviceState, DeviceType};
+use errors::*;
+use manager::{Connectivity, NetworkManagerState};
+use ssid::{AsSsidSlice, Ssid};
 use wifi::{AccessPoint, AccessPointCredentials, NM80211ApFlags, NM80211ApSecurityFlags};
 
 type VariantMap = HashMap<String, Variant<Box<RefArg>>>;
@@ -51,7 +51,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState> {
-        let response = self.dbus
+        let response = self
+            .dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
         let state: u32 = self.dbus.extract(&response)?;
@@ -60,8 +61,9 @@ impl DBusNetworkManager {
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity> {
-        let response = self.dbus
-            .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
+        let response =
+            self.dbus
+                .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
 
         let connectivity: u32 = self.dbus.extract(&response)?;
 
@@ -79,8 +81,9 @@ impl DBusNetworkManager {
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>> {
-        let response = self.dbus
-            .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
+        let response =
+            self.dbus
+                .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
 
         let array: Array<Path, _> = self.dbus.extract(&response)?;
 
@@ -108,7 +111,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings> {
-        let response = self.dbus
+        let response = self
+            .dbus
             .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
         let dict: Dict<&str, Dict<&str, Variant<Iter>, _>, _> = self.dbus.extract(&response)?;
@@ -124,30 +128,30 @@ impl DBusNetworkManager {
                 match k2 {
                     "id" => {
                         id = extract::<String>(&mut v2)?;
-                    },
+                    }
                     "uuid" => {
                         uuid = extract::<String>(&mut v2)?;
-                    },
+                    }
                     "type" => {
                         kind = extract::<String>(&mut v2)?;
-                    },
+                    }
                     "ssid" => {
                         ssid = Ssid::from_bytes(variant_iter_to_vec_u8(&mut v2)?)?;
-                    },
+                    }
                     "mode" => {
                         mode = extract::<String>(&mut v2)?;
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         }
 
         Ok(ConnectionSettings {
-            kind: kind,
-            id: id,
-            uuid: uuid,
-            ssid: ssid,
-            mode: mode,
+            kind,
+            id,
+            uuid,
+            ssid,
+            mode,
         })
     }
 
@@ -219,7 +223,7 @@ impl DBusNetworkManager {
                 );
 
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
-            },
+            }
             AccessPointCredentials::Wpa { ref passphrase } => {
                 let mut security_settings: VariantMap = HashMap::new();
 
@@ -231,7 +235,7 @@ impl DBusNetworkManager {
                 );
 
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
-            },
+            }
             AccessPointCredentials::Enterprise {
                 ref identity,
                 ref passphrase,
@@ -248,8 +252,8 @@ impl DBusNetworkManager {
 
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
                 settings.insert("802-1x".to_string(), eap);
-            },
-            AccessPointCredentials::None => {},
+            }
+            AccessPointCredentials::None => {}
         };
 
         let response = self.dbus.call_with_args(
@@ -416,7 +420,8 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_ssid(&self, path: &str) -> Option<Ssid> {
-        if let Ok(ssid_vec) = self.dbus
+        if let Ok(ssid_vec) = self
+            .dbus
             .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid")
         {
             Ssid::from_bytes(ssid_vec).ok()
@@ -508,6 +513,6 @@ fn verify_ascii_password(password: &str) -> Result<&str> {
             } else {
                 Ok(password)
             }
-        },
+        }
     }
 }
