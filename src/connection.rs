@@ -1,13 +1,13 @@
-use std::rc::Rc;
 use std::fmt;
 use std::net::Ipv4Addr;
+use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
 
-use wifi::{AccessPoint, AccessPointCredentials};
 use device::{get_active_connection_devices, Device};
 use ssid::{AsSsidSlice, Ssid};
+use wifi::{AccessPoint, AccessPointCredentials};
 
 #[derive(Clone)]
 pub struct Connection {

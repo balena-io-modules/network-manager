@@ -1,8 +1,8 @@
-use std::rc::Rc;
 use std::fmt;
+use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
 
 use wifi::{new_wifi_device, WiFiDevice};
 
