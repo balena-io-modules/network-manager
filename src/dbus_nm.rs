@@ -51,7 +51,7 @@ impl DBusNetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.State", NM_SERVICE_INTERFACE);
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
@@ -61,7 +61,7 @@ impl DBusNetworkManager {
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.CheckConnectivity", NM_SERVICE_INTERFACE);
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
 
@@ -71,19 +71,17 @@ impl DBusNetworkManager {
     }
 
     pub fn is_wireless_enabled(&self) -> Result<bool> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "WirelessEnabled")
     }
 
     pub fn is_networking_enabled(&self) -> Result<bool> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "NetworkingEnabled")
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>> {
-        info!(">>> Do {}", NM_SETTINGS_INTERFACE);
+        info!(">>> Do {}.ListConnections", NM_SETTINGS_INTERFACE);
         let response = self.dbus
             .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
 
@@ -93,20 +91,17 @@ impl DBusNetworkManager {
     }
 
     pub fn get_active_connections(&self) -> Result<Vec<String>> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
     }
 
     pub fn get_active_connection_path(&self, path: &str) -> Option<String> {
-        info!(">>> Do {}", NM_ACTIVE_INTERFACE);
         self.dbus
             .property(path, NM_ACTIVE_INTERFACE, "Connection")
             .ok()
     }
 
     pub fn get_connection_state(&self, path: &str) -> Result<ConnectionState> {
-        info!(">>> Do {}", NM_ACTIVE_INTERFACE);
         let state: i64 = match self.dbus.property(path, NM_ACTIVE_INTERFACE, "State") {
             Ok(state) => state,
             Err(_) => return Ok(ConnectionState::Unknown),
@@ -116,7 +111,7 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings> {
-        info!(">>> Do {}", NM_CONNECTION_INTERFACE);
+        info!(">>> Do {}.GetSettings", NM_CONNECTION_INTERFACE);
         let response = self.dbus
             .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
@@ -161,19 +156,18 @@ impl DBusNetworkManager {
     }
 
     pub fn get_active_connection_devices(&self, path: &str) -> Result<Vec<String>> {
-        info!(">>> Do {}", NM_ACTIVE_INTERFACE);
         self.dbus.property(path, NM_ACTIVE_INTERFACE, "Devices")
     }
 
     pub fn delete_connection(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}", NM_CONNECTION_INTERFACE);
+        info!(">>> Do {}.Delete", NM_CONNECTION_INTERFACE);
         self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete")?;
 
         Ok(())
     }
 
     pub fn activate_connection(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.ActivateConnection", NM_SERVICE_INTERFACE);
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -189,7 +183,7 @@ impl DBusNetworkManager {
     }
 
     pub fn deactivate_connection(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.DeactivateConnection", NM_SERVICE_INTERFACE);
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -273,7 +267,7 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.AddAndActivateConnection", NM_SERVICE_INTERFACE);
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -350,7 +344,7 @@ impl DBusNetworkManager {
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.AddAndActivateConnection", NM_SERVICE_INTERFACE);
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -371,13 +365,12 @@ impl DBusNetworkManager {
     }
 
     pub fn get_devices(&self) -> Result<Vec<String>> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "Devices")
     }
 
     pub fn get_device_by_interface(&self, interface: &str) -> Result<String> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.GetDeviceByIpIface", NM_SERVICE_INTERFACE);
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -391,22 +384,19 @@ impl DBusNetworkManager {
     }
 
     pub fn get_device_interface(&self, path: &str) -> Result<String> {
-        info!(">>> Do {}", NM_DEVICE_INTERFACE);
         self.dbus.property(path, NM_DEVICE_INTERFACE, "Interface")
     }
 
     pub fn get_device_type(&self, path: &str) -> Result<DeviceType> {
-        info!(">>> Do {}", NM_DEVICE_INTERFACE);
         self.dbus.property(path, NM_DEVICE_INTERFACE, "DeviceType")
     }
 
     pub fn get_device_state(&self, path: &str) -> Result<DeviceState> {
-        info!(">>> Do {}", NM_DEVICE_INTERFACE);
         self.dbus.property(path, NM_DEVICE_INTERFACE, "State")
     }
 
     pub fn connect_device(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}", NM_SERVICE_INTERFACE);
+        info!(">>> Do {}.ActivateConnection", NM_SERVICE_INTERFACE);
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -422,7 +412,7 @@ impl DBusNetworkManager {
     }
 
     pub fn disconnect_device(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}", NM_DEVICE_INTERFACE);
+        info!(">>> Do {}.Disconnect", NM_DEVICE_INTERFACE);
         self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect")?;
 
         Ok(())
@@ -430,7 +420,7 @@ impl DBusNetworkManager {
 
     pub fn request_access_point_scan(&self, path: &str) -> Result<()> {
         let options: VariantMap = HashMap::new();
-        info!(">>> Do {}", NM_WIRELESS_INTERFACE);
+        info!(">>> Do {}.RequestScan", NM_WIRELESS_INTERFACE);
         self.dbus.call_with_args(
             path,
             NM_WIRELESS_INTERFACE,
@@ -442,13 +432,11 @@ impl DBusNetworkManager {
     }
 
     pub fn get_device_access_points(&self, path: &str) -> Result<Vec<String>> {
-        info!(">>> Do {}", NM_WIRELESS_INTERFACE);
         self.dbus
             .property(path, NM_WIRELESS_INTERFACE, "AccessPoints")
     }
 
     pub fn get_access_point_ssid(&self, path: &str) -> Option<Ssid> {
-        info!(">>> Do {}", NM_ACCESS_POINT_INTERFACE);
         if let Ok(ssid_vec) = self.dbus
             .property::<Vec<u8>>(path, NM_ACCESS_POINT_INTERFACE, "Ssid")
         {
@@ -459,24 +447,20 @@ impl DBusNetworkManager {
     }
 
     pub fn get_access_point_strength(&self, path: &str) -> Result<u32> {
-        info!(">>> Do {}", NM_ACCESS_POINT_INTERFACE);
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "Strength")
     }
 
     pub fn get_access_point_flags(&self, path: &str) -> Result<NM80211ApFlags> {
-        info!(">>> Do {}", NM_ACCESS_POINT_INTERFACE);
         self.dbus.property(path, NM_ACCESS_POINT_INTERFACE, "Flags")
     }
 
     pub fn get_access_point_wpa_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags> {
-        info!(">>> Do {}", NM_ACCESS_POINT_INTERFACE);
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "WpaFlags")
     }
 
     pub fn get_access_point_rsn_flags(&self, path: &str) -> Result<NM80211ApSecurityFlags> {
-        info!(">>> Do {}", NM_ACCESS_POINT_INTERFACE);
         self.dbus
             .property(path, NM_ACCESS_POINT_INTERFACE, "RsnFlags")
     }
