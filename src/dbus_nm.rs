@@ -192,6 +192,7 @@ impl DBusNetworkManager {
         device_path: &str,
         access_point: &AccessPoint,
         credentials: &AccessPointCredentials,
+        is_hidden_ssid: bool,
     ) -> Result<(String, String)> {
         let mut settings: HashMap<String, VariantMap> = HashMap::new();
 
@@ -201,11 +202,13 @@ impl DBusNetworkManager {
             "ssid",
             access_point.ssid().as_bytes().to_vec(),
         );
-        add_val(
-            &mut wireless,
-            "802-11-wireless.hidden",
-            "true".to_string(),
-        );
+        if is_hidden_ssid {
+            add_val(
+                &mut wireless,
+                "802-11-wireless.hidden",
+                "true".to_string(),
+                );
+        }
         settings.insert("802-11-wireless".to_string(), wireless);
 
         match *credentials {
