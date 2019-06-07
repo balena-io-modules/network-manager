@@ -205,8 +205,8 @@ impl DBusNetworkManager {
         if is_hidden_ssid {
             add_val(
                 &mut wireless,
-                "802-11-wireless.hidden",
-                "true".to_string(),
+                "hidden",
+                true,
                 );
         }
         settings.insert("802-11-wireless".to_string(), wireless);
