@@ -385,6 +385,10 @@ impl DBusNetworkManager {
                     "Hidden SSID".to_string(),
                     "is not connected".to_string(),
                     ))
+            // Ok((
+            //         path_to_string(&conn_path)?,
+            //         path_to_string(&active_connection)?,
+            //         ))
         }
     }
 
