@@ -90,6 +90,84 @@ impl DBusNetworkManager {
         Ok(array.map(|e| e.to_string()).collect())
     }
 
+    pub fn add_connection(&self, access_point: &str, credentials: &AccessPointCredentials) -> Result<String> {
+        let mut settings: HashMap<String, VariantMap> = HashMap::new();
+
+        let mut wireless: VariantMap = HashMap::new();
+        add_val(
+            &mut wireless,
+            "ssid",
+            access_point.to_string(),
+        );
+        add_val(
+            &mut wireless,
+            "hidden",
+            true,
+            );
+        settings.insert("802-11-wireless".to_string(), wireless);
+
+        match *credentials {
+            AccessPointCredentials::Wep { ref passphrase } => {
+                let mut security_settings: VariantMap = HashMap::new();
+
+                add_val(
+                    &mut security_settings,
+                    "wep-key-type",
+                    NM_WEP_KEY_TYPE_PASSPHRASE,
+                );
+                add_str(
+                    &mut security_settings,
+                    "wep-key0",
+                    verify_ascii_password(passphrase)?,
+                );
+
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+            },
+            AccessPointCredentials::Wpa { ref passphrase } => {
+                let mut security_settings: VariantMap = HashMap::new();
+
+                add_str(&mut security_settings, "key-mgmt", "wpa-psk");
+                add_str(
+                    &mut security_settings,
+                    "psk",
+                    verify_ascii_password(passphrase)?,
+                );
+
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+            },
+            AccessPointCredentials::Enterprise {
+                ref identity,
+                ref passphrase,
+            } => {
+                let mut security_settings: VariantMap = HashMap::new();
+
+                add_str(&mut security_settings, "key-mgmt", "wpa-eap");
+
+                let mut eap: VariantMap = HashMap::new();
+                add_val(&mut eap, "eap", vec!["peap".to_string()]);
+                add_str(&mut eap, "identity", identity as &str);
+                add_str(&mut eap, "password", passphrase as &str);
+                add_str(&mut eap, "phase2-auth", "mschapv2");
+
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+                settings.insert("802-1x".to_string(), eap);
+            },
+            AccessPointCredentials::None => {},
+        };
+
+        info!(">>> Do {}.AddConnection", NM_SERVICE_INTERFACE);
+        let response = self.dbus.call_with_args(
+            NM_SETTINGS_PATH,
+            NM_SETTINGS_INTERFACE,
+            "AddConnection",
+            &[&settings as &RefArg],
+        )?;
+
+        let path: Path = self.dbus.extract(&response)?;
+
+        path_to_string(&path)
+    }
+
     pub fn get_active_connections(&self) -> Result<Vec<String>> {
         self.dbus
             .property(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "ActiveConnections")
@@ -267,24 +345,45 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        info!(">>> Do {}.AddAndActivateConnection", NM_SERVICE_INTERFACE);
-        let response = self.dbus.call_with_args(
-            NM_SERVICE_PATH,
-            NM_SERVICE_INTERFACE,
-            "AddAndActivateConnection",
-            &[
+        if !is_hidden_ssid {
+            info!(">>> Do {}.AddAndActivateConnection", NM_SERVICE_INTERFACE);
+            let response = self.dbus.call_with_args(
+                NM_SERVICE_PATH,
+                NM_SERVICE_INTERFACE,
+                "AddAndActivateConnection",
+                &[
                 &settings as &RefArg,
                 &Path::new(device_path.to_string())? as &RefArg,
                 &Path::new(access_point.path.to_string())? as &RefArg,
-            ],
-        )?;
+                ],
+                )?;
 
-        let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
+            let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
-        Ok((
-            path_to_string(&conn_path)?,
-            path_to_string(&active_connection)?,
-        ))
+            Ok((
+                    path_to_string(&conn_path)?,
+                    path_to_string(&active_connection)?,
+                    ))
+        } else {
+            info!(">>> Do {}.AddConnection", NM_SERVICE_INTERFACE);
+            let _ = self.add_connection(
+                &access_point.ssid().as_bytes().iter().map(|&s| s as char).collect::<String>(),
+                credentials);
+
+            if let Ok(connections) = self.list_connections() {
+                for con in connections {
+                    println!("Connections: {}", con);
+                }
+                let devices = self.get_devices();
+            } else {
+                println!("Don't Connection");
+            }
+
+            Ok((
+                    "Hidden SSID".to_string(),
+                    "is not connected".to_string(),
+                    ))
+        }
     }
 
     pub fn create_hotspot<T>(
