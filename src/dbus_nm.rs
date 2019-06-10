@@ -51,7 +51,6 @@ impl DBusNetworkManager {
     }
 
     pub fn get_state(&self) -> Result<NetworkManagerState> {
-        info!(">>> Do {}.State", NM_SERVICE_INTERFACE);
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "state")?;
 
@@ -61,7 +60,6 @@ impl DBusNetworkManager {
     }
 
     pub fn check_connectivity(&self) -> Result<Connectivity> {
-        info!(">>> Do {}.CheckConnectivity", NM_SERVICE_INTERFACE);
         let response = self.dbus
             .call(NM_SERVICE_PATH, NM_SERVICE_INTERFACE, "CheckConnectivity")?;
 
@@ -81,7 +79,6 @@ impl DBusNetworkManager {
     }
 
     pub fn list_connections(&self) -> Result<Vec<String>> {
-        info!(">>> Do {}.ListConnections", NM_SETTINGS_INTERFACE);
         let response = self.dbus
             .call(NM_SETTINGS_PATH, NM_SETTINGS_INTERFACE, "ListConnections")?;
 
@@ -155,7 +152,18 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        info!(">>> Do {}.AddConnection", NM_SERVICE_INTERFACE);
+        let cre = match *credentials {
+            AccessPointCredentials::Wep {ref passphrase} => format!("Wep<{}>", passphrase),
+            AccessPointCredentials::Wpa {ref passphrase} => format!("Wpa<{}>", passphrase),
+            AccessPointCredentials::Enterprise {
+                ref identity,
+                ref passphrase,
+            } => format!("Enterprise{}:{}", identity, passphrase),
+            _ => "None".to_string(),
+        };
+
+        info!("AddConnection: {}, {}", settings["802-11-wireless"]["ssid"].signature(), cre);
+
         let response = self.dbus.call_with_args(
             NM_SETTINGS_PATH,
             NM_SETTINGS_INTERFACE,
@@ -189,7 +197,6 @@ impl DBusNetworkManager {
     }
 
     pub fn get_connection_settings(&self, path: &str) -> Result<ConnectionSettings> {
-        info!(">>> Do {}.GetSettings", NM_CONNECTION_INTERFACE);
         let response = self.dbus
             .call(path, NM_CONNECTION_INTERFACE, "GetSettings")?;
 
@@ -238,14 +245,12 @@ impl DBusNetworkManager {
     }
 
     pub fn delete_connection(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}.Delete", NM_CONNECTION_INTERFACE);
         self.dbus.call(path, NM_CONNECTION_INTERFACE, "Delete")?;
 
         Ok(())
     }
 
     pub fn activate_connection(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}.ActivateConnection", NM_SERVICE_INTERFACE);
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -261,7 +266,6 @@ impl DBusNetworkManager {
     }
 
     pub fn deactivate_connection(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}.DeactivateConnection", NM_SERVICE_INTERFACE);
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -346,7 +350,6 @@ impl DBusNetworkManager {
         };
 
         if !is_hidden_ssid {
-            info!(">>> Do {}.AddAndActivateConnection", NM_SERVICE_INTERFACE);
             let response = self.dbus.call_with_args(
                 NM_SERVICE_PATH,
                 NM_SERVICE_INTERFACE,
@@ -365,7 +368,6 @@ impl DBusNetworkManager {
                     path_to_string(&active_connection)?,
                     ))
         } else {
-            info!(">>> Do {}.AddConnection", NM_SERVICE_INTERFACE);
             let _ = self.add_connection(
                 &access_point.ssid().as_bytes().iter().map(|&s| s as char).collect::<String>(),
                 credentials);
@@ -443,7 +445,6 @@ impl DBusNetworkManager {
         settings.insert("connection".to_string(), connection);
         settings.insert("ipv4".to_string(), ipv4);
 
-        info!(">>> Do {}.AddAndActivateConnection", NM_SERVICE_INTERFACE);
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -469,7 +470,6 @@ impl DBusNetworkManager {
     }
 
     pub fn get_device_by_interface(&self, interface: &str) -> Result<String> {
-        info!(">>> Do {}.GetDeviceByIpIface", NM_SERVICE_INTERFACE);
         let response = self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -495,7 +495,6 @@ impl DBusNetworkManager {
     }
 
     pub fn connect_device(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}.ActivateConnection", NM_SERVICE_INTERFACE);
         self.dbus.call_with_args(
             NM_SERVICE_PATH,
             NM_SERVICE_INTERFACE,
@@ -511,7 +510,6 @@ impl DBusNetworkManager {
     }
 
     pub fn disconnect_device(&self, path: &str) -> Result<()> {
-        info!(">>> Do {}.Disconnect", NM_DEVICE_INTERFACE);
         self.dbus.call(path, NM_DEVICE_INTERFACE, "Disconnect")?;
 
         Ok(())
@@ -519,7 +517,6 @@ impl DBusNetworkManager {
 
     pub fn request_access_point_scan(&self, path: &str) -> Result<()> {
         let options: VariantMap = HashMap::new();
-        info!(">>> Do {}.RequestScan", NM_WIRELESS_INTERFACE);
         self.dbus.call_with_args(
             path,
             NM_WIRELESS_INTERFACE,
