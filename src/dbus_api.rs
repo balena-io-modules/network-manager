@@ -95,6 +95,7 @@ impl DBusApi {
         method: &str,
         args: &[&RefArg],
     ) -> Option<Result<Message>> {
+        info!("Data: {}, {}, {}, {}", path, interface, method, args.iter().map(|a| a.as_str().unwrap()).collect::<String>());
         match Message::new_method_call(self.base, path, interface, method) {
             Ok(mut message) => {
                 if !args.is_empty() {
