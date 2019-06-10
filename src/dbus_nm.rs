@@ -374,11 +374,14 @@ impl DBusNetworkManager {
 
             if let Ok(connections) = self.list_connections() {
                 for con in connections {
-                    println!("Connections: {}", con);
+                    info!("Connections: {}", con);
                 }
-                let devices = self.get_devices();
+                match self.get_devices() {
+                    Ok(devices) => info!("Devices: {}", devices.iter().cloned().collect::<String>()),
+                    Err(e) => info!("Devices Error: {}", e),
+                }
             } else {
-                println!("Don't Connection");
+                info!("Don't Connection");
             }
 
             Ok((
