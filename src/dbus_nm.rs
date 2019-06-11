@@ -152,16 +152,19 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        let response = self.dbus.call_with_args(
+        let response = match self.dbus.call_with_args(
             NM_SETTINGS_PATH,
             NM_SETTINGS_INTERFACE,
             "AddConnection",
             &[&settings as &RefArg],
-        )?;
+        ) {
+            Ok(res) => Ok(res),
+            Err(e) => {info!("Error! {}", e); Err(e)},
+        };
 
         info!("AddConnection is Ok?");
 
-        let path: Path = self.dbus.extract(&response)?;
+        let path: Path = self.dbus.extract(&response.unwrap())?;
 
         info!("AddConnection is Ok: {}", path);
 
