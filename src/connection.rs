@@ -11,9 +11,9 @@ use ssid::{AsSsidSlice, Ssid};
 
 #[derive(Clone)]
 pub struct Connection {
-    dbus_manager: Rc<DBusNetworkManager>,
-    path: String,
-    settings: ConnectionSettings,
+    pub dbus_manager: Rc<DBusNetworkManager>,
+    pub path: String,
+    pub settings: ConnectionSettings,
 }
 
 impl Connection {
