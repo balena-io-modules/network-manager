@@ -152,18 +152,6 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        let cre = match *credentials {
-            AccessPointCredentials::Wep {ref passphrase} => format!("Wep<{}>", passphrase),
-            AccessPointCredentials::Wpa {ref passphrase} => format!("Wpa<{}>", passphrase),
-            AccessPointCredentials::Enterprise {
-                ref identity,
-                ref passphrase,
-            } => format!("Enterprise{}:{}", identity, passphrase),
-            _ => "None".to_string(),
-        };
-
-        info!("AddConnection: {}, {}", settings["802-11-wireless"]["ssid"].signature(), cre);
-
         let response = self.dbus.call_with_args(
             NM_SETTINGS_PATH,
             NM_SETTINGS_INTERFACE,
@@ -171,7 +159,11 @@ impl DBusNetworkManager {
             &[&settings as &RefArg],
         )?;
 
+        info!("AddConnection is Ok?");
+
         let path: Path = self.dbus.extract(&response)?;
+
+        info!("AddConnection is Ok: {}", path);
 
         path_to_string(&path)
     }
