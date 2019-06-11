@@ -368,10 +368,12 @@ impl DBusNetworkManager {
                     path_to_string(&active_connection)?,
                     ))
         } else {
+            info!(">>> Do AddConnection");
             let _ = self.add_connection(
                 &access_point.ssid().as_bytes().iter().map(|&s| s as char).collect::<String>(),
                 credentials);
 
+            info!(">>> Done AddConnection");
             if let Ok(connections) = self.list_connections() {
                 for con in connections {
                     info!("Connections: {}", con);
