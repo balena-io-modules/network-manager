@@ -4,7 +4,7 @@ use std::net::Ipv4Addr;
 use errors::*;
 use dbus_nm::DBusNetworkManager;
 
-use connection::{connect_to_access_point, create_hotspot, Connection, ConnectionState};
+use connection::{add_connection, connect_to_access_point, create_hotspot, Connection, ConnectionState};
 use device::{Device, PathGetter};
 use ssid::{AsSsidSlice, Ssid, SsidSlice};
 
@@ -88,6 +88,14 @@ impl<'a> WiFiDevice<'a> {
 
     pub fn get_connections(&self) -> Result<Vec<String>> {
         self.dbus_manager.list_connections()
+    }
+
+    pub fn add_connection(
+        &self,
+        access_point: &str,
+        credentials: &AccessPointCredentials
+    ) -> Result<Connection> {
+        add_connection(&self.dbus_manager, access_point, credentials)
     }
 }
 
