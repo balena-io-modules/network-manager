@@ -114,10 +114,6 @@ impl NetworkManager {
     pub fn is_wireless_enabled(&self) -> Result<bool> {
         self.dbus_manager.is_wireless_enabled()
     }
-
-    pub fn add_connection(&self) -> Result<Connection> {
-        self.dbus_manager.add_connection()
-    }
 }
 
 impl Default for NetworkManager {
