@@ -85,6 +85,10 @@ impl<'a> WiFiDevice<'a> {
             address,
         )
     }
+
+    pub fn get_connections(&self) -> Result<Vec<String>> {
+        self.dbus_manager.list_connections()
+    }
 }
 
 #[derive(Debug)]
