@@ -281,7 +281,6 @@ impl DBusNetworkManager {
         device_path: &str,
         access_point: &AccessPoint,
         credentials: &AccessPointCredentials,
-        is_hidden_ssid: bool,
     ) -> Result<(String, String)> {
         let mut settings: HashMap<String, VariantMap> = HashMap::new();
 
@@ -291,13 +290,6 @@ impl DBusNetworkManager {
             "ssid",
             access_point.ssid().as_bytes().to_vec(),
         );
-        if is_hidden_ssid {
-            add_val(
-                &mut wireless,
-                "hidden",
-                true,
-                );
-        }
         settings.insert("802-11-wireless".to_string(), wireless);
 
         match *credentials {
@@ -354,18 +346,18 @@ impl DBusNetworkManager {
             NM_SERVICE_INTERFACE,
             "AddAndActivateConnection",
             &[
-            &settings as &RefArg,
-            &Path::new(device_path.to_string())? as &RefArg,
-            &Path::new(access_point.path.to_string())? as &RefArg,
+                &settings as &RefArg,
+                &Path::new(device_path.to_string())? as &RefArg,
+                &Path::new(access_point.path.to_string())? as &RefArg,
             ],
-            )?;
+        )?;
 
         let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
         Ok((
-                path_to_string(&conn_path)?,
-                path_to_string(&active_connection)?,
-                ))
+            path_to_string(&conn_path)?,
+            path_to_string(&active_connection)?,
+        ))
     }
 
     pub fn create_hotspot<T>(

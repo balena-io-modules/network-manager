@@ -11,9 +11,9 @@ use ssid::{AsSsidSlice, Ssid};
 
 #[derive(Clone)]
 pub struct Connection {
-    pub dbus_manager: Rc<DBusNetworkManager>,
-    pub path: String,
-    pub settings: ConnectionSettings,
+    dbus_manager: Rc<DBusNetworkManager>,
+    path: String,
+    settings: ConnectionSettings,
 }
 
 impl Connection {
@@ -259,9 +259,8 @@ pub fn connect_to_access_point(
     device_path: &str,
     access_point: &AccessPoint,
     credentials: &AccessPointCredentials,
-    is_hidden_ssid: bool,
 ) -> Result<(Connection, ConnectionState)> {
-    let (path, _) = dbus_manager.connect_to_access_point(device_path, access_point, credentials, is_hidden_ssid)?;
+    let (path, _) = dbus_manager.connect_to_access_point(device_path, access_point, credentials)?;
 
     let connection = Connection::init(dbus_manager, &path)?;
 
