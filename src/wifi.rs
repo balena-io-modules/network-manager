@@ -95,7 +95,12 @@ impl<'a> WiFiDevice<'a> {
         access_point: &str,
         credentials: &AccessPointCredentials
     ) -> Result<Connection> {
-        add_connection(&self.dbus_manager, access_point, credentials)
+        add_connection(
+            &self.dbus_manager,
+            access_point,
+            &self.device.interface(),
+            credentials
+        )
     }
 }
 

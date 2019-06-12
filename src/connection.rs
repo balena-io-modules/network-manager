@@ -228,9 +228,10 @@ pub fn get_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Conn
 pub fn add_connection(
     dbus_manager: &Rc<DBusNetworkManager>,
     access_point: &str,
+    interface: &str,
     credentials: &AccessPointCredentials
 ) -> Result<Connection> {
-    let path = dbus_manager.add_connection(access_point, credentials)?;
+    let path = dbus_manager.add_connection(access_point, interface, credentials)?;
 
     let connection = Connection::init(dbus_manager, &path)?;
 

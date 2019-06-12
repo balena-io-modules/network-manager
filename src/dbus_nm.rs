@@ -87,13 +87,14 @@ impl DBusNetworkManager {
         Ok(array.map(|e| e.to_string()).collect())
     }
 
-    pub fn add_connection(&self, ssid: &str, credentials: &AccessPointCredentials) -> Result<String> {
+    pub fn add_connection(&self, ssid: &str, interface: &str, credentials: &AccessPointCredentials) -> Result<String> {
         let mut settings: HashMap<String, VariantMap> = HashMap::new();
-        let mut connect_type: HashMap<String, String> = HashMap::new();
-        let mut ifname: HashMap<String, String> = HashMap::new();
 
-        connect_type.insert("type".to_string(), "wifi".to_string());
-        ifname.insert("ifname".to_string(), "*".to_string());
+        let mut connection: VariantMap = HashMap::new();
+
+        add_str(&mut connection, "type", "802-11-wireless");
+        add_str(&mut connection, "interface-name", interface);
+        settings.insert("connection".to_string(), connection);
 
         let mut wireless: VariantMap = HashMap::new();
         add_val(
@@ -162,8 +163,6 @@ impl DBusNetworkManager {
             NM_SETTINGS_INTERFACE,
             "AddConnection",
             &[
-            &connect_type as &RefArg,
-            &ifname as &RefArg,
             &settings as &RefArg,
             ],
         ) {
@@ -171,6 +170,7 @@ impl DBusNetworkManager {
             Err(e) => {info!("Error! {}", e); Err(e)},
         };
 
+        info!("interface: {}", interface);
         info!("AddConnection is Ok?");
 
         let path: Path = self.dbus.extract(&response.unwrap())?;
@@ -353,52 +353,23 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        if !is_hidden_ssid {
-            let response = self.dbus.call_with_args(
-                NM_SERVICE_PATH,
-                NM_SERVICE_INTERFACE,
-                "AddAndActivateConnection",
-                &[
-                &settings as &RefArg,
-                &Path::new(device_path.to_string())? as &RefArg,
-                &Path::new(access_point.path.to_string())? as &RefArg,
-                ],
-                )?;
+        let response = self.dbus.call_with_args(
+            NM_SERVICE_PATH,
+            NM_SERVICE_INTERFACE,
+            "AddAndActivateConnection",
+            &[
+            &settings as &RefArg,
+            &Path::new(device_path.to_string())? as &RefArg,
+            &Path::new(access_point.path.to_string())? as &RefArg,
+            ],
+            )?;
 
-            let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
+        let (conn_path, active_connection): (Path, Path) = self.dbus.extract_two(&response)?;
 
-            Ok((
-                    path_to_string(&conn_path)?,
-                    path_to_string(&active_connection)?,
-                    ))
-        } else {
-            info!(">>> Do AddConnection");
-            let _ = self.add_connection(
-                &access_point.ssid().as_bytes().iter().map(|&s| s as char).collect::<String>(),
-                credentials);
-
-            info!(">>> Done AddConnection");
-            if let Ok(connections) = self.list_connections() {
-                for con in connections {
-                    info!("Connections: {}", con);
-                }
-                match self.get_devices() {
-                    Ok(devices) => info!("Devices: {}", devices.iter().cloned().collect::<String>()),
-                    Err(e) => info!("Devices Error: {}", e),
-                }
-            } else {
-                info!("Don't Connection");
-            }
-
-            Ok((
-                    "Hidden SSID".to_string(),
-                    "is not connected".to_string(),
-                    ))
-            // Ok((
-            //         path_to_string(&conn_path)?,
-            //         path_to_string(&active_connection)?,
-            //         ))
-        }
+        Ok((
+                path_to_string(&conn_path)?,
+                path_to_string(&active_connection)?,
+                ))
     }
 
     pub fn create_hotspot<T>(
