@@ -92,12 +92,12 @@ impl<'a> WiFiDevice<'a> {
 
     pub fn add_connection(
         &self,
-        access_point: &str,
+        ssid: &str,
         credentials: &AccessPointCredentials
     ) -> Result<Connection> {
         add_connection(
             &self.dbus_manager,
-            access_point,
+            ssid,
             &self.device.interface(),
             credentials
         )

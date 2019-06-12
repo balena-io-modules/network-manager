@@ -94,6 +94,7 @@ impl DBusNetworkManager {
 
         add_str(&mut connection, "type", "802-11-wireless");
         add_str(&mut connection, "interface-name", interface);
+        add_str(&mut connection, "id", ssid);
         settings.insert("connection".to_string(), connection);
 
         let mut wireless: VariantMap = HashMap::new();
@@ -102,11 +103,6 @@ impl DBusNetworkManager {
             "ssid",
             ssid.to_string(),
         );
-        add_val(
-            &mut wireless,
-            "hidden",
-            true,
-            );
         settings.insert("802-11-wireless".to_string(), wireless);
 
         match *credentials {
@@ -157,6 +153,15 @@ impl DBusNetworkManager {
             },
             AccessPointCredentials::None => {},
         };
+
+        info!("AddConnection by:");
+        info!("    connection.type {},", &settings["connection"]["type"].as_str().unwrap());
+        info!("    connection.interface-name {},", &settings["connection"]["interface-name"].as_str().unwrap());
+        info!("    connection.id {},", &settings["connection"]["id"].as_str().unwrap());
+        info!("    802-11-wireless.ssid {},", &settings["802-11-wireless"]["ssid"].as_str().unwrap());
+        info!("    802-11-wireless-security.psk {},", &settings["802-11-wireless-security"]["psk"].as_str().unwrap());
+        info!("    802-11-wireless-security.key-mgmt {},", &settings["802-11-wireless-security"]["key-mgmt"].as_str().unwrap());
+        info!("    END;");
 
         let response = match self.dbus.call_with_args(
             NM_SETTINGS_PATH,
