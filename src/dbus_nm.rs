@@ -87,14 +87,19 @@ impl DBusNetworkManager {
         Ok(array.map(|e| e.to_string()).collect())
     }
 
-    pub fn add_connection(&self, access_point: &str, credentials: &AccessPointCredentials) -> Result<String> {
+    pub fn add_connection(&self, ssid: &str, credentials: &AccessPointCredentials) -> Result<String> {
         let mut settings: HashMap<String, VariantMap> = HashMap::new();
+        let mut connect_type: HashMap<String, String> = HashMap::new();
+        let mut ifname: HashMap<String, String> = HashMap::new();
+
+        connect_type.insert("type".to_string(), "wifi".to_string());
+        ifname.insert("ifname".to_string(), "*".to_string());
 
         let mut wireless: VariantMap = HashMap::new();
         add_val(
             &mut wireless,
             "ssid",
-            access_point.to_string(),
+            ssid.to_string(),
         );
         add_val(
             &mut wireless,
@@ -156,7 +161,11 @@ impl DBusNetworkManager {
             NM_SETTINGS_PATH,
             NM_SETTINGS_INTERFACE,
             "AddConnection",
-            &[&settings as &RefArg],
+            &[
+            &connect_type as &RefArg,
+            &ifname as &RefArg,
+            &settings as &RefArg,
+            ],
         ) {
             Ok(res) => Ok(res),
             Err(e) => {info!("Error! {}", e); Err(e)},
