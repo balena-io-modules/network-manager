@@ -98,10 +98,10 @@ impl DBusNetworkManager {
         settings.insert("connection".to_string(), connection);
 
         let mut wireless: VariantMap = HashMap::new();
-        add_val(
+        add_str(
             &mut wireless,
             "ssid",
-            ssid.to_string(),
+            ssid,
         );
         settings.insert("802-11-wireless".to_string(), wireless);
 
