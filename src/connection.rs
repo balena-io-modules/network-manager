@@ -238,6 +238,15 @@ pub fn add_connection(
     Ok(connection)
 }
 
+pub fn connect_device(
+    dbus_manager: &Rc<DBusNetworkManager>,
+    device_path: &str,
+) -> Result<()> {
+    let _ = dbus_manager.activate_connection(device_path)?;
+
+    Ok(())
+}
+
 pub fn get_active_connections(dbus_manager: &Rc<DBusNetworkManager>) -> Result<Vec<Connection>> {
     let active_paths = dbus_manager.get_active_connections()?;
 
