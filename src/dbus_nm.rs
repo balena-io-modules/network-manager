@@ -91,7 +91,6 @@ impl DBusNetworkManager {
         let mut settings: HashMap<String, VariantMap> = HashMap::new();
 
         let mut connection: VariantMap = HashMap::new();
-
         add_str(&mut connection, "type", "802-11-wireless");
         add_str(&mut connection, "interface-name", interface);
         add_str(&mut connection, "id", ssid);
@@ -154,24 +153,14 @@ impl DBusNetworkManager {
             AccessPointCredentials::None => {},
         };
 
-        let response = match self.dbus.call_with_args(
+        let response = self.dbus.call_with_args(
             NM_SETTINGS_PATH,
             NM_SETTINGS_INTERFACE,
             "AddConnection",
-            &[
-            &settings as &RefArg,
-            ],
-        ) {
-            Ok(res) => Ok(res),
-            Err(e) => {info!("Error! {}", e); Err(e)},
-        };
+            &[&settings as &RefArg],
+        )?;
 
-        info!("interface: {}", interface);
-        info!("AddConnection is Ok?");
-
-        let path: Path = self.dbus.extract(&response.unwrap())?;
-
-        info!("AddConnection is Ok: {}", path);
+        let path: Path = self.dbus.extract(&response)?;
 
         path_to_string(&path)
     }
