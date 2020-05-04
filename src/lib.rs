@@ -30,5 +30,5 @@ mod ssid;
 pub use manager::{Connectivity, NetworkManager};
 pub use connection::{Connection, ConnectionSettings, ConnectionState};
 pub use device::{Device, DeviceState, DeviceType};
-pub use wifi::{AccessPoint, AccessPointCredentials, Security};
+pub use wifi::{AccessPoint, AccessPointCredentials, Security, WiFiDevice};
 pub use service::ServiceState;
