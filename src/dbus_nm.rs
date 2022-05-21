@@ -462,7 +462,7 @@ impl VariantTo<NM80211ApFlags> for DBusApi {
         value
             .0
             .as_i64()
-            .and_then(|v| NM80211ApFlags::from_bits(v as u32))
+            .map(|v| NM80211ApFlags::from_bits_truncate(v as u32))
     }
 }
 
@@ -471,7 +471,7 @@ impl VariantTo<NM80211ApSecurityFlags> for DBusApi {
         value
             .0
             .as_i64()
-            .and_then(|v| NM80211ApSecurityFlags::from_bits(v as u32))
+            .map(|v| NM80211ApSecurityFlags::from_bits_truncate(v as u32))
     }
 }
 
