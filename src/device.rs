@@ -178,6 +178,15 @@ impl From<i64> for DeviceType {
             20 => DeviceType::Veth,
             21 => DeviceType::Macsec,
             22 => DeviceType::Dummy,
+            23 => DeviceType::PPP,
+            24 => DeviceType::OVS_INTERFACE,
+            25 => DeviceType::OVS_PORT,
+            26 => DeviceType::OVS_BRIDGE,
+            27 => DeviceType::WPAN,
+            28 => DeviceType::6LOWPAN,
+            29 => DeviceType::WIREGUARD,
+            30 => DeviceType::WIFI_P2P,
+            30 => DeviceType::VRF,
             _ => {
                 warn!("Undefined device type: {}", device_type);
                 DeviceType::Unknown
