@@ -1,7 +1,7 @@
-use dbus::Connection as DBusConnection;
-use dbus::{BusType, ConnPath, Message, Path};
 use dbus::arg::{Array, Get, Iter, RefArg, Variant};
 use dbus::stdintf::OrgFreedesktopDBusProperties;
+use dbus::Connection as DBusConnection;
+use dbus::{BusType, ConnPath, Message, Path};
 
 use errors::*;
 
@@ -26,10 +26,10 @@ impl DBusApi {
         let method_timeout = method_timeout.unwrap_or(DEFAULT_TIMEOUT);
 
         DBusApi {
-            connection: connection,
-            method_timeout: method_timeout,
-            base: base,
-            method_retry_error_names: method_retry_error_names,
+            connection,
+            method_timeout,
+            base,
+            method_retry_error_names,
         }
     }
 
@@ -46,7 +46,7 @@ impl DBusApi {
         path: &str,
         interface: &str,
         method: &str,
-        args: &[&RefArg],
+        args: &[&dyn RefArg],
     ) -> Result<Message> {
         self.call_with_args_retry(path, interface, method, args)
             .map_err(|e| {
@@ -61,7 +61,7 @@ impl DBusApi {
         path: &str,
         interface: &str,
         method: &str,
-        args: &[&RefArg],
+        args: &[&dyn RefArg],
     ) -> Result<Message> {
         let mut retries = 0;
 
@@ -93,7 +93,7 @@ impl DBusApi {
         path: &str,
         interface: &str,
         method: &str,
-        args: &[&RefArg],
+        args: &[&dyn RefArg],
     ) -> Option<Result<Message>> {
         match Message::new_method_call(self.base, path, interface, method) {
             Ok(mut message) => {
@@ -102,13 +102,14 @@ impl DBusApi {
                 }
 
                 self.send_message_checked(message)
-            },
+            }
             Err(details) => Some(Err(ErrorKind::DBusAPI(details).into())),
         }
     }
 
     fn send_message_checked(&self, message: Message) -> Option<Result<Message>> {
-        match self.connection
+        match self
+            .connection
             .send_with_reply_and_block(message, self.method_timeout as i32 * 1000)
         {
             Ok(response) => Some(Ok(response)),
@@ -125,7 +126,7 @@ impl DBusApi {
                 }
 
                 Some(Err(Error::from(e)))
-            },
+            }
         }
     }
 
@@ -159,7 +160,7 @@ impl DBusApi {
                     None => property_error("no details", false),
                 };
                 Err(e).chain_err(|| dbus_err)
-            },
+            }
         }
     }
 
@@ -195,35 +196,35 @@ impl DBusApi {
 }
 
 pub trait VariantTo<T> {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<T>;
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<T>;
 }
 
 impl VariantTo<String> for DBusApi {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<String> {
-        value.0.as_str().and_then(|v| Some(v.to_string()))
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<String> {
+        value.0.as_str().map(|v| v.to_string())
     }
 }
 
 impl VariantTo<i64> for DBusApi {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<i64> {
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<i64> {
         value.0.as_i64()
     }
 }
 
 impl VariantTo<u32> for DBusApi {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<u32> {
-        value.0.as_i64().and_then(|v| Some(v as u32))
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<u32> {
+        value.0.as_i64().map(|v| v as u32)
     }
 }
 
 impl VariantTo<bool> for DBusApi {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<bool> {
-        value.0.as_i64().and_then(|v| Some(v == 0))
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<bool> {
+        value.0.as_i64().map(|v| v == 0)
     }
 }
 
 impl VariantTo<Vec<String>> for DBusApi {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<Vec<String>> {
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<Vec<String>> {
         let mut result = Vec::new();
 
         if let Some(list) = value.0.as_iter() {
@@ -243,7 +244,7 @@ impl VariantTo<Vec<String>> for DBusApi {
 }
 
 impl VariantTo<Vec<u8>> for DBusApi {
-    fn variant_to(value: &Variant<Box<RefArg>>) -> Option<Vec<u8>> {
+    fn variant_to(value: &Variant<Box<dyn RefArg>>) -> Option<Vec<u8>> {
         let mut result = Vec::new();
 
         if let Some(list) = value.0.as_iter() {
@@ -280,17 +281,6 @@ pub fn variant_iter_to_vec_u8(var: &mut Variant<Iter>) -> Result<Vec<u8>> {
         bail!(ErrorKind::DBusAPI(format!(
             "Variant not an array: {:?}",
             var
-        )))
-    }
-}
-
-pub fn path_to_string(path: &Path) -> Result<String> {
-    if let Ok(slice) = path.as_cstr().to_str() {
-        Ok(slice.to_string())
-    } else {
-        bail!(ErrorKind::DBusAPI(format!(
-            "Path not a UTF-8 string: {:?}",
-            path
         )))
     }
 }

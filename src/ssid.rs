@@ -1,9 +1,9 @@
-use std::ops::Deref;
-use std::mem;
-use std::str;
+use std::ascii;
 use std::fmt;
 use std::fmt::Write;
-use std::ascii;
+use std::mem;
+use std::ops::Deref;
+use std::str;
 
 use errors::*;
 

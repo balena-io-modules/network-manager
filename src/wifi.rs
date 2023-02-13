@@ -1,8 +1,8 @@
-use std::rc::Rc;
 use std::net::Ipv4Addr;
+use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
 
 use connection::{connect_to_access_point, create_hotspot, Connection, ConnectionState};
 use device::{Device, PathGetter};
@@ -14,24 +14,12 @@ pub struct WiFiDevice<'a> {
 }
 
 impl<'a> WiFiDevice<'a> {
-    /// Get the list of access points visible to this device.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use network_manager::{NetworkManager, DeviceType};
-    /// let manager = NetworkManager::new();
-    /// let devices = manager.get_devices().unwrap();
-    /// let i = devices.iter().position(|ref d| *d.device_type() == DeviceType::WiFi).unwrap();
-    /// let device = devices[i].as_wifi_device().unwrap();
-    /// device.request_scan()?;
-    /// let access_points = device.get_access_points().unwrap();
-    /// println!("{:?}", access_points);
-    /// ```
+    // Get the list of access points visible to this device.
     pub fn get_access_points(&self) -> Result<Vec<AccessPoint>> {
         let mut access_points = Vec::new();
 
-        let paths = self.dbus_manager
+        let paths = self
+            .dbus_manager
             .get_device_access_points(self.device.path())?;
 
         for path in paths {
@@ -172,7 +160,7 @@ pub fn new_wifi_device<'a>(
 ) -> WiFiDevice<'a> {
     WiFiDevice {
         dbus_manager: Rc::clone(dbus_manager),
-        device: device,
+        device,
     }
 }
 
@@ -184,9 +172,9 @@ fn get_access_point(manager: &DBusNetworkManager, path: &str) -> Result<Option<A
 
         let access_point = AccessPoint {
             path: path.to_string(),
-            ssid: ssid,
-            strength: strength,
-            security: security,
+            ssid,
+            strength,
+            security,
         };
 
         Ok(Some(access_point))
