@@ -1,10 +1,10 @@
 [package]
 name = "network-manager"
 version = "0.11.2"
-authors = ["Zahari Petkov <zahari@resin.io>", "Aaron Brodersen <aaron@resin.io>"]
+authors = ["Zahari Petkov <zahari@balena.io>", "Aaron Brodersen <aaron@balena.io>"]
 description = "Rust NetworkManager bindings"
-homepage = "https://github.com/resin-io-modules/network-manager"
-repository = "https://github.com/resin-io-modules/network-manager"
+homepage = "https://github.com/balena-io-modules/network-manager"
+repository = "https://github.com/balena-io-modules/network-manager"
 keywords = ["NetworkManager", "network-manager", "networking", "Wi-Fi", "wifi"]
 categories = ["api-bindings", "network-programming", "os::unix-apis"]
 license = "Apache-2.0"
