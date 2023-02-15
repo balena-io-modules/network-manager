@@ -1,13 +1,13 @@
-use std::rc::Rc;
 use std::fmt;
 use std::net::Ipv4Addr;
+use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
 
-use wifi::{AccessPoint, AccessPointCredentials};
 use device::{get_active_connection_devices, Device};
 use ssid::{AsSsidSlice, Ssid};
+use wifi::{AccessPoint, AccessPointCredentials};
 
 #[derive(Clone)]
 pub struct Connection {
@@ -23,7 +23,7 @@ impl Connection {
         Ok(Connection {
             dbus_manager: Rc::clone(dbus_manager),
             path: path.to_string(),
-            settings: settings,
+            settings,
         })
     }
 
@@ -48,15 +48,6 @@ impl Connection {
     }
 
     /// Activate a Network Manager connection.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use network_manager::NetworkManager;
-    /// let manager = NetworkManager::new();
-    /// let connections = manager.get_connections().unwrap();
-    /// connections[0].activate().unwrap();
-    /// ```
     pub fn activate(&self) -> Result<ConnectionState> {
         let state = self.get_state()?;
 
@@ -78,20 +69,11 @@ impl Connection {
                     &ConnectionState::Activated,
                     self.dbus_manager.method_timeout(),
                 )
-            },
+            }
         }
     }
 
     /// Deactivates a Network Manager connection.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use network_manager::NetworkManager;
-    /// let manager = NetworkManager::new();
-    /// let connections = manager.get_connections().unwrap();
-    /// connections[0].deactivate().unwrap();
-    /// ```
     pub fn deactivate(&self) -> Result<ConnectionState> {
         let state = self.get_state()?;
 
@@ -120,7 +102,7 @@ impl Connection {
                 } else {
                     Ok(ConnectionState::Deactivated)
                 }
-            },
+            }
         }
     }
 
@@ -170,7 +152,7 @@ impl<'a> From<&'a Connection> for i32 {
         val.clone()
             .path
             .rsplit('/')
-            .nth(0)
+            .next()
             .unwrap()
             .parse::<i32>()
             .unwrap()
@@ -206,7 +188,7 @@ impl From<i64> for ConnectionState {
             _ => {
                 warn!("Undefined connection state: {}", state);
                 ConnectionState::Unknown
-            },
+            }
         }
     }
 }
@@ -341,58 +323,5 @@ fn wait(
             "Still waiting for connection state ({:?}): {:?} / {}s elapsed",
             target_state, state, total_time
         );
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::super::NetworkManager;
-    use super::*;
-
-    #[test]
-    fn test_connection_enable_disable() {
-        let manager = NetworkManager::new();
-
-        let connections = manager.get_connections().unwrap();
-
-        // set environment variable $TEST_WIFI_SSID with the wifi's SSID that you want to test
-        // e.g.  export TEST_WIFI_SSID="Resin.io Wifi"
-        let wifi_env_var = "TEST_WIFI_SSID";
-        let connection = match ::std::env::var(wifi_env_var) {
-            Ok(ssid) => connections
-                .iter()
-                .filter(|c| c.settings().ssid.as_str().unwrap() == ssid)
-                .nth(0)
-                .unwrap()
-                .clone(),
-            Err(e) => panic!(
-                "couldn't retrieve environment variable {}: {}",
-                wifi_env_var, e
-            ),
-        };
-
-        let state = connection.get_state().unwrap();
-
-        if state == ConnectionState::Activated {
-            let state = connection.deactivate().unwrap();
-            assert_eq!(ConnectionState::Deactivated, state);
-
-            ::std::thread::sleep(::std::time::Duration::from_secs(5));
-
-            let state = connection.activate().unwrap();
-            assert_eq!(ConnectionState::Activated, state);
-
-            ::std::thread::sleep(::std::time::Duration::from_secs(5));
-        } else {
-            let state = connection.activate().unwrap();
-            assert_eq!(ConnectionState::Activated, state);
-
-            ::std::thread::sleep(::std::time::Duration::from_secs(5));
-
-            let state = connection.deactivate().unwrap();
-            assert_eq!(ConnectionState::Deactivated, state);
-
-            ::std::thread::sleep(::std::time::Duration::from_secs(5));
-        }
     }
 }

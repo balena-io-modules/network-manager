@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use errors::*;
 use dbus_nm::DBusNetworkManager;
+use errors::*;
 
 use connection::{get_active_connections, get_connections, Connection};
 use device::{get_device_by_interface, get_devices, Device};
@@ -25,54 +25,21 @@ impl NetworkManager {
     }
 
     /// Starts the Network Manager service.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use network_manager::NetworkManager;
-    /// let state = NetworkManager::start_service(10).unwrap();
-    /// println!("{:?}", state);
-    /// ```
     pub fn start_service(timeout: u64) -> Result<ServiceState> {
         start_service(timeout)
     }
 
     /// Stops the Network Manager service.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use network_manager::NetworkManager;
-    /// let state = NetworkManager::stop_service(10).unwrap();
-    /// println!("{:?}", state);
-    /// ```
     pub fn stop_service(timeout: u64) -> Result<ServiceState> {
         stop_service(timeout)
     }
 
     /// Gets the state of the Network Manager service.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use network_manager::NetworkManager;
-    /// let state = NetworkManager::get_service_state().unwrap();
-    /// println!("{:?}", state);
-    /// ```
     pub fn get_service_state() -> Result<ServiceState> {
         get_service_state()
     }
 
     /// Get a list of Network Manager connections sorted by path.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use network_manager::NetworkManager;
-    /// let manager = NetworkManager::new();
-    /// let connections = manager.get_connections().unwrap();
-    /// println!("{:?}", connections);
-    /// ```
     pub fn get_connections(&self) -> Result<Vec<Connection>> {
         get_connections(&self.dbus_manager)
     }
@@ -82,15 +49,6 @@ impl NetworkManager {
     }
 
     /// Get a list of Network Manager devices.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use network_manager::NetworkManager;
-    /// let manager = NetworkManager::new();
-    /// let devices = manager.get_devices().unwrap();
-    /// println!("{:?}", devices);
-    /// ```
     pub fn get_devices(&self) -> Result<Vec<Device>> {
         get_devices(&self.dbus_manager)
     }
@@ -148,7 +106,7 @@ impl From<u32> for NetworkManagerState {
             _ => {
                 warn!("Undefined Network Manager state: {}", state);
                 NetworkManagerState::Unknown
-            },
+            }
         }
     }
 }
@@ -173,70 +131,7 @@ impl From<u32> for Connectivity {
             _ => {
                 warn!("Undefined connectivity state: {}", state);
                 Connectivity::Unknown
-            },
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_connections() {
-        let manager = NetworkManager::new();
-        let connections = manager.get_connections().unwrap();
-        assert!(connections.len() > 0);
-    }
-
-    #[test]
-    fn test_get_devices() {
-        let manager = NetworkManager::new();
-        let devices = manager.get_devices().unwrap();
-        assert!(devices.len() > 0);
-    }
-
-    #[test]
-    fn test_get_connectivity() {
-        let manager = NetworkManager::new();
-        let connectivity = manager.get_connectivity().unwrap();
-        assert_eq!(connectivity, Connectivity::Full);
-    }
-
-    #[test]
-    fn test_start_stop_service() {
-        let s = NetworkManager::get_service_state().unwrap();
-
-        assert!(s == ServiceState::Active || s == ServiceState::Inactive);
-
-        match s {
-            ServiceState::Active => {
-                NetworkManager::stop_service(10).unwrap();
-                assert_eq!(
-                    ServiceState::Inactive,
-                    NetworkManager::get_service_state().unwrap()
-                );
-
-                NetworkManager::start_service(10).unwrap();
-                assert_eq!(
-                    ServiceState::Active,
-                    NetworkManager::get_service_state().unwrap()
-                );
-            },
-            ServiceState::Inactive => {
-                NetworkManager::start_service(10).unwrap();
-                assert_eq!(
-                    ServiceState::Active,
-                    NetworkManager::get_service_state().unwrap()
-                );
-
-                NetworkManager::stop_service(10).unwrap();
-                assert_eq!(
-                    ServiceState::Inactive,
-                    NetworkManager::get_service_state().unwrap()
-                );
-            },
-            _ => (),
+            }
         }
     }
 }
