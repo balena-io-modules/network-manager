@@ -1,0 +1,1061 @@
+- commits:
+    - subject: Use Flowzone as a CI
+      hash: 76c1065dbf0796d7bddd3d0be1abfa25613e0a6b
+      body: |
+        Also update to using Rust 1.67.1 (current latest)
+
+        Remove inline tests that need installed NetworkManager as this
+        is not supported by Flowzone.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 0.11.3
+  title: ""
+  date: 2023-02-15T17:48:34.170Z
+- version: 0.11.2
+  date: 2018-07-05T08:24:42Z
+  commits:
+    - hash: 88be47cde11e84c035525d314e084fcd10220055
+      author: Robert Vojta
+      footers:
+        change-type: patch
+        connects-to: "#121"
+      subject: "examples: Replace env! with crate_version!"
+      body: It’s just cosmetic change, but it makes the code shorter and cleaner.
+- version: 0.11.1
+- date: 2018-07-04T11:57:58Z
+- commits:
+    - hash: 8f9829b5bd67226e59f4af53a5cf4dd70a905baa
+- commits:
+    - author: Robert Vojta
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#55"
+- commits:
+    - subject: "examples: CLI args parsing with clap crate"
+- commits:
+    - body: null
+- version: 0.11.0
+- date: 2018-06-28T10:11:13Z
+- commits:
+    - hash: e8457f4d82334d3ade271995a6df725ada746b8e
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#118"
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - subject: "wifi: WPA-Enterprise support"
+- commits:
+    - body: Lightweight support for WPA-Enterprise wireless security (specifying CA
+        and client certificates is WIP).
+- version: 0.10.0
+- date: 2018-03-14T19:19:14Z
+- commits:
+    - hash: 3aaa0e356a95b37524e465d583df47d567ef6605
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - footers:
+        connects-to: "#116"
+- commits:
+    - subject: Expose `RequestScan` through `WiFiDevice::request_scan`
+- commits:
+    - body: null
+- version: 0.9.1
+- date: 2018-03-06T12:24:22Z
+- commits:
+    - hash: 79b37ee671fa2c84ed046fa329fe04fcb17a4b24
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#113"
+- commits:
+    - subject: NetworkManager::get_state uses incorrect D-Bus type
+- commits:
+    - body: null
+- version: 0.9.0
+- date: 2018-02-15T08:22:23Z
+- commits:
+    - hash: 3c6673f00d73d87e293ed303988f11d7ca73ae87
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - footers:
+        connects-to: "#109"
+- commits:
+    - subject: Error handling with error-chain
+- commits:
+    - body: >-
+        Use `error-chain`'s `Result` instead of the current `Result<..., String>`
+        as a return type. Using `error-chain` will simplify error handling and
+        provide better interoperability.
+
+        The code in the `service` module will be a target for major refactoring in a separate issue.
+- version: 0.8.6
+- date: 2018-01-10T09:17:36Z
+- commits:
+    - hash: 159f01aa4e98aeb7c8b1e4646ae287e385b279c1
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#106"
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Incomplete NM80211ApFlags enumeration definitions
+- commits:
+    - body: null
+- version: 0.8.5
+- date: 2018-01-10T09:06:50Z
+- commits:
+    - hash: fcedc8df33a99aa217e9e8c529b309048d507b69
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#103"
+- commits:
+    - subject: Debug log level for expired D-Bus objects
+- commits:
+    - body: null
+- version: 0.8.4
+- date: 2018-01-10T08:42:26Z
+- commits:
+    - hash: 13d67ca5b12815518586a734d98a1c53bb6e37c9
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#101"
+- commits:
+    - subject: Update maintainers list
+- commits:
+    - body: null
+- version: 0.8.3
+- date: 2018-01-10T08:22:23Z
+- commits:
+    - hash: 59d23200a9c93799abf1b1746f8f72e509952d92
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#105"
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Transitioning to CircleCI and running latest clippy and rustfmt
+- commits:
+    - body: null
+- version: 0.8.2
+- date: 2017-10-20T14:32:37Z
+- commits:
+    - hash: e3b4609775a0020711b2bc8f591391310d4308d1
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#99"
+- commits:
+    - subject: Do not include clippy as an optional dependency
+- commits:
+    - body: null
+- version: 0.8.1
+- date: 2017-10-20T14:04:25Z
+- commits:
+    - hash: 5515b8bf1c200cbce740f3f8fcad87e23545f0c8
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#97"
+- commits:
+    - subject: Cargo keyword containing space
+- commits:
+    - body: null
+- version: 0.8.0
+- date: 2017-10-20T13:21:04Z
+- commits:
+    - hash: b04b99752827280b792d49a9f6c6cd52c6ed8aaf
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - footers:
+        connects-to: "#95"
+- commits:
+    - subject: Rename project to `network-manager`
+- commits:
+    - body: null
+- version: 0.7.2
+- date: 2017-10-20T12:24:54Z
+- commits:
+    - hash: 7b6adb68f78aa39044bfc702d7ee9d8124d6965c
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#93"
+- commits:
+    - subject: Fix clippy warnings about cloned Rc
+- commits:
+    - body: null
+- version: 0.7.1
+- date: 2017-08-08T14:42:53Z
+- commits:
+    - hash: 0768be7e2ad26e01b97fda6960cb1abf5ca0e1c0
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#91"
+- commits:
+    - subject: Lower log level on get property of expired D-Bus object path
+- commits:
+    - body: null
+- version: 0.7.0
+- date: 2017-08-07T05:30:52Z
+- commits:
+    - hash: 76d6071b5bba2aa722ceaae3e4b683bd9c3ae2d5
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - footers:
+        connects-to: "#87"
+- commits:
+    - subject: Expose Wi-Fi connection mode in ConnectionSettings
+- commits:
+    - body: null
+- version: 0.6.3
+- date: 2017-08-02T13:13:37Z
+- commits:
+    - hash: 3683372929fb77bda12648e093ffd2fc7c0afe89
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#89"
+- commits:
+    - subject: Fix clippy warnings about long literals
+- commits:
+    - body: null
+- version: 0.6.2
+- date: 2017-07-04T17:38:27Z
+- commits:
+    - hash: 17db21196a8791f038983ce279e5f84eb5adabfe
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#85"
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: NetworkManager::get_connectivity fixed and added test
+- commits:
+    - body: null
+- version: 0.6.1
+- date: 2017-07-04T17:23:56Z
+- commits:
+    - hash: cbe8e7f3eef62c4f6669827fefa6c6279d12fd70
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#83"
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Export publicly Connectivity and ServiceState
+- commits:
+    - body: null
+- version: 0.6.0
+- date: 2017-06-26T13:20:14Z
+- commits:
+    - hash: 8abd8ea5be5c02a150c7c070697208aa208f89b9
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#81"
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - subject: Captive portal hotspot creation support
+- commits:
+    - body: null
+- version: 0.5.0
+- date: 2017-06-15T21:39:28Z
+- commits:
+    - hash: 5016d96d0c578219472ff1d5efb0681524662c06
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - subject: Expose connection type in ConnectionSettings
+- commits:
+    - body: null
+- version: 0.4.0
+- date: 2017-06-15T19:31:44Z
+- commits:
+    - hash: fa33c8073a35e92bca9dc18af230d7c8360544d3
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - footers:
+        connects-to: "#74"
+- commits:
+    - subject: ASCII oriented SSID Debug formatting
+- commits:
+    - body: null
+- version: 0.3.3
+- date: 2017-06-15T18:46:58Z
+- commits:
+    - hash: 62106c06dbd2d14ba7f5b2bc2bb54365badecf5b
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Stripping patch version from dependencies and bitflags catch up
+- commits:
+    - body: null
+- version: 0.3.2
+- date: 2017-06-15T17:49:48Z
+- commits:
+    - hash: f34b371576ef896090dd372729cfeed9531a9c80
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        connects-to: "#78"
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Keeping binary crates updated in Travis
+- commits:
+    - body: null
+- version: 0.3.1
+- date: 2017-06-15T17:14:47Z
+- commits:
+    - hash: 7cc520295ce6bb31c0273e92e3ecccf0c7d46996
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        connects-to: "#61"
+- commits:
+    - subject: VersionBot config update for automatic Cargo.toml version bump
+- commits:
+    - body: null
+- commits:
+    - hash: 58351cf6053258dc4dba6a10340492502f41cf54
+- commits:
+    - author: majorz
+- commits:
+    - subject: Catching up with rustfmt v0.9.0
+- commits:
+    - body: null
+- version: 0.3.0
+- date: 2017-06-01T13:51:36Z
+- commits:
+    - hash: 3ca2d9d72a04238d0bb390ad079f6601369a22ed
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - subject: Export publicly ConnectionState and DeviceState
+- commits:
+    - body: null
+- commits:
+    - hash: 36ea323aac416e3fa156693d0384f7cc6e3f81a3
+- commits:
+    - author: Zahari Petkov
+- commits:
+    - subject: Merge branch 'master' into 70-pub-export-enums
+- commits:
+    - body: null
+- version: 0.2.4
+- date: 2017-06-01T13:37:11Z
+- commits:
+    - hash: 7ace1035089ec88e8f5dd0a9a68fea52f39b89ce
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Clean up clippy warnings
+- commits:
+    - body: null
+- commits:
+    - hash: 33ba19532afe53bdc02063e62bbded9dcd029925
+- commits:
+    - author: majorz
+- commits:
+    - subject: "`warn!` on undefined NM enums and adding missing device types and
+        states"
+- commits:
+    - body: null
+- version: 0.2.3
+- date: 2017-05-31T09:34:04Z
+- commits:
+    - hash: b3ffefaa10075da9bd99edaee2935e38ee2e820b
+- commits:
+    - author: majorz
+- commits:
+    - subject: Do not force `cargo install rustfmt`
+- commits:
+    - body: null
+- commits:
+    - hash: 2ac29c6250fc990930a81558e474b84af8a99baf
+- commits:
+    - author: majorz
+- commits:
+    - subject: Remove a PATH export in Travis CI
+- commits:
+    - body: null
+- commits:
+    - hash: 2d020f16ae58b6a7ae1ca6867fae75169d0d51c7
+- commits:
+    - author: majorz
+- commits:
+    - subject: Use clippy as a cargo subcommand and use an `if`, so that exit statuses
+        are not obscured
+- commits:
+    - body: null
+- commits:
+    - hash: 9a567928dcecbe7bee185bb8bdf6af491c2272bf
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Treat clippy warnings as errors
+- commits:
+    - body: null
+- commits:
+    - hash: 8137b476d2606e24de452db9953ca2077cadf628
+- commits:
+    - author: majorz
+- commits:
+    - subject: Cargo version bump
+- commits:
+    - body: null
+- version: 0.2.2
+- date: 2017-05-31T08:37:25Z
+- commits:
+    - hash: 8a3a795ad85fbc01be730eeac5ad4a7c933a26f2
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Logging in critical places of the library
+- commits:
+    - body: null
+- version: 0.2.1
+- date: 2017-05-30T10:26:33Z
+- commits:
+    - hash: d073e48f32bf15c6747dd7544b634856e139190d
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - subject: Custom rustfmt.toml settings for better auto-formatting
+- commits:
+    - body: null
+- version: 0.2.0
+- date: 2017-05-23T08:16:31Z
+- commits:
+    - hash: ca55a3e088e857b4ccea5bc19a996d83a71c36e2
+- commits:
+    - author: majorz
+- commits:
+    - subject: Wait and retry on org.freedesktop.NetworkManager.UnknownConnection
+        errors since the NetworkManager service may need some time to enter into
+        a proper state.
+- commits:
+    - body: null
+- commits:
+    - hash: 5ceca896dd22021ba2806858696e965e3a2051f4
+- commits:
+    - author: majorz
+- commits:
+    - subject: Do not keep fields in Connection and Device structs that change over
+        time, since that makes them harder to manage internally and leads easier
+        to bugs. Add some sleep in the network manager tests that can bring the
+        NetworkManager into unstable state for some time (we need to improve how
+        we handle those cases later).
+- commits:
+    - body: null
+- commits:
+    - hash: 56e19a570e18dd5d83b734c2fddf51674c14c412
+- commits:
+    - author: majorz
+- commits:
+    - subject: Force install latest rustfmt version in Travis
+- commits:
+    - body: null
+- commits:
+    - hash: 731dbf7e9804f6c4fd8d3d999d902f7ceb2bd443
+- commits:
+    - author: majorz
+- commits:
+    - subject: Rename the manager module and NetworkManager
+- commits:
+    - body: Rename the `manager` module to `dbus_nm` and `NetworkManager` to
+        `DBusNetworkManager` to leave space for the upcoming
+        `manager::NetworkManager`.
+- commits:
+    - hash: 94f5cb0310c08e3cb691b11e0f3c4cb9e906abc0
+- commits:
+    - author: majorz
+- commits:
+    - subject: Splitting the DBus code into generic and NM oriented modules
+- commits:
+    - body: null
+- commits:
+    - hash: 1a2cb2f97bd4d10e04ef3e28264bc3dc7d77b9f9
+- commits:
+    - author: majorz
+- commits:
+    - subject: Import fix in the device doctests
+- commits:
+    - body: null
+- commits:
+    - hash: f7ca482babcce07f6ef825e6a5b477085c28dd8a
+- commits:
+    - author: majorz
+- commits:
+    - footers:
+        change-type: minor
+- commits:
+    - subject: "New public API (spec in #58)"
+- commits:
+    - body: null
+- commits:
+    - hash: 446207ffa03e5a50113ffdecc5b5e719820eba25
+- commits:
+    - author: majorz
+- commits:
+    - subject: NetworkManager::get_device_by_interface and usage in the hotspot example
+- commits:
+    - body: null
+- commits:
+    - hash: e462bb47d0701647c3a9964e4250e3e92a78d7fd
+- commits:
+    - author: majorz
+- commits:
+    - subject: Vec::with_capacity instead of Vec::new
+- commits:
+    - body: null
+- commits:
+    - hash: 43c55ff569c7aaefb2cf853b776e86d437ddcafd
+- commits:
+    - author: majorz
+- commits:
+    - subject: "`environment` typo"
+- commits:
+    - body: null
+- commits:
+    - hash: c9dd55bd9f8223cb71b8953628de8fec8876be7a
+- commits:
+    - author: majorz
+- commits:
+    - subject: Passing slices as arguments instead of `Vec`s in the dbus handling code
+- commits:
+    - body: null
+- commits:
+    - hash: db8157716b517ee90ff0cd6896a5b80c5b3b14c3
+- commits:
+    - author: majorz
+- commits:
+    - subject: Cleaning up the DBusApi::call_with_args method
+- commits:
+    - body: null
+- commits:
+    - hash: 10fa8ca053ccccd17d7a8a15e861f775f48f21e0
+- commits:
+    - author: majorz
+- commits:
+    - subject: Simplifying the result of DBusApi::create_and_send_message
+- commits:
+    - body: null
+- commits:
+    - hash: 037fcf7179677e893af160ecad6aa5db02263b7e
+- commits:
+    - author: majorz
+- commits:
+    - subject: DBusApi::method_retry_error_names is now a static slice reference
+- commits:
+    - body: null
+- commits:
+    - hash: c3cd9be4657ef21ee1b0350b77647df40c71a008
+- commits:
+    - author: majorz
+- commits:
+    - subject: Consts in dbus_nm do not have to be public
+- commits:
+    - body: null
+- commits:
+    - hash: 80ff520cab84b407b8d0f0662244928e85600c63
+- commits:
+    - author: majorz
+- commits:
+    - subject: Consts in dbus_api do not have to be public
+- commits:
+    - body: null
+- commits:
+    - hash: c0d4710d05f8271ce0710e0b6a31504fa065b340
+- commits:
+    - author: majorz
+- commits:
+    - subject: Shortening variant conversions
+- commits:
+    - body: null
+- commits:
+    - hash: 0eb68c0d819ae3ff930f5847dd0ea40c6bdd900a
+- commits:
+    - author: majorz
+- commits:
+    - subject: Making add_val and add_str more generic
+- commits:
+    - body: null
+- commits:
+    - hash: d3a62c5c5a1e87044f72330a10f2cd27b26eff2a
+- commits:
+    - author: majorz
+- commits:
+    - subject: Discarding enum_from_primitive
+- commits:
+    - body: null
+- commits:
+    - hash: 6342d7d012bfd0512df69bf1984958402c6f73bf
+- commits:
+    - author: majorz
+- commits:
+    - subject: "`Vec::with_capacity` in the device module"
+- commits:
+    - body: null
+- commits:
+    - hash: d7398890b9b63e6d38240b9c06d5b7ab6d7487c2
+- commits:
+    - author: majorz
+- commits:
+    - subject: Formatting
+- commits:
+    - body: null
+- commits:
+    - hash: e9325f74771220b7c9bc6d2bf1e167bb9621a1b2
+- commits:
+    - author: majorz
+- commits:
+    - subject: Passwords should be Ascii
+- commits:
+    - body: null
+- commits:
+    - hash: 71c3125a802115402b96d2bfe4930db3bc944c36
+- commits:
+    - author: majorz
+- commits:
+    - subject: Removing the RefCell of the shared instance
+- commits:
+    - body: null
+- commits:
+    - hash: 8489adfc688e181664f2a59adee815fbe5c23c29
+- commits:
+    - author: majorz
+- commits:
+    - subject: Capitalize ASCII typo
+- commits:
+    - body: null
+- commits:
+    - hash: ade05811c7c08040eb56834d56c4e97e28aceada
+- commits:
+    - author: majorz
+- commits:
+    - subject: Using '?' instead of `try!`
+- commits:
+    - body: null
+- commits:
+    - hash: 1dabf0fe89285cd0fc25bfdda428dd691e27303e
+- commits:
+    - author: majorz
+- commits:
+    - subject: Structs for proper SSID interpretation as byte sequence
+- commits:
+    - body: null
+- commits:
+    - hash: d27b1c4ce24116770e0d78046db468d4d3ba3c26
+- commits:
+    - author: majorz
+- commits:
+    - subject: Moved the SSID structs and traits in a dedicated `ssid` module
+- commits:
+    - body: null
+- commits:
+    - hash: a53bd60fc45ec0f5fe4614f92e104673f8bf66b2
+- commits:
+    - author: majorz
+- commits:
+    - subject: Password verification length typo
+- commits:
+    - body: null
+- commits:
+    - hash: 595e843f19c0323f9df5efca01f6aa56a2058e90
+- commits:
+    - author: majorz
+- commits:
+    - subject: Export the AccessPoint struct
+- commits:
+    - body: null
+- version: 0.1.0
+- date: 2017-05-03T15:44:31Z
+- commits:
+    - hash: 609c95b0dd50a2593bd939db23d3d45f554df7e1
+- commits:
+    - author: Joseph Roberts
+- commits:
+    - footers:
+        change-type: patch
+- commits:
+    - footers:
+        signed-off-by: Joseph Roberts <joe@resin.io>
+- commits:
+    - subject: Integrate versionbot
+- commits:
+    - body: null
+- commits:
+    - hash: 242ca588331c70aade3ba09f44c140fd5fc89286
+- commits:
+    - author: zahari
+- commits:
+    - subject: Starting a hotspot + example
+- commits:
+    - body: null
+- commits:
+    - hash: 05873433d6897d858ec0c8eb92f6b069c184d2ad
+- commits:
+    - author: zahari
+- commits:
+    - subject: Open hotspot support and optional Wi-Fi interface argument for the
+        hotspot example
+- commits:
+    - body: null
+- commits:
+    - hash: b24915e261d0b0284666c88d4860b55058193b8a
+- commits:
+    - author: zahari
+- commits:
+    - subject: Moving all mod.rs files as top level source files
+- commits:
+    - body: null
+- commits:
+    - hash: d8e7b6e0dfb0d2bafe818c8ee4d00b1e79d9b0d5
+- commits:
+    - author: zahari
+- commits:
+    - subject: Device enable and disable
+- commits:
+    - body: null
+- commits:
+    - hash: 1a54549fe42c247829443d82d6ace56279efaeb7
+- commits:
+    - author: zahari
+- commits:
+    - subject: Connect/disconnect test for devices
+- commits:
+    - body: null
+- commits:
+    - hash: b003aab897fcbf5f9d376d2685a3630a6f55123f
+- commits:
+    - author: zahari
+- commits:
+    - subject: Testing the wifi device in the device module tests
+- commits:
+    - body: null
+- commits:
+    - hash: b4022dfd62e1319f1f6ce7c6a9df5a7fa697b7e3
+- commits:
+    - author: zahari
+- commits:
+    - subject: Disabling the device connect doctest, since it breaks occasionally
+- commits:
+    - body: null
+- commits:
+    - hash: a8201966c3d1cd4fdc21c3e832345f4b718f5ec3
+- commits:
+    - author: zahari
+- commits:
+    - subject: WiFi scan implementation
+- commits:
+    - body: null
+- commits:
+    - hash: 70935ce2d235cf0c05e201ec32c357e54ce51fbf
+- commits:
+    - author: zahari
+- commits:
+    - subject: Convert `match` statements to the corresponding Option and Result methods
+- commits:
+    - body: null
+- commits:
+    - hash: 069966df7e6c836510326bd6ec5ab81dd3fb8f54
+- commits:
+    - author: zahari
+- commits:
+    - subject: Formatting fix for the device module
+- commits:
+    - body: null
+- commits:
+    - hash: c2539e16997d3196c79197e451501dfb6e3153e0
+- commits:
+    - author: zahari
+- commits:
+    - subject: Using `RefArg` instead of `MessageItem` for passing method arguments
+        when using dbus-rs
+- commits:
+    - body: null
+- commits:
+    - hash: e54eb6750e35e973f32adc6f64162df4e86683d1
+- commits:
+    - author: zahari
+- commits:
+    - subject: Fixed broken `variant_to_string` on previous refactoring
+- commits:
+    - body: null
+- commits:
+    - hash: 33eedb99628d4197e6bb050f8261380ab952a04b
+- commits:
+    - author: zahari
+- commits:
+    - subject: "`wifi::scan` not scanning all devices, but one passed as argument"
+- commits:
+    - body: null
+- commits:
+    - hash: 83465c608e5489b19598545a0e92b86e9575f9ff
+- commits:
+    - author: zahari
+- commits:
+    - subject: Create WiFi connection implementation with corresponding example code
+- commits:
+    - body: null
+- commits:
+    - hash: 9bb6db320a96fa04918acce9abd7a5c7784ea4e6
+- commits:
+    - author: zahari
+- commits:
+    - subject: Using an iterator instead of for loop in the `create` example
+- commits:
+    - body: null
+- commits:
+    - hash: 1cf96a4fcb0b9c57d0c54b0efa81890487669fb2
+- commits:
+    - author: zahari
+- commits:
+    - subject: Removing the unused `real` property of the `Device` struct
+- commits:
+    - body: null
+- commits:
+    - hash: e6451eb9177254ce615e4e3b9dd6d5fd025d60fa
+- commits:
+    - author: zahari
+- commits:
+    - subject: All the code using now the `manager` d-bus facade
+- commits:
+    - body: We are still using the old D-Bus handling code together with the new one
+        and now we are cleaning it all up and making it consistent. I also
+        renamed the `general` module to `status` module, since at the end of the
+        cleanup this is the functionality which ended up there.
+- commits:
+    - hash: bf285d1e8e0307747f87776d9b7c15dafd1bab87
+- commits:
+    - author: zahari
+- commits:
+    - subject: Isolating dbus-rs usage while fixing connection functionality
+- commits:
+    - body: A new module is introduced with the intention of creating additional
+        facade isolating the usage of dbus-rs. All returned values and arguments
+        of the new module API are standard Rust structs or our own structs.
+        Internally usage of dbus-rs is improved by using different language
+        features. More complete error handling is introduced with the new
+        module.
+- commits:
+    - hash: 324edb04de0cc0686b038fb2a222c447fdb1bcf3
+- commits:
+    - author: zahari
+- commits:
+    - subject: Consistent and more flat doctests for connection
+- commits:
+    - body: null
+- commits:
+    - hash: 5a2f221d923d1ce45ada9c109c43256df739088b
+- commits:
+    - author: zahari
+- commits:
+    - subject: Removing failing assert in connection::list on deleted connection
+- commits:
+    - body: null
+- commits:
+    - hash: 3f99d89bfab0bfbe92d525b920000cad368ef428
+- commits:
+    - author: zahari
+- commits:
+    - subject: Function `new` introduced in the `manager` module for consistency
+- commits:
+    - body: null
+- commits:
+    - hash: 80abe22edbd2b89395f6150b9abb0d036779d98b
+- commits:
+    - author: zahari
+- commits:
+    - subject: List devices function
+- commits:
+    - body: null
+- commits:
+    - hash: eb6a975adacd5fa0a3db94cf3b7ac2c4c4294591
+- commits:
+    - author: zahari
+- commits:
+    - subject: Running cargo-fmt
+- commits:
+    - body: null
+- commits:
+    - hash: b7b7f3dff680df40cc432fd0e6b0d8b84d5e8e4e
+- commits:
+    - author: zahari
+- commits:
+    - subject: Fixing failing doctests
+- commits:
+    - body: null
+- commits:
+    - hash: bfcde0604454b53192b8b93978aab59715da962e
+- commits:
+    - author: zahari
+- commits:
+    - subject: Using Rust From trait for converting from D-Bus enum numbers to
+        DeviceState and DeviceType
+- commits:
+    - body: null
+- commits:
+    - hash: 482335f5b70ad57784319bcd81f3b9304a262869
+- commits:
+    - author: zahari
+- commits:
+    - subject: Enabling back the connection::test_enable_disable_functions test
+- commits:
+    - body: null
+- commits:
+    - hash: 3693a23f93ef79bfc788da2d5ccc903cbcf9ab0e
+- commits:
+    - author: zahari
+- commits:
+    - subject: Removing all `inline` hints
+- commits:
+    - body: null
+- commits:
+    - hash: 0134ebb67600de9ca3753391991c6a6264cbffff
+- commits:
+    - author: zahari
+- commits:
+    - subject: Moving DeviceState From implementation to the proper location
+- commits:
+    - body: null
+- commits:
+    - hash: 4fe5378afd05b024ad5cd10ce1956d199f2466d4
+- commits:
+    - author: Yossi Eliaz
+- commits:
+    - footers:
+        signed-off-by: Yossi Eliaz <yossi@resin.io>
+- commits:
+    - subject: Added support to retrieve wifi ssid from environment
+- commits:
+    - body: |-
+        The wifi connect/disconnect unit test function gets
+        the ssid interface from the environment variable
+        TEST_WIFI_SSID.
+- commits:
+    - hash: 74bfe891c4a64b8b3a1b591be5298cb99a2c2e59
+- commits:
+    - author: Joseph Roberts
+- commits:
+    - subject: Refactored - error handling and signal handlers
+- commits:
+    - body: null
+- commits:
+    - hash: afdf5bea7c8c945b409fca3e6a158b67fe1a318f
+- commits:
+    - author: Joseph Roberts
+- commits:
+    - subject: Fixed an error caught by clippy
+- commits:
+    - body: null
