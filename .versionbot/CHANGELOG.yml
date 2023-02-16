@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add new AP security flags from NetworkManager
+      hash: a32a9db4576a7709703185b5485a8b89f27c77f2
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 0.13.1
+  title: ""
+  date: 2023-02-16T13:40:43.813Z
+- commits:
     - subject: Replace resin references with balena
       hash: 847cca363791df077984d32eac39969a7bf3288d
       body: ""
