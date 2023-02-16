@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove unused VERSION file
+      hash: dc1730761a6265819080d12a6232073a3af4e957
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 0.13.3
+  title: ""
+  date: 2023-02-16T17:56:08.623Z
+- commits:
     - subject: Switch repo type to `rust-module` to enable auto cargo versioning
       hash: 969119d285ede7959adf82f2ec9e377cb1f7d078
       body: ""
