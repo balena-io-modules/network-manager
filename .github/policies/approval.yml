@@ -1,0 +1,177 @@
+policy:
+  approval:
+    - or:
+        - reviewers have approved
+        - reviewers have approved fork
+        - has renovate minor labels
+        - has renovate patch labels
+        - has renovate digest labels
+        - has label no-review
+approval_rules:
+  - name: reviewers have approved
+
+    if:
+      # "from_branch" is satisfied if the source branch of the pull request
+      # matches the regular expression. Note that source branches from forks will
+      # have the pattern "repo_owner:branch_name"
+      #
+      # Note: Double-quote strings must escape backslashes while single/plain do not.
+      # See the Notes on YAML Syntax section of this README for more information.
+      from_branch:
+        pattern: "^[^:]+$"
+
+    requires:
+      # "count" is the number of required approvals. The default is 0, meaning no
+      # approval is necessary.
+      count: 1
+
+      # A user must have at least the minimum permission in this list for their
+      # approval to count for this rule. Valid permissions are "admin", "maintain",
+      # "write", "triage", and "read".
+      permissions: ["write"]
+
+    options:
+      # If true, approvals by the author of a pull request are considered when
+      # calculating the status. False by default.
+      allow_author: true
+
+      # If true, the approvals of someone who has committed to the pull request are
+      # considered when calculating the status. The pull request author is considered
+      # a contributor. If allow_author and allow_contributor would disagree, this option
+      # always wins. False by default.
+      allow_contributor: true
+
+      # If true, pushing new commits to a pull request will invalidate existing
+      # approvals for this rule. False by default.
+      invalidate_on_push: false
+
+      methods:
+        # If a comment contains a string in this list, it counts as approval. Use
+        # the "comment_patterns" option if you want to match full comments. The
+        # default values are shown.
+        comments: []
+
+        # If a comment matches a regular expression in this list, it counts as
+        # approval. Defaults to an empty list.
+        #
+        # Note: Double-quote strings must escape backslashes while single/plain do not.
+        comment_patterns:
+          - "^(?i)acked(-| )by:?\\s+" # eg. Acked-by: , acked by
+          - "^(?i)(@balena-ci\\s+)?i self-certify!?$" # eg. @balena-ci I self-certify!, i self-certify
+          - "^(?i)(@balena-ci\\s+)?approve this please!?$" # eg. @balena-ci Approve this please!, approve this please
+          - "^(?i)lgtm!?$" # eg. LGTM, lgtm, Lgtm
+
+        # If true, GitHub reviews can be used for approval. All GitHub review approvals
+        # will be accepted as approval candidates. Default is true.
+        github_review: true
+
+  - name: reviewers have approved fork
+
+    if:
+      # "from_branch" is satisfied if the source branch of the pull request
+      # matches the regular expression. Note that source branches from forks will
+      # have the pattern "repo_owner:branch_name"
+      #
+      # Note: Double-quote strings must escape backslashes while single/plain do not.
+      # See the Notes on YAML Syntax section of this README for more information.
+      from_branch:
+        pattern: "^.+:.+$"
+
+    requires:
+      # "count" is the number of required approvals. The default is 0, meaning no
+      # approval is necessary.
+      count: 1
+
+      # A user must be in the list of users or belong to at least one of the given
+      # organizations or teams for their approval to count for this rule.
+      # users: ["user1", "user2"]
+      organizations:
+        - "balena-fleetops"
+        - "balena-io"
+        - "balena-io-examples"
+        - "balena-io-experimental"
+        - "balena-io-hardware"
+        - "balena-io-incubator"
+        - "balena-io-library"
+        - "balena-io-modules"
+        - "balena-io-projects"
+        - "balena-io-security"
+        - "balena-labs-projects"
+        - "balena-labs-research"
+        - "balena-os"
+        - "balenalabs"
+        - "balenalabs-incubator"
+        - "balenaltd"
+        - "company-os"
+        - "people-os"
+        - "product-os"
+        - "product-os-test"
+      teams:
+        - "balena-fleetops/balena-dev"
+        - "balena-io/balena-dev"
+        - "balena-io-examples/balena-dev"
+        - "balena-io-experimental/balena-dev"
+        - "balena-io-hardware/balena-dev"
+        - "balena-io-library/resin-dev"
+        - "balena-io-modules/balena-dev"
+        - "balena-labs-projects/balena-dev"
+        - "balena-labs-research/balena-dev"
+        - "balena-os/balena-dev"
+        - "balenablocks/balena"
+        - "company-os/balena-dev"
+        - "people-os/balena-dev"
+        - "product-os/balena-dev"
+
+    options:
+
+      # If true, approvals by the author of a pull request are considered when
+      # calculating the status. False by default.
+      allow_author: true
+
+      # If true, the approvals of someone who has committed to the pull request are
+      # considered when calculating the status. The pull request author is considered
+      # a contributor. If allow_author and allow_contributor would disagree, this option
+      # always wins. False by default.
+      allow_contributor: true
+
+      # If true, pushing new commits to a pull request will invalidate existing
+      # approvals for this rule. False by default.
+      invalidate_on_push: true
+
+      methods:
+        # Do not allow approvals by comments in order to avoid author spoofing
+        comments: []
+
+        # If true, GitHub reviews can be used for approval. All GitHub review approvals
+        # will be accepted as approval candidates. Default is true.
+        github_review: true
+
+  - name: has renovate minor labels
+    if:
+      # "has_labels" is satisfied if the pull request has the specified labels
+      has_labels:
+        - "renovate"
+        - "dependencies"
+        - "minor"
+
+  - name: has renovate patch labels
+    if:
+      # "has_labels" is satisfied if the pull request has the specified labels
+      has_labels:
+        - "renovate"
+        - "dependencies"
+        - "patch"
+
+  - name: has renovate digest labels
+    if:
+      # "has_labels" is satisfied if the pull request has the specified labels
+      has_labels:
+        - "renovate"
+        - "dependencies"
+        - "digest"
+
+  - name: has label no-review
+    # "has_labels" is satisfied if the pull request has the specified labels
+    if:
+      has_labels:
+        - "no-review"
