@@ -1,4 +1,18 @@
 - commits:
+    - subject: Switch repo type to `rust-module` to enable auto cargo versioning
+      hash: 969119d285ede7959adf82f2ec9e377cb1f7d078
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 0.13.2
+  title: ""
+  date: 2023-02-16T17:20:05.559Z
+- commits:
     - subject: Add new AP security flags from NetworkManager
       hash: a32a9db4576a7709703185b5485a8b89f27c77f2
       body: ""
