@@ -1,4 +1,16 @@
 - commits:
+    - subject: Replace resin references with balena
+      hash: 847cca363791df077984d32eac39969a7bf3288d
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: maggie0002
+      nested: []
+  version: 0.13.0
+  title: ""
+  date: 2023-02-16T13:33:29.813Z
+- commits:
     - subject: Add missing NMDeviceTypes
       hash: f5c1d8a4a863b9ebd036bc5990def2c0baddc0e7
       body: ""
