@@ -130,6 +130,15 @@ pub enum DeviceType {
     Veth,
     Macsec,
     Dummy,
+    Ppp,
+    OvsInterface,
+    OvsPort,
+    OvsBridge,
+    Wpan,
+    Lowpan,
+    Wireguard,
+    WifiP2p,
+    Vrf,
 }
 
 impl From<i64> for DeviceType {
@@ -158,6 +167,15 @@ impl From<i64> for DeviceType {
             20 => DeviceType::Veth,
             21 => DeviceType::Macsec,
             22 => DeviceType::Dummy,
+            23 => DeviceType::Ppp,
+            24 => DeviceType::OvsInterface,
+            25 => DeviceType::OvsPort,
+            26 => DeviceType::OvsBridge,
+            27 => DeviceType::Wpan,
+            28 => DeviceType::Lowpan,
+            29 => DeviceType::Wireguard,
+            30 => DeviceType::WifiP2p,
+            31 => DeviceType::Vrf,
             _ => {
                 warn!("Undefined device type: {}", device_type);
                 DeviceType::Unknown
