@@ -253,6 +253,18 @@ impl DBusNetworkManager {
                 settings.insert("802-11-wireless-security".to_string(), security_settings);
                 settings.insert("802-1x".to_string(), eap);
             }
+            AccessPointCredentials::Sae { ref passphrase } => {
+                let mut security_settings: VariantMap = HashMap::new();
+
+                add_str(&mut security_settings, "key-mgmt", "sae");
+                add_str(
+                    &mut security_settings,
+                    "psk",
+                    verify_ascii_password(passphrase)?,
+                );
+
+                settings.insert("802-11-wireless-security".to_string(), security_settings);
+            }
             AccessPointCredentials::None => {}
         };
 
