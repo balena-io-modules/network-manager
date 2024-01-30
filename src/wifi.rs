@@ -94,6 +94,7 @@ bitflags! {
         const WPA          = 0b0000_0010;
         const WPA2         = 0b0000_0100;
         const ENTERPRISE   = 0b0000_1000;
+        const WPA3         = 0b0001_0000;
     }
 }
 
@@ -108,6 +109,9 @@ pub enum AccessPointCredentials {
     },
     Enterprise {
         identity: String,
+        passphrase: String,
+    },
+    Sae {
         passphrase: String,
     },
 }
@@ -213,6 +217,9 @@ fn get_access_point_security(manager: &DBusNetworkManager, path: &str) -> Result
 
     if rsn_flags != NM80211ApSecurityFlags::AP_SEC_NONE {
         security |= Security::WPA2;
+    }
+    if rsn_flags.contains(NM80211ApSecurityFlags::AP_SEC_KEY_MGMT_SAE) {
+        security |= Security::WPA3;
     }
 
     if wpa_flags.contains(NM80211ApSecurityFlags::AP_SEC_KEY_MGMT_802_1X)
